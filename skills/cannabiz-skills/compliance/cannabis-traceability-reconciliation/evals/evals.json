@@ -5,12 +5,12 @@
       "id": 1,
       "name": "clean-mi-month-end",
       "prompt": "Month-end. Attached is our Metrc active packages export (pulled 9/30 6pm) and the physical count our team did 9/30 after close. We're a Michigan grower + processor. Why don't these match and what do we need to do?",
-      "expected_output": "A reconciliation report with a jurisdiction block for Michigan, the confirmed column mapping, script-computed variances (net weight -23.792 g; Gummies +12 each; Live Resin -2 each), the tag typo flagged (…0011 vs …0110), pre-roll UoM mismatch not converted, trim package not counted, unknown preroll pack counted but not in system, likely causes with confidence, draft (not submitted) actions, no invented MI adjustment reason codes or deadlines, and a sign-off block.",
+      "expected_output": "A reconciliation report with a jurisdiction block for Michigan, the confirmed column mapping, script-computed variances (net weight -23.792 g; Gummies +12 each; Live Resin -2 each), the likely tag typo (…0011 vs …0110) raised from the script's near-match note while both rows stay open as COUNTED_NOT_IN_SYSTEM / IN_SYSTEM_NOT_COUNTED until the physical label is checked, pre-roll UoM mismatch not converted, trim package not counted, unknown preroll pack counted but not in system, likely causes with confidence, draft (not submitted) actions, no invented MI adjustment reason codes or deadlines, and a sign-off block.",
       "files": ["evals/files/metrc_active_packages.csv", "evals/files/physical_count_2026-09-30.csv"],
       "assertions": [
         "Reports net weight variance of -23.792 g (or -23.8 g) consistent with the script output",
         "Identifies 1A4060300003B21000000102 as a match-after-unit-conversion question: 1 lb vs 447.9 g gives -5.692 g, not a 446.9-unit difference",
-        "Flags 1A4060300003B21000000011 / ...110 as a probable tag typo rather than two separate losses",
+        "Flags 1A4060300003B21000000011 / ...110 as a probable tag typo to confirm against the physical label, without closing either row or counting it as two confirmed losses before that check",
         "Does not convert the Pre-Roll 1g 'each' vs 'g' rows; asks for per-unit weight or recount",
         "Treats Gummies +12 over-count and the counted-not-in-system package as high priority (possible untracked product)",
         "Does not state a specific Michigan adjustment reason code, deadline, or threshold unless cited with a source",
@@ -42,6 +42,23 @@
         "Asks for both source files (traceability export and count/ERP) with as-of times",
         "Does not provide a specific Metrc adjustment reason or state deadline",
         "Explicitly advises against adjusting to force a match before finding the cause"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "regression-duplicates-blank-units-rounding",
+      "prompt": "Can you reconcile our Metrc export against this count sheet? Both pulled 10/31 at 5pm. We're a Michigan grower. Some people double-entered rows on the count sheet and a couple of unit cells are empty.",
+      "expected_output": "Runs the script with no default units (none were stated). Reports ...301 count rows 500 g + 1.1 lb summed after converting to g (998.951 g, SHORT_IN_COUNT -1.0488 g); ...302 two identical 50 ea rows summed and called out as a possible copy-paste duplicate; ...303 (blank quantity + 500 g) and ...304 (12 ea + 300 g) as DUPLICATE_CONFLICT with each row listed and no quantity compared; ...305 (blank count unit) and ...320 (blank system unit) as MISSING_UNIT with no unit borrowed from the other file; ...306 (2 lb vs 907.2 g, +0.016 g) as MATCH within unit-conversion rounding; ...307 (1 lb vs 453.0 g) as a real -0.592 g shortfall; ...311 / ...313 kept as IN_SYSTEM_NOT_COUNTED and COUNTED_NOT_IN_SYSTEM with a near-match note, the counted-not-in-system row ranked high priority. Net weight -1.6248 g on 4 quantity-compared packages (system_total_compared 2360.776 g, -0.069%), with the not-compared rows listed next to the total reading. Every input_problems line appears in the report; asks the operator for the missing units and to fix the duplicate rows before rerunning.",
+      "files": ["evals/files/regression_metrc_packages.csv", "evals/files/regression_count_sheet.csv"],
+      "assertions": [
+        "Reports ...301 as summed after converting to grams (998.951 g) and SHORT_IN_COUNT by 1.0488 g, not as a 500 g or 1.1 unit count",
+        "Calls out ...302 as two identical rows that were summed and may be a copy-paste duplicate",
+        "Reports ...303 and ...304 as DUPLICATE_CONFLICT, lists each row's quantity and unit, and does not state a variance for them",
+        "Reports ...305 and ...320 as MISSING_UNIT, names which file's unit is blank, and does not assume grams or pounds for the blank side",
+        "Treats ...306 (2 lb vs 907.2 g) as a match within unit-conversion rounding and ...307 (1 lb vs 453.0 g) as a -0.592 g shortfall",
+        "Keeps ...311 and ...313 as separate open variances (not counted / counted not in system) and mentions the possible tag typo only as something to check on the label",
+        "States the net weight variance as -1.6248 g (or -1.6 g) on quantity-compared packages and lists the packages left out of that total",
+        "Includes every input_problems entry in the report"
       ]
     }
   ]

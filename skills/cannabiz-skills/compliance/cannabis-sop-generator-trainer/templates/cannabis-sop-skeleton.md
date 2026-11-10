@@ -63,7 +63,7 @@ Only terms that need it. If this section runs long, the SOP is written at the wr
 *(Required if this process touches cash, inventory, or product quality. Delete this section only if none apply, and say so explicitly rather than leaving it blank.)*
 
 - Reconciliation cadence:
-- Variance threshold that triggers investigation:
+- Variance threshold that triggers investigation: (operator's number; if unknown, write "CONFIRM: [state rule or equipment tolerance]")
 - Escalation protocol (who, how fast, what documentation):
 - Where the outcome is recorded:
 
@@ -71,7 +71,7 @@ Only terms that need it. If this section runs long, the SOP is written at the wr
 
 - Records this procedure produces:
 - Where stored:
-- Retention period: (commonly 2-7 years depending on state and record type; confirm)
+- Retention period: (ask; if unknown, write "CONFIRM: retention period for this record type in [state]")
 - Who has access / can modify:
 
 ## 9. Training Requirements

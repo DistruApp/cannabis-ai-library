@@ -21,13 +21,14 @@
       "id": 2,
       "name": "promo-spike-and-new-sku",
       "prompt": "we ran a labor day sale 9/1 on GMO Cookies, pull 35 days of sales so that's included. also the Runtz smalls just launched. same files. 7 day lead time if missing, no safety stock.",
-      "expected_output": "Runs with --window-days 35 so 9/1 is included, recognizes the GMO Cookies velocity is inflated by the 40-unit promo day and either reruns excluding it or explains the effect; treats NB-SM-14 velocity as provisional (NEW_SKU, 11 days); uses safety_days=0 as operator-provided, not as an assumption.",
+      "expected_output": "Runs with --window-days 35 so 9/1 is included, recognizes the GMO Cookies velocity is inflated by the 40-unit promo day and either reruns excluding it or explains the effect; treats NB-SM-14 velocity as provisional (NEW_SKU, 11 days); uses safety_days=0 as operator-provided, not as an assumption. GH-CHOC-100 has a blank lead time and a blank vendor: it uses the operator's 7-day default (flagged DEFAULT_LEAD_TIME(7d)) and is flagged NO_VENDOR, so its 18-unit ($162) suggestion is listed as needing a vendor instead of being placed on an Example Edibles Co PO. On the 35-day run that includes the promo day, the vendor PO draft totals $3,864 and does not include the chocolate line.",
       "files": ["evals/files/pos_sales_2026-08-02_to_2026-09-30.csv", "evals/files/onhand_2026-09-30.csv"],
       "assertions": [
         "Uses a 35-day window ending 2026-09-30",
         "Calls out that the 9/1 promo spike inflates GMO Cookies velocity and asks whether it will repeat or shows the result without it",
         "Labels Runtz smalls velocity as provisional due to limited history",
-        "Does not invent an industry sell-through or days-of-supply benchmark"
+        "Does not invent an industry sell-through or days-of-supply benchmark",
+        "Does not put GH-CHOC-100 on a vendor's PO by assuming its brand is the vendor; asks who supplies it and notes its lead time is the operator's 7-day default"
       ]
     },
     {
@@ -41,6 +42,22 @@
         "Notes there is no SKU column and proposes using product name with the SKU-churn caveat",
         "Asks for lead times (and safety/cover days) in a single combined question",
         "Does not present order quantities based on invented lead times"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "regression-duplicate-rows-lead-time-text-vendor",
+      "prompt": "Example Corner Dispensary: sales and on-hand attached (sales_regression_2026-09-03_to_2026-09-30.csv, onhand_regression_rows.csv). Use 7 days lead time where it's missing and 2 days safety stock. What should I order?",
+      "expected_output": "Runs with --default-lead-time 7 --safety-days 2. Vendor PO draft is $1,569: Example Distro EX-C 60 units $360 (lead time '2 weeks' read as 14 days); Example Wellness Supply EX-E 42 units $840 (blank lead time, DEFAULT_LEAD_TIME(7d)) and EX-H 41 units $369 (case pack '1 case' unreadable, quantity not rounded). EX-A is not reordered because its two rows sum to 8 on hand and 100 on order. EX-B is held (CONFLICTING_ROWS: unit cost 12 vs 15). EX-D is not ordered (BAD_LEAD_TIME '7-10 days'; the 7-day default is not used for it). EX-G is held (open PO 'TBD'). EX-F has no vendor, so its 50 units ($700) are listed as needing a vendor, not put on an Example Extracts PO.",
+      "files": ["evals/files/sales_regression_2026-09-03_to_2026-09-30.csv", "evals/files/onhand_regression_rows.csv"],
+      "assertions": [
+        "Does not reorder EX-A and explains that the second on-hand row has 100 units on order",
+        "Does not order EX-B and asks which unit cost (12 or 15) is right",
+        "Does not order EX-D using the 7-day default; asks for a single lead time for the '7-10 days' entry",
+        "Does not order EX-G until the 'TBD' open PO is confirmed",
+        "Lists EX-F as needing a vendor rather than assuming the brand is the vendor",
+        "Notes that EX-E uses the 7-day default lead time and EX-H's quantity is not rounded to a case pack",
+        "States a vendor PO draft total of $1,569, marked as a draft not sent to any vendor"
       ]
     }
   ]

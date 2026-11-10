@@ -30,4 +30,4 @@ Operators upload exports from traceability systems, ERPs, and POS systems. Colum
 
 ## Unit normalization
 
-Before comparing quantities, normalize units: g ↔ kg ↔ lb ↔ oz (1 lb = 453.592 g, 1 oz = 28.3495 g), and keep **each** (count-based) items separate from weight-based ones. A count in "each" can't be compared to a weight without a per-unit net weight from the operator. Flag those rows and don't convert them.
+Before comparing quantities, normalize units: g ↔ kg ↔ lb ↔ oz (1 lb = 453.592 g, 1 oz = 28.3495 g), and keep **each** (count-based) items separate from weight-based ones. A count in "each" can't be compared to a weight without a per-unit net weight from the operator. Flag those rows and don't convert them. Never fill a blank unit from the other file.

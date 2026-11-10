@@ -20,6 +20,28 @@ Operators upload exports from traceability systems, ERPs, and POS systems. Colum
 | `packaged_date` | Package date | Packaged Date, Package Date, Created |
 | `unit_cost` | Cost per unit | Unit Cost, Cost, Cost per Unit, COGS/unit |
 
+## Harvest fields (used by `scripts/yield.py`)
+
+The table above covers package and SKU exports. Harvest logs use these fields instead. The script matches the aliases case- and space-insensitively. Use `--map field=Column` for anything else.
+
+| Canonical field | Meaning | Common aliases |
+|---|---|---|
+| `harvest_id` | Harvest batch name | Harvest, Harvest ID, Harvest Name, Harvest Batch, Harvest Batch Name, Batch, Batch ID |
+| `strain` | Strain / cultivar | Strain, Cultivar, Genetics, Item Strain |
+| `room` | Grow room | Room, Location, Grow Room, Flower Room |
+| `harvest_date` | Harvest date | Harvest Date, Date, Harvested, Harvested Date |
+| `plant_count` | Plants harvested | Plant Count, Plants, Plants Harvested, # Plants, Number of Plants |
+| `canopy_sqft` | Canopy square feet | Canopy Sq Ft, Canopy Sqft, Canopy, Sq Ft, Sqft, Canopy (sq ft), Square Feet |
+| `lights` | Light fixtures | Lights, Fixtures, Light Count, # Lights, Number of Lights |
+| `wet_weight` | Wet weight | Wet Weight, Wet, Wet Wt, Total Wet Weight, Fresh Weight |
+| `dry_weight` | Dry weight | Dry Weight, Dry, Dry Wt, Total Dry Weight, Cured Weight |
+| `flower_a` | A flower | A Flower, A-Grade, A Grade, Flower A, Bigs, Top Flower, A Flower Weight |
+| `flower_b` | B flower / smalls | B Flower, Smalls, B Grade, B-Grade, Flower B, Popcorn |
+| `trim` | Trim / shake | Trim, Shake, Trim Weight, Shake/Trim |
+| `waste` | Waste | Waste, Waste Weight, Stems, Plant Waste |
+| `uom` | Weight unit for the row | UoM, Unit, Units, Unit of Measure, Weight Unit |
+| `cycle_cost` | Cost charged to the batch | Cycle Cost, Room Cost, Cost, Total Cost, Cultivation Cost, Direct Cost |
+
 ## Known source systems
 
 | System type | Examples | Notes |

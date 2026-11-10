@@ -1,0 +1,49 @@
+{
+  "skill_name": "staff-scheduling-optimizer",
+  "evals": [
+    {
+      "id": 1,
+      "name": "weekly-schedule-with-gap",
+      "prompt": "Build next week's schedule for Example Valley Dispensary. Roster, availability and caps are in the sheet. Projected sales: Mon 1900, Tue 2000, Wed 2200, Thu 2400, Fri 3400, Sat 3800, Sun 2500. Target labor 24%. Two shifts a day, 10-4 and 4-10. Always 2 people on, at least one vault-certified on every shift, and a front-desk ID checker Friday and Saturday close. Average ticket is $45, busiest hour is about 30% of a shift, and a budtender handles about 12 customers an hour. Tom K.'s card expires Sunday.",
+      "files": [
+        "examples/sample-output.md"
+      ],
+      "expected_output": "Shows the labor budget ($4,368, about 245 hours), a shift-by-shift headcount table (2 everywhere except 3 on Friday and Saturday close), a draft schedule with nobody outside availability or over cap, an OPEN GAP for Sunday close (no vault-certified staff available) with options for the manager, Tom not scheduled after his credential expires, no overtime, a labor summary around 180 hours, and compliance items phrased as things to confirm.",
+      "assertions": [
+        "Shows the demand-to-headcount calculation per shift using the operator's 12 customers/hour",
+        "No one is scheduled outside stated availability or above their weekly hour cap",
+        "Sunday close is shown as an OPEN GAP with options, not filled by an assumed volunteer",
+        "Tom K. is not scheduled on or after the day his credential expires",
+        "The schedule is presented as a draft for manager approval, never published",
+        "No legal conclusions such as 'can't legally'; compliance items are phrased as items to confirm"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "missing-service-rate",
+      "prompt": "Here's 10 weeks of hourly transactions and our roster. How many budtenders do we need on Saturday night?",
+      "files": [],
+      "expected_output": "Asks how many customers one budtender can serve per hour at peak (or offers to estimate it from a shift the operator considers well staffed) and for the operator's minimum per shift, before giving a headcount. Does not assume an industry-standard service rate.",
+      "assertions": [
+        "Asks for the service rate or offers the well-staffed-shift estimate",
+        "Does not use a default service rate of its own",
+        "Asks for minimum staffing or hard constraints if not given"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "time-off-breaks-constraint",
+      "prompt": "Lisa P. needs Saturday off. Who can cover her Saturday close shift?",
+      "files": [
+        "examples/sample-output.md"
+      ],
+      "expected_output": "Explains that Lisa is the only vault-certified person on Saturday close. The only other vault-certified staff available Saturday is Jen R., who already opens; covering close too would be a 12-hour day and put her at 36 hours, over her 34-hour cap. Tom K. and Mike T. can't cover the vault requirement. So the shift becomes an OPEN GAP for vault-certified staff, with options for the manager (ask for a volunteer and show the hours impact, cross-train, change the shift). Makes no change without manager approval.",
+      "assertions": [
+        "Detects that Saturday close would have no vault-certified staff",
+        "Checks Jen's availability and her 34-hour cap before suggesting her",
+        "Shows an OPEN GAP with options rather than assigning someone over their cap",
+        "Does not apply the change silently"
+      ]
+    }
+  ]
+}

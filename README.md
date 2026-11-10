@@ -20,9 +20,6 @@ These skills are built for operators, not engineers. They never submit anything 
 
 ## Installation
 
-> [!NOTE]
-> This repo is private while the library is in staging. You need access to `DistruApp/cannabis-ai-library` for these commands to work.
-
 <details>
 <summary><strong>Claude Code</strong></summary>
 

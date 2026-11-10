@@ -4,7 +4,7 @@ Skill: [`cannabis-batch-cogs`](../../../skills/cannabiz-skills/operations/cannab
 
 ## What it does
 
-Tells a manufacturer what a batch or SKU really costs. A bundled script adds up every input (flower, biomass, distillate, terpenes, hardware, packaging, labels), labor, overhead and lab testing, then shows the line by line cost, cost per finished unit, the cost of yield shortfalls, and a sensitivity table on the top three cost drivers. It refuses to fill in missing rates silently. Every assumed value is listed for the user to confirm.
+Tells a manufacturer what a batch or SKU really costs. A bundled script adds up every input (flower, biomass, distillate, terpenes, hardware, packaging, labels), labor, overhead and lab testing, then shows the line by line cost, cost per finished unit, the cost of yield shortfalls, and a sensitivity table on the top three cost drivers. It refuses to fill in missing rates silently, and it stops to ask "price per what unit?" when a weight or volume input has no price unit. Every assumed value is listed for the user to confirm, and any line built on an assumed value (such as overhead set as a % of materials) is marked as an assumption too.
 
 ## When to use it
 

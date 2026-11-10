@@ -4,7 +4,7 @@ Skill: [`cannabis-transfer-manifest-precheck`](../../../skills/cannabiz-skills/c
 
 ## What it does
 
-Catches shipping mistakes before they leave the building. A bundled script joins the sales order, the draft manifest and the package inventory, then flags packages not on the order, order lines missing from the manifest, quantity or unit mismatches, quantities above what the package holds, packages not in active inventory, duplicate tags and product without a passing lab status. It returns GO or HOLD for each line with the fix needed. Anything it can't check from files, such as whether the receiving license is active or driver and vehicle details, goes on a manual checklist with where to verify it.
+Catches shipping mistakes before they leave the building. A bundled script joins the sales order, the draft manifest and the package inventory, then flags packages not on the order, order lines missing from the manifest, quantity or unit mismatches, quantities above what the package holds, packages not in active inventory, duplicate tags on the manifest or in inventory, blank units and product without a passing lab status. It never fills in a missing unit or picks one of two inventory rows: those lines are held and listed as input problems. It returns GO or HOLD for each line with the fix needed. Anything it can't check from files, such as whether the receiving license is active or driver and vehicle details, goes on a manual checklist with where to verify it.
 
 ## When to use it
 
@@ -22,6 +22,6 @@ Catches shipping mistakes before they leave the building. A bundled script joins
 
 ## Example
 
-**Input:** a 9-line sales order, its draft manifest and the morning package export for a Michigan processor shipping to a retailer.
+**Input:** a 6-line sales order, its 8-line draft manifest and the morning package export for a Michigan processor shipping to a retailer.
 
-**Output:** HOLD, with 8 of 9 lines needing action. Two packages are not lab passed and must be pulled, one line ships more than the package holds, one order line is missing from the manifest, and one package is not in active inventory. Fixes are grouped by owner, followed by the manual verification list and a sign-off line.
+**Output:** HOLD, with 8 of 9 checked lines needing action (the 8 manifest lines plus 1 order line missing from the manifest). Two packages are not lab passed and must be pulled, one line ships more than the package holds, one order line is missing from the manifest, and one package is not in active inventory. Fixes are grouped by owner, followed by the manual verification list and a sign-off line.

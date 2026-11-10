@@ -27,6 +27,19 @@ All figures are per SKU. "Window" = the `--window-days` days ending at `--as-of`
 | `NO_LEAD_TIME` | Selling but no lead time available | Can't compute a reorder point. Ask. |
 | `NO_ONHAND_RECORD` | In sales but not in on-hand file | Mapping or SKU-churn issue. Investigate. |
 | `RETURNS_IN_WINDOW(n)` | Negative units in window | Net velocity reduced |
+| `DEFAULT_LEAD_TIME(Nd)` | Lead time cell blank, `--default-lead-time` used | Confirm the real lead time with the vendor |
+| `BAD_LEAD_TIME` | Lead time cell not readable as days or weeks (e.g. "7-10 days") | No order until a lead time in days is given. The default is not used. |
+| `NO_VENDOR` | Vendor cell blank (and `--vendor-from-brand` not passed) | Line kept off the vendor PO and listed under `lines_needing_vendor`. Ask who supplies it. |
+| `VENDOR_FROM_BRAND` | Vendor blank, filled from brand because the operator confirmed brand = vendor | Listed in assumptions |
+| `CONFLICTING_ROWS(field)` | Duplicate on-hand rows for the SKU disagree on unit cost, case pack, lead time or vendor | No order until the operator says which value is right |
+| `BAD_OPEN_PO` | Open PO cell is not a number | No order: the SKU may already be on order |
+| `BAD_CASE_PACK` | Case pack is not a positive number | Quantity not rounded to a case pack |
+| `BAD_UNIT_COST` | Unit cost is not a number | Order cost blank |
+| `BAD_ONHAND_ROW(row n)` | One of several on-hand rows for the SKU has an unreadable quantity | No order until fixed |
+
+## Duplicate on-hand rows
+
+When the on-hand file lists a SKU more than once (e.g. two rooms or two bins), on-hand and open PO are summed across the rows. Unit cost, case pack, lead time and vendor are used only when the rows agree or only one row has a value. Otherwise the SKU is flagged `CONFLICTING_ROWS` and both values are reported.
 
 ## What the script does not do
 

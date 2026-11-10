@@ -1,6 +1,6 @@
-employee_name,role,hourly_rate,vault_certified_y_n,availability_days,weekly_hour_cap,agent_card_expiration_date,notes
-EXAMPLE Sarah M.,Lead Budtender,19.00,Y,Mon-Fri,34,2027-03-01,Replace with your data
-EXAMPLE Mike T.,Budtender,17.00,N,All days,30,2026-11-15,Replace with your data
+employee_name,role,hourly_rate,vault_certified_y_n,availability_days,weekly_hour_cap,state_credential_expiration_if_required,notes
+EXAMPLE Sarah M.,Lead Budtender,19.00,Y,Mon-Fri,34,YYYY-MM-DD,Replace with your data. Leave the credential date blank if your state doesn't require one.
+EXAMPLE Mike T.,Budtender,17.00,N,All days,30,YYYY-MM-DD,Replace with your data
 ,,,,,,,
 ,,,,,,,
 ,,,,,,,

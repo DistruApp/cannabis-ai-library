@@ -8,9 +8,22 @@ Usage:
                        [--map-sales field=Column ...] [--map-onhand field=Column ...]
                        [--window-days 28] [--as-of YYYY-MM-DD]
                        [--default-lead-time DAYS] [--safety-days N] [--cover-days N]
-                       [--dead-days N] [--slow-dos N] [--detect-only]
+                       [--dead-days N] [--slow-dos N] [--vendor-from-brand] [--detect-only]
 
-  --detect-only   print detected column mappings and data date range, then exit.
+  --detect-only        print detected column mappings and data date range, then exit.
+  --default-lead-time  used ONLY for SKUs whose lead time cell is truly blank; those SKUs are
+                       flagged DEFAULT_LEAD_TIME(Nd). "7 days" / "2 weeks" are parsed; anything else
+                       unreadable is flagged BAD_LEAD_TIME and not ordered.
+  --vendor-from-brand  the operator confirmed brand = vendor: a blank vendor is filled from brand and
+                       flagged VENDOR_FROM_BRAND. Without it a blank vendor is flagged NO_VENDOR and the
+                       line is kept off the vendor PO draft (listed under lines_needing_vendor).
+
+Data rules (nothing is dropped, merged or invented silently):
+  - Duplicate on-hand rows for one SKU: on-hand and open PO are summed. Unit cost, case pack, lead
+    time and vendor must agree (or be blank on all but one row); if they conflict the SKU is flagged
+    CONFLICTING_ROWS, no order is suggested, and both values go in input_problems.
+  - Non-numeric open PO (BAD_OPEN_PO) holds the SKU; non-numeric case pack (BAD_CASE_PACK) leaves the
+    quantity unrounded; non-numeric unit cost (BAD_UNIT_COST) leaves cost blank. All are reported.
 
 Defaults that are NOT operator-provided are listed in summary.json "assumptions" so
 the report can tag them [ASSUMPTION]. No industry benchmarks are built in.
@@ -104,13 +117,26 @@ def load(path, aliases, overrides, required, label):
 
 
 def num(s):
+    """None for blank, "BAD" for text that is not a number, else float."""
     s = (s or "").strip().replace(",", "").replace("$", "")
     if s == "":
         return None
     try:
         return float(s)
     except ValueError:
+        return "BAD"
+
+
+def parse_lead(s):
+    """Lead time in days. Accepts 7, 7d, 7 days, 2 wk, 2 weeks. None if blank, "BAD" if unreadable."""
+    s = (s or "").strip().lower()
+    if s == "":
         return None
+    mt = re.fullmatch(r"(\d+(?:\.\d+)?)\s*(d|day|days|w|wk|wks|week|weeks)?\.?", s)
+    if not mt:
+        return "BAD"
+    n = float(mt.group(1))
+    return n * 7 if (mt.group(2) or "").startswith("w") else n
 
 
 def parse_date(s):
@@ -142,6 +168,8 @@ def main():
                     help="Days of demand to cover after the order arrives (order-up-to horizon)")
     ap.add_argument("--dead-days", type=int, default=None)
     ap.add_argument("--slow-dos", type=float, default=None, help="Flag SLOW when days of supply exceed this")
+    ap.add_argument("--vendor-from-brand", action="store_true",
+                    help="Operator confirmed brand = vendor: fill blank vendor from brand (flagged VENDOR_FROM_BRAND)")
     ap.add_argument("--detect-only", action="store_true")
     a = ap.parse_args()
 
@@ -196,7 +224,7 @@ def main():
         if not sku:
             problems.append(f"sales row {i}: blank sku")
             continue
-        if u is None:
+        if u is None or u == "BAD":
             problems.append(f"sales row {i} ({sku}): non-numeric units '{get(r, sm, 'units')}'")
             continue
         s = sales[sku]
@@ -213,33 +241,103 @@ def main():
             if u < 0:
                 s["neg"] += u
             rev = num(get(r, sm, "revenue"))
-            if rev is not None:
+            if rev == "BAD":
+                problems.append(f"sales row {i} ({sku}): non-numeric revenue '{get(r, sm, 'revenue')}' left out "
+                                f"of revenue_window")
+            elif rev is not None:
                 s["revenue"] += rev
             if d >= recent_start:
                 s["units_recent7"] += u
 
-    onhand = {}
+    # ---- on-hand: group rows by SKU so duplicates are combined openly, never by keeping the first row
+    by_sku = defaultdict(list)
     for i, r in enumerate(orows, start=2):
         sku = get(r, om, "sku")
         if not sku:
             problems.append(f"onhand row {i}: blank sku")
             continue
-        q = num(get(r, om, "on_hand"))
-        if q is None:
-            problems.append(f"onhand row {i} ({sku}): non-numeric on-hand '{get(r, om, 'on_hand')}'")
-            continue
-        rec = {"on_hand": q, "product": get(r, om, "product"), "brand": get(r, om, "brand"),
-               "vendor": get(r, om, "vendor"), "unit_cost": num(get(r, om, "unit_cost")),
-               "case_pack": num(get(r, om, "case_pack")), "lead": num(get(r, om, "lead_time_days")),
-               "open_po": num(get(r, om, "open_po_qty")) or 0.0}
-        if sku in onhand:
-            problems.append(f"onhand: duplicate sku {sku} (quantities summed)")
-            onhand[sku]["on_hand"] += q
-            continue
+        by_sku[sku].append((i, r))
+    onhand = {}
+    ATTRS = (("unit_cost", "unit cost", num), ("case_pack", "case pack", num),
+             ("lead_time_days", "lead time", parse_lead), ("vendor", "vendor", None))
+    for sku, rws in by_sku.items():
+        rec = {"rows": [i for i, _ in rws], "on_hand": 0.0, "open_po": 0.0, "flags": [], "hold": False,
+               "product": next((get(r, om, "product") for _, r in rws if get(r, om, "product")), ""),
+               "brand": next((get(r, om, "brand") for _, r in rws if get(r, om, "brand")), ""),
+               "lead_status": "blank"}
+        good_rows = 0
+        for i, r in rws:
+            q = num(get(r, om, "on_hand"))
+            if q is None or q == "BAD":
+                problems.append(f"onhand row {i} ({sku}): non-numeric on-hand '{get(r, om, 'on_hand')}'")
+                if len(rws) > 1:
+                    rec["flags"].append(f"BAD_ONHAND_ROW(row {i})")
+                    rec["hold"] = True
+                continue
+            good_rows += 1
+            rec["on_hand"] += q
+            po = num(get(r, om, "open_po_qty"))
+            if po == "BAD":
+                problems.append(f"onhand row {i} ({sku}): open PO '{get(r, om, 'open_po_qty')}' is not a number; "
+                                f"no order suggested until the open PO is confirmed")
+                rec["flags"].append("BAD_OPEN_PO")
+                rec["hold"] = True
+            elif po is not None:
+                rec["open_po"] += po
+        if good_rows == 0:
+            continue  # single unreadable row: SKU shows as NO_ONHAND_RECORD, as reported above
+        if len(rws) > 1:
+            problems.append(f"onhand: SKU {sku} is on rows {', '.join(map(str, rec['rows']))}; on-hand "
+                            f"({rec['on_hand']:g}) and open PO ({rec['open_po']:g}) are the sums of those rows")
+        for field, label, parse in ATTRS:
+            vals = []  # (row, raw text, parsed)
+            for i, r in rws:
+                raw = get(r, om, field)
+                if raw == "":
+                    continue
+                v = parse(raw) if parse else raw
+                if v == "BAD":
+                    tag = {"unit_cost": "BAD_UNIT_COST", "case_pack": "BAD_CASE_PACK",
+                           "lead_time_days": "BAD_LEAD_TIME"}[field]
+                    rec["flags"].append(tag)
+                    effect = {"unit_cost": "order cost left blank",
+                              "case_pack": "suggested quantity is NOT rounded to a case pack",
+                              "lead_time_days": "no default used and no order suggested until a lead time in days "
+                                                "is given"}[field]
+                    problems.append(f"onhand row {i} ({sku}): {label} '{raw}' is not readable; {effect}")
+                    if field == "lead_time_days":
+                        rec["lead_status"] = "bad"
+                    continue
+                if field == "case_pack" and v <= 0:
+                    rec["flags"].append("BAD_CASE_PACK")
+                    problems.append(f"onhand row {i} ({sku}): case pack '{raw}' is not a positive number; suggested "
+                                    f"quantity is NOT rounded to a case pack")
+                    continue
+                if field == "lead_time_days" and not re.fullmatch(r"\d+(\.\d+)?", raw):
+                    problems.append(f"onhand row {i} ({sku}): lead time '{raw}' read as {v:g} days")
+                vals.append((i, raw, v))
+            distinct = {v for _, _, v in vals}
+            if len(distinct) > 1:
+                rec["flags"].append(f"CONFLICTING_ROWS({label})")
+                rec["hold"] = True
+                problems.append(f"onhand: SKU {sku} rows disagree on {label}: "
+                                + "; ".join(f"row {i} '{raw}'" for i, raw, _ in vals)
+                                + ". No order suggested until the operator says which is right.")
+                rec[field] = None
+                if field == "lead_time_days":
+                    rec["lead_status"] = "conflict"
+            else:
+                rec[field] = vals[0][2] if vals else None
+                if field == "lead_time_days" and vals and rec["lead_status"] != "bad":
+                    rec["lead_status"] = "ok"
+        if rec["lead_status"] == "bad":
+            rec["lead_time_days"] = None  # an unreadable cell is never silently outvoted by another row
+        rec["vendor"] = rec["vendor"] or ""
         onhand[sku] = rec
 
-    out, po_lines = [], []
-    missing_lead = []
+    vendor_brand_used = False
+    out, po_lines, needs_vendor = [], [], []
+    missing_lead, default_lead, held = [], [], []
     for sku in sorted(set(sales) | set(onhand)):
         s = sales.get(sku)
         o = onhand.get(sku)
@@ -252,11 +350,19 @@ def main():
         rate = units / days if days > 0 else 0.0
         oh = o["on_hand"] if o else None
         open_po = o["open_po"] if o else 0.0
+        vendor = o["vendor"] if o else ""
+        if o and not vendor:
+            if a.vendor_from_brand and o["brand"]:
+                vendor = o["brand"]
+                flags.append("VENDOR_FROM_BRAND")
+                vendor_brand_used = True
+            elif not any(f.startswith("CONFLICTING_ROWS(vendor") for f in o["flags"]):
+                flags.append("NO_VENDOR")
         row = {"sku": sku,
                "product": (o and o["product"]) or (s and s["product"]) or "",
                "brand": (o and o["brand"]) or (s and s["brand"]) or "",
                "category": (s and s["category"]) or "",
-               "vendor": (o and (o["vendor"] or o["brand"])) or (s and s["brand"]) or "",
+               "vendor": vendor,
                "units_sold_window": round(units, 3), "days_measured": days,
                "units_per_day": round(rate, 4),
                "revenue_window": round(s["revenue"], 2) if s else 0.0,
@@ -269,6 +375,7 @@ def main():
         if o is None:
             flags.append("NO_ONHAND_RECORD")
         else:
+            flags.extend(o["flags"])
             denom = units + oh
             if denom > 0:
                 row["sell_through_pct"] = round(100.0 * units / denom, 1)
@@ -276,7 +383,11 @@ def main():
                 row["days_of_supply"] = round(oh / rate, 1)
             else:
                 row["days_of_supply"] = "no sales" if oh > 0 else ""
-            lead = o["lead"] if o["lead"] is not None else a.default_lead_time
+            lead = o["lead_time_days"]
+            if o["lead_status"] == "blank" and a.default_lead_time is not None:
+                lead = a.default_lead_time
+                flags.append(f"DEFAULT_LEAD_TIME({lead:g}d)")
+                default_lead.append(sku)
             if oh <= 0 and s and s["units_recent7"] > 0:
                 flags.append("STOCKOUT(demand understated)")
             elif oh <= 0 and rate > 0:
@@ -285,11 +396,14 @@ def main():
                 flags.append(f"DEAD(no sales {dead_days}d+)")
             elif rate > 0 and oh / rate > slow_dos:
                 flags.append("SLOW")
+            if o["hold"]:
+                held.append(sku)
             if lead is None:
                 if rate > 0:
                     missing_lead.append(sku)
-                    flags.append("NO_LEAD_TIME")
-            else:
+                    if o["lead_status"] == "blank":
+                        flags.append("NO_LEAD_TIME")
+            elif not o["hold"]:
                 row["lead_time_days"] = lead
                 rop = rate * (lead + safety)
                 row["reorder_point"] = round(rop, 2)
@@ -308,14 +422,18 @@ def main():
                         if cost is not None:
                             row["unit_cost"] = cost
                             row["order_cost"] = round(qty * cost, 2)
-                        po_lines.append({"vendor": row["vendor"] or "(unknown vendor)", "sku": sku,
-                                         "product": row["product"], "qty": qty,
-                                         "case_pack": cp or "", "unit_cost": cost if cost is not None else "",
-                                         "line_cost": round(qty * cost, 2) if cost is not None else "",
-                                         "days_of_supply_now": row["days_of_supply"],
-                                         "flags": ";".join(flags)})
+                        line = {"vendor": vendor, "sku": sku,
+                                "product": row["product"], "qty": qty,
+                                "case_pack": cp or "", "unit_cost": cost if cost is not None else "",
+                                "line_cost": round(qty * cost, 2) if cost is not None else "",
+                                "days_of_supply_now": row["days_of_supply"],
+                                "flags": ";".join(flags)}
+                        (po_lines if vendor else needs_vendor).append(line)
         row["flags"] = ";".join(flags)
         out.append(row)
+    if vendor_brand_used:
+        assumptions.append("vendor filled from brand where the vendor cell was blank (--vendor-from-brand, "
+                           "operator said brand = vendor); those lines are flagged VENDOR_FROM_BRAND")
 
     os.makedirs(a.out_dir, exist_ok=True)
     with open(os.path.join(a.out_dir, "replenishment.csv"), "w", newline="") as f:
@@ -343,7 +461,7 @@ def main():
         v["cost"] = round(v["cost"], 2)
 
     def count(flag):
-        return sum(1 for r in out if flag in r["flags"])
+        return sum(1 for r in out if any(f.split("(")[0] == flag for f in r["flags"].split(";")))
 
     inv_value_dead = round(sum((r["on_hand"] or 0) * (onhand[r["sku"]]["unit_cost"] or 0)
                                for r in out if "DEAD" in r["flags"] and r["sku"] in onhand), 2)
@@ -356,13 +474,20 @@ def main():
         "assumptions": assumptions,
         "skus": len(out),
         "flag_counts": {k: count(k) for k in ("REORDER", "STOCKOUT", "DEAD", "SLOW", "NEW_SKU", "NO_LEAD_TIME",
-                                              "NO_ONHAND_RECORD", "RETURNS_IN_WINDOW")},
+                                              "NO_ONHAND_RECORD", "RETURNS_IN_WINDOW", "DEFAULT_LEAD_TIME",
+                                              "BAD_LEAD_TIME", "NO_VENDOR", "VENDOR_FROM_BRAND", "CONFLICTING_ROWS",
+                                              "BAD_OPEN_PO", "BAD_CASE_PACK", "BAD_UNIT_COST", "BAD_ONHAND_ROW")},
         "po_draft_by_vendor": dict(sorted(by_vendor.items())),
         "po_draft_total_cost": round(sum(v["cost"] for v in by_vendor.values()), 2),
         "dead_stock_cost_value": inv_value_dead,
         "skus_missing_lead_time": missing_lead,
+        "skus_using_default_lead_time": default_lead,
+        "skus_held_for_review": held,
+        "lines_needing_vendor": needs_vendor,
+        "lines_needing_vendor_cost": round(sum(x["line_cost"] or 0 for x in needs_vendor), 2),
         "input_problems": problems,
-        "note": "PO lines are a DRAFT for buyer review. Nothing has been sent to any vendor.",
+        "note": "PO lines are a DRAFT for buyer review. Nothing has been sent to any vendor. Lines in "
+                "lines_needing_vendor are suggested quantities with no vendor; they are not in the PO total.",
     }
     with open(os.path.join(a.out_dir, "summary.json"), "w") as f:
         json.dump(summary, f, indent=2)

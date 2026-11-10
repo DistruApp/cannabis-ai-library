@@ -4,7 +4,7 @@ Skill: [`cannabis-harvest-yield-analysis`](../../../skills/cannabiz-skills/opera
 
 ## What it does
 
-Shows a cultivator which rooms and strains actually make money. A bundled script calculates wet to dry loss, dry yield per plant, per square foot of canopy and per light, the split between top flower, smalls and trim, any weight that is not accounted for, and cost per dry gram when costs are provided. It ranks strains and rooms and flags unusual batches using the grower's own numbers. It doesn't invent industry benchmarks.
+Shows a cultivator which rooms and strains produce the most dry weight per square foot, plant and light, and what each gram costs to grow. It does not look at sales prices, revenue or profit. A bundled script calculates wet to dry loss, dry yield per plant, per square foot of canopy and per light, the split between top flower, smalls and trim, any weight that is not accounted for, and cost per dry gram when costs are provided. It ranks strains and rooms and flags unusual batches using the grower's own numbers. It doesn't invent industry benchmarks. A batch with a missing or zero weight, such as one still curing, is left out of the figures that need that weight, and the report says how many batches each figure covers. Duplicate harvest IDs are flagged, not merged.
 
 ## When to use it
 

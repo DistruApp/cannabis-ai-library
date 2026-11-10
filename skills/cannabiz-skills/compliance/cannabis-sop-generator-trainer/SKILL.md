@@ -1,41 +1,36 @@
 ---
 name: cannabis-sop-generator-trainer
 description: >-
-  Turns a described cannabis business process into a licensing-ready
-  Standard Operating Procedure (header block with license info, regulatory
-  references, roles by title, step-by-step procedure, a controls-and-variance
-  section for anything touching cash/inventory/quality, records retention,
-  and a review schedule), then generates a matching training packet: a
-  quick-reference summary, a comprehension check, and a sign-off/attestation
-  log. Use when someone needs an SOP for a license application or inspection,
-  wants to document a cultivation, manufacturing, or retail process, or needs
-  to prove staff were actually trained on an existing procedure.
-version: "1.0.0"
-category: compliance
-author: Distru AI Library
+  Drafts a cannabis Standard Operating Procedure from a described process
+  (header block, regulatory references to confirm, roles by title,
+  step-by-step procedure, controls and variance handling for cash, inventory
+  or quality, records retention, review schedule) for the operator's
+  compliance lead to review, then builds a matching training packet: a
+  quick-reference summary, a comprehension check with an answer key and pass
+  rule, and a sign-off log. Use for "write an SOP for...", "turn these notes
+  into an SOP", "make training for this SOP" or "is this SOP missing
+  anything?". Not for legal review, state-rule lookups or submitting anything
+  to a regulator.
 license: MIT
-tags:
-  - cannabis
-  - sop
-  - compliance
-  - training
-  - licensing
-  - workflow
-supporting-files:
-  - templates/sop-intake-checklist.md
-  - templates/cannabis-sop-skeleton.md
-  - examples/sample-sop-with-training.md
+metadata:
+  version: "1.1"
+  category: compliance
+  author: Distru
+  supporting-files:
+    - templates/sop-intake-checklist.md
+    - templates/cannabis-sop-skeleton.md
+    - examples/sample-sop-with-training.md
 ---
 
 # Cannabis SOP Generator & Trainer
 
-You are a Cannabis SOP Generator & Trainer. You turn a described business
-process into a licensing-ready Standard Operating Procedure, and then, once
-that SOP is approved, generate the training materials that prove staff
-actually learned it. Regulators use SOPs to decide whether to grant a
-license; inspectors use them to decide whether to keep it; auditors use
-training records to check whether the SOP is real or just paperwork. This
-workflow is built to produce documents that hold up to all three.
+Turn a described business process into a draft Standard Operating Procedure
+for the operator's compliance lead to review, then, once that SOP is
+approved, build the training materials that show staff actually learned it.
+Regulators, inspectors and auditors all read SOPs and training records, so
+the draft is structured for them, but it is a draft: the operator's
+compliance lead or counsel confirms every citation, threshold and retention
+period before it's used.
 
 If the user has `templates/sop-intake-checklist.md` filled out, read it
 instead of asking each Phase 0 question individually. Use
@@ -58,8 +53,8 @@ From the user's description, extract what's already available:
 - Any known compliance requirements, safety concerns, or past incidents tied
   to this process
 
-Ask clarifying questions only for what's genuinely missing, using
-AskUserQuestion if available. Cap it at 5 questions, batched 2-3 at a time,
+Ask clarifying questions only for what's genuinely missing, using a
+structured question tool if your app has one. Cap it at 5 questions, batched 2-3 at a time,
 and stop as soon as you have enough to draft. Do not invent license numbers,
 jurisdictions, or regulatory citations; ask for them.
 
@@ -88,13 +83,13 @@ Follow the structure in `templates/cannabis-sop-skeleton.md`:
    explicit for anything touching cash, inventory, or METRC adjustments
 6. Step-by-step procedure with expected results/checkpoints
 7. Controls, thresholds, and variance handling, required for any process
-   touching cash, inventory, or product quality. Commonly cited benchmarks
-   (e.g., a 0.5% METRC variance threshold, zero-tolerance for POS-to-vault
-   cash counts) are starting points to confirm against the operator's own
-   state requirements, not settled rules.
-8. Records and retention (what, where, how long, who has access). Retention
-   commonly runs 2 to 7 years depending on state and record type; confirm
-   rather than assert.
+   touching cash, inventory, or product quality. Use the threshold the
+   operator gives you. If they don't have one, leave it as a blank marked
+   "CONFIRM: [state rule or equipment tolerance]". Never suggest a number.
+8. Records and retention (what, where, how long, who has access). Ask for
+   the retention period. If the operator doesn't know it, leave it as a blank
+   marked "CONFIRM: retention period for this record type in [state]". Don't
+   suggest a range.
 9. Training requirements (roles, method, retraining cadence, record
    location). Sets up Phase 2.
 10. Review and revision (next date, plus trigger events for an off-cycle
@@ -117,25 +112,34 @@ Once the SOP is approved (or approved with edits), build:
 - **Comprehension check**: 5 to 10 questions tied directly to the SOP's
   critical steps, warnings, and quality checks, not generic questions about
   the topic. Mix formats based on what the step requires someone to know or
-  do. For a hands-on task (cultivation, extraction, equipment operation),
-  recommend a practical demonstration or shadowing checklist instead of, or
-  in addition to, a written test.
+  do. Mark each question that tests a critical step or warning as
+  **critical**. For a hands-on task (cultivation, extraction, equipment
+  operation), recommend a practical demonstration or shadowing checklist
+  instead of, or in addition to, a written test.
+- **Answer key**: the correct answer to every question, with the SOP step it
+  comes from, kept separate from the questions handed to the employee.
+- **Pass rule**: unless the operator sets their own, the employee passes only
+  if every critical question is correct and at least 80% of all questions are
+  correct. On a fail, the trainer reviews the missed steps with the employee,
+  who retakes the check before doing the task unsupervised. Record each
+  attempt.
 - **Sign-off / attestation log template**: employee name, role, date trained,
-  training method, trainer/supervisor name, comprehension check result (if
-  applicable), and a signature line.
-- **Retraining trigger**: tie retraining cadence to the SOP's own review date
-  from Phase 1, plus a note that any SOP revision requires retraining before
-  the new version takes effect.
+  training method, trainer/supervisor name, comprehension check score and
+  result (Pass, or Retrain and retest with the retest date), and a signature
+  line.
+- **Retraining trigger**: retrain at each scheduled SOP review (the review
+  date from Phase 1), and before any revised version takes effect.
 
 ============================================================
 PHASE 3: SET THE REVIEW CADENCE
 ============================================================
 
 Confirm the next review date already set in the Phase 1 header, and restate
-the trigger events that require an earlier review. For a high-risk area
-(pesticides, extraction, waste disposal, cash handling, 280E cost
-classification), recommend a quarterly check-in rather than waiting for the
-annual cycle, and say why.
+the trigger events that require an earlier review. The default cycle is 12
+months. For a high-risk area (pesticides, extraction, waste disposal, cash
+handling, inventory and transfers, 280E cost classification), recommend a
+6-month cycle instead, and say why. Use the operator's own cycle if they have
+one.
 
 ## Trigger phrases
 

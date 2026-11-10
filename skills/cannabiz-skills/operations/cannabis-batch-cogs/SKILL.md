@@ -28,7 +28,7 @@ Gives a production manager or controller a defensible cost per unit for one batc
 
 ### 1. Collect inputs
 
-**BOM (CSV):** one row per component *actually consumed* in this batch: component, quantity, unit, unit cost, and the unit the price is quoted in (e.g. biomass bought at $/lb but weighed in kg). Use actual consumption, not the recipe, when the operator has it. Overfill and fill loss belong in the quantity.
+**BOM (CSV):** one row per component *actually consumed* in this batch: component, quantity, unit, unit cost, and the unit the price is quoted in (e.g. biomass bought at $/lb but weighed in kg). The price unit is required for weight and volume lines. Use actual consumption, not the recipe, when the operator has it. Overfill and fill loss belong in the quantity.
 
 **Batch parameters**, all needed, asked for in **one** message:
 - Finished units produced (actual) and, if known, expected units
@@ -36,7 +36,7 @@ Gives a production manager or controller a defensible cost per unit for one batc
 - Overhead method, **one** of: $ per batch, $ per labor hour, or % of materials. Ask how they normally allocate. Never pick a method for them.
 - Testing cost charged to this batch (lab fees, retests)
 
-If the operator says a cost really is zero, pass `0`. If they want to proceed without a number, pass it with `--assume key=value`. It's then tagged **[ASSUMPTION]** everywhere and listed at the top of the report. Never estimate a market price for an input (e.g. "distillate usually costs…").
+If the operator says a cost really is zero, pass `0`. If they want to proceed without a number, pass it with `--assume key=value` (for a BOM line: `cost:<component>=12` or `cost_uom:<component>=lb`). It's then tagged **[ASSUMPTION]** everywhere and listed at the top of the report. Never estimate a market price for an input (e.g. "distillate usually costs…").
 
 Where inputs come from: ERP item costs and production records, purchase invoices, payroll, lab invoices. Input lot numbers and harvest names in the component name make the report traceable. Keep them.
 
@@ -54,6 +54,10 @@ python3 scripts/cogs.py --bom <file> --batch-name <name> --units-produced N [--e
 
 Exit code 2 with `"status": "BLOCKED"` lists exactly what's missing or malformed. Take that list back to the operator. Don't fill it in yourself. Report the script's numbers as-is.
 
+- `cost_uom:<component>` in `missing_inputs` means a weight or volume line has a price but no price unit. Ask "price per what unit?" (per g, per lb, per kg). Never guess it from the quantity unit.
+- `input_problems` also appears on OK runs. It lists things that did not block the run but the operator should see: fully blank rows that were skipped, count lines with a blank price unit that were read as price per each, and negative quantities or costs. Put each one under Data gaps in the report.
+- `--expected-units` must be greater than 0. Leave it out if there is no expected count.
+
 ### 4. Interpret
 
 - **Cost structure:** materials / labor / overhead / testing as $ and % of total. Name the top 3 lines. They usually drive every pricing conversation.
@@ -67,7 +71,8 @@ Fill `assets/report-template.md` and follow `references/output-conventions.md`. 
 
 ## Gotchas
 
-- **Price unit ≠ quantity unit.** Biomass weighed in kg but bought at $/lb, or distillate in g at $/kg, is the most common 1,000× or 2.2× error. Always fill the `cost_uom` column. The script converts within weight, volume, or count, and blocks mixed kinds (e.g. mL of oil priced per g) until the operator gives a density or conversion.
+- **Price unit ≠ quantity unit.** Biomass weighed in kg but bought at $/lb, or distillate in g at $/kg, is the most common 1,000× or 2.2× error. Always fill the `cost_uom` column. The script converts within weight, volume, or count, and blocks mixed kinds (e.g. mL of oil priced per g) until the operator gives a density or conversion. A blank price unit on a weight or volume line blocks the run. On a count line it is read as price per each and listed in `input_problems`, so check nothing is priced per case.
+- **Assumptions carry through.** When overhead is a % of materials and a material cost or price unit is assumed, the overhead line is tagged ASSUMPTION too. The same applies to overhead per labor hour when labor hours are assumed.
 - **Input costs should carry their own history.** Biomass from the operator's own harvest has a cost from cultivation. Ask whether they want the transfer cost they use internally, or the cultivation cost per gram (the `cannabis-harvest-yield-analysis` output). Don't mix the two across batches.
 - **Recipe vs. actual.** A recipe BOM understates cost when there's fill loss or rework. Label which one was used.
 - **Units produced** means sellable finished units after QC rejects. Ask if rejects and lab sample units are included.

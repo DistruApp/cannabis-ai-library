@@ -25,6 +25,10 @@ Order join key: ___   Lab values treated as passed (confirmed by ___): ___
 **Sales:** …
 **Compliance / QA:** …
 
+## Input problems found
+[Every entry in `input_problems`, in plain words, with the file and row. If any are listed, the overall result is HOLD. Write "None" if the list is empty.]
+- ...
+
 ## Verify manually before departure
 | Check | Where to check | Done by | ✓ |
 |---|---|---|---|

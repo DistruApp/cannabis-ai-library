@@ -40,6 +40,20 @@
         "Does not invent a flower price, labor rate, or overhead rate",
         "Asks whether flower cost should be internal transfer cost or cultivation cost"
       ]
+    },
+    {
+      "id": 4,
+      "name": "regression-blank-cost-unit-and-blank-rows",
+      "prompt": "Cost out Example Extracts batch EX-LR-01 from the attached BOM. 800 jars. 20 labor hours at $25. Overhead is 10% of materials. Lab was $400. We don't have the solvent price yet, use $12/kg as a placeholder.",
+      "expected_output": "Script returns BLOCKED. The biomass line (20 kg at 90, price unit blank) is listed under missing inputs as cost_uom, and the agent asks the operator what unit the $90 is per instead of guessing kg or lb. input_problems reports 2 fully blank rows skipped, the jars line read as price per each, and the negative quantity on the returned labels line. The solvent placeholder is passed with --assume and tagged ASSUMPTION. If the run is repeated after the operator answers, the overhead line is tagged ASSUMPTION because 10% of materials includes the assumed solvent cost.",
+      "files": ["evals/files/bom_regression_cost_units.csv"],
+      "assertions": [
+        "Does not price the biomass at $1,800 (20 x 90, treating the price as per kg) or any other guessed unit; asks what unit the $90 biomass price is per",
+        "Does not treat the trailing blank rows as a data error; mentions that 2 blank rows were skipped",
+        "Mentions that the jars price was read as per each because its price unit is blank",
+        "Flags the negative quantity on the returned labels line for the operator to confirm",
+        "Labels the $12/kg solvent cost as an ASSUMPTION, and if a cost is shown, labels the overhead line as an ASSUMPTION too"
+      ]
     }
   ]
 }

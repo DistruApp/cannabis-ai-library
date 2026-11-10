@@ -33,7 +33,7 @@ Read `references/jurisdiction-gate.md`. Get state, your license type, the receiv
 | File | Must contain | Notes |
 |---|---|---|
 | Sales order / invoice | quantity + package tag, SKU, or item name | Join key is chosen automatically: tag → SKU → item name |
-| Draft manifest / transfer export | package tag, quantity (unit strongly preferred) | |
+| Draft manifest / transfer export | package tag, quantity, unit | A line with no unit is held as `MISSING_UNIT`. The unit is never taken from the order or inventory |
 | Active package inventory | package tag, quantity, unit, lab/testing status | Export it *today*, close to departure |
 
 Optional: COA list, receiver license number. If a file is missing, ask for it. Never reconstruct a manifest from the order.
@@ -48,7 +48,7 @@ Resolve `AMBIGUOUS` columns with `--map-order field=Column` (also `--map-manifes
 python3 scripts/precheck.py --order <f> --manifest <f> --inventory <f> --passing-lab-values <v…> --out-dir <dir>
 ```
 
-Use the script's results as-is. Flag meanings and fixes are in `references/flag-guide.md`.
+Use the script's results as-is. Flag meanings and fixes are in `references/flag-guide.md`. Read the `notes` column too: it explains blank units and lists both rows of a duplicate inventory tag. Also report every line in `input_problems` (blank inventory tags, duplicate inventory tags, blank units, missing unit columns, non-numeric quantities). The overall result is HOLD whenever `input_problems` isn't empty, even if every line shows GO, because an input problem can hide a problem with a shipped line.
 
 ### 4. Explain HOLDs
 
@@ -64,7 +64,9 @@ Use `assets/precheck-template.md` and `references/output-conventions.md`. The to
 
 ## Gotchas
 
-- **Unit conversion rounding.** 5 lb is 2267.96 g, not 2268 g. A manifest that restates a pound-based package in rounded grams asks for more than the package holds. The script flags this as `UNIT_CONVERSION_ROUNDING`. Fix it by stating the quantity in the package's own unit.
+- **Unit conversion rounding.** 5 lb is 2267.96 g, not 2268 g. A manifest that restates a pound-based package in rounded grams asks for more than the package holds. The script flags this as `UNIT_CONVERSION_ROUNDING`. Fix it by stating the quantity in the package's own unit. The rounding flags only appear when the units really differ (lb vs. g). 100.3 g against a 100 g package is `EXCEEDS_ON_HAND`, because "g" and "Grams" are the same unit.
+- **Blank units.** A blank unit is never filled in from another file. The line holds as `MISSING_UNIT` (manifest), `INVENTORY_UNIT_MISSING` (inventory) or `ORDER_UNIT_MISSING` (order), and the quantities aren't compared. Ask the file's owner for the unit and rerun.
+- **Same tag twice in inventory** (`DUPLICATE_INVENTORY_TAG`). The script keeps neither row: the line holds and the note lists each row's quantity and lab status. Find out which row is current before shipping.
 - **Same tag twice** on a manifest (`DUPLICATE_TAG_ON_MANIFEST`) is usually a copy-paste error even when the total matches the order.
 - **Lab status is a snapshot.** A status can change between the inventory export and departure. Re-export inventory right before shipping if hours have passed.
 - **On-hand ≠ available.** Packages on hold, allocated to another order, or in quarantine can still show quantity. Ask whether the inventory export excludes holds.

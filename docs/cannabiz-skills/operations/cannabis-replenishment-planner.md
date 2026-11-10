@@ -4,7 +4,7 @@ Skill: [`cannabis-replenishment-planner`](../../../skills/cannabiz-skills/operat
 
 ## What it does
 
-Answers "what do I order this week?" A bundled script calculates units sold per day, days of supply, sell-through, reorder points and order quantities rounded to case packs, then groups the suggested order into a draft PO by vendor with total cost. It flags SKUs that sold out (where demand is understated), dead stock tying up cash, new SKUs and missing lead times. It never sends orders to vendors. Built for dispensary buyers and for brands or distributors planning their retail accounts.
+Answers "what do I order this week?" A bundled script calculates units sold per day, days of supply, sell-through, reorder points and order quantities rounded to case packs, then groups the suggested order into a draft PO by vendor with total cost. It flags SKUs that sold out (where demand is understated), dead stock tying up cash, new SKUs and missing lead times. It never guesses a vendor from the brand, and when the on-hand file has duplicate or unreadable rows it flags them and holds the order rather than picking a value. It never sends orders to vendors. Built for dispensary buyers and for brands or distributors planning their retail accounts.
 
 ## When to use it
 
@@ -25,4 +25,4 @@ Answers "what do I order this week?" A bundled script calculates units sold per 
 
 **Input:** two months of POS sales, today's on-hand and lead times, with 3 days of safety stock.
 
-**Output:** 3 SKUs to reorder for 4,620 dollars across 3 vendors. A sold-out live resin cart is flagged because its order is probably low. 350 dollars at cost is tied up in pre-rolls that have not sold in 40 days. One SKU has no lead time or vendor, so it is not ordered yet. The PO draft by vendor follows.
+**Output:** 3 SKUs to reorder for 4,620 dollars across 3 vendors. A sold-out live resin cart is flagged because its order is probably low. 350 dollars at cost is tied up in pre-rolls that have not sold since 8/20, 41 days before the 9/30 on-hand date. One SKU has no lead time or vendor, so it is not ordered yet. The PO draft by vendor follows.

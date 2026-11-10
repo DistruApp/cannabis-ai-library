@@ -8,7 +8,18 @@ Usage:
                    [--weight-unit g|lb|kg|oz] [--detect-only]
 
   --weight-unit   unit for weight columns when the file has no unit column (no default:
-                  required unless a 'uom' column is detected or mapped)
+                  required unless a 'uom' column is detected or mapped). If the file has a unit
+                  column, it is only used for blank unit cells, and each such row is listed in
+                  input_problems and flagged UNIT_FROM_WEIGHT_UNIT_ARG.
+
+Data rules (nothing is dropped, merged or invented silently):
+  - A row is left out of a ratio when it lacks that ratio's inputs: dry-down needs wet and dry;
+    per plant / sq ft / light needs dry plus that count. It is left out of the matching aggregate
+    numerator AND denominator, and the aggregate says how many batches it covers ("coverage").
+  - Zero or negative weights and counts are reported, never divided by.
+  - Duplicate harvest IDs are kept (not merged), flagged DUPLICATE_ID and reported.
+  - A blank breakdown part shows blank, not 0%.
+  - Fully blank rows are skipped and counted in input_problems.
 
 One row per harvest batch. Required: harvest_id (or strain+room+date), wet_weight, dry_weight.
 Optional: strain, room, harvest_date, plant_count, canopy_sqft, lights, flower_a, flower_b
@@ -87,6 +98,14 @@ def iqr_flags(values):
     return q[0] - 1.5 * iqr, q[2] + 1.5 * iqr
 
 
+def is_blank(row):
+    for v in row.values():
+        vals = v if isinstance(v, list) else [v]
+        if any((x or "").strip() for x in vals):
+            return False
+    return True
+
+
 def r(x, n=4):
     return "" if x is None else round(x, n)
 
@@ -130,59 +149,154 @@ def main():
         sys.exit(f"Unknown --weight-unit '{a.weight_unit}'")
 
     problems, out = [], []
+    blank_rows = 0
+    PARTS = (("flower_a", "flower_a_pct"), ("flower_b", "flower_b_pct"), ("trim", "trim_pct"), ("waste", "waste_pct"))
+    RATIOS = (("dry_g_per_plant", "plant_count", "plant count"), ("dry_g_per_sqft", "canopy_sqft", "canopy sq ft"),
+              ("dry_g_per_light", "lights", "light count"))
     for i, row in enumerate(rows, start=2):
-        get = lambda f: row.get(m[f], "") if f in m else ""
-        unit = (get("uom") if has_uom else "").strip().lower() or (a.weight_unit or "").lower()
+        if is_blank(row):
+            blank_rows += 1
+            continue
+        get = lambda f: (row.get(m[f]) or "") if f in m else ""
+        hid = get("harvest_id").strip() or "|".join(
+            x.strip() for x in (get("strain"), get("room"), get("harvest_date")) if x.strip()) or f"row{i}"
+        flags = []
+        cell_unit = get("uom").strip().lower() if has_uom else ""
+        if has_uom and not cell_unit:
+            if not a.weight_unit:
+                problems.append(f"row {i} ({hid}): unit cell is blank and no --weight-unit was given; row skipped. "
+                                f"Ask which unit this batch was weighed in.")
+                continue
+            unit = a.weight_unit.lower()
+            flags.append("UNIT_FROM_WEIGHT_UNIT_ARG")
+            problems.append(f"row {i} ({hid}): unit cell is blank; filled from --weight-unit {unit}. "
+                            f"Confirm this batch was weighed in {unit}.")
+        else:
+            unit = cell_unit or (a.weight_unit or "").lower()
         if unit not in GRAMS_PER:
-            problems.append(f"row {i}: unknown or missing unit '{unit}' — row skipped")
+            problems.append(f"row {i} ({hid}): unknown unit '{unit}'; row skipped")
             continue
         g = GRAMS_PER[unit]
-        hid = get("harvest_id") or "|".join(x for x in (get("strain"), get("room"), get("harvest_date")) if x) or f"row{i}"
         vals = {}
         for f in WEIGHT_FIELDS + ["plant_count", "canopy_sqft", "lights", "cycle_cost"]:
             v = num(get(f)) if f in m else None
             if v == "BAD":
-                problems.append(f"row {i} ({hid}): non-numeric {f} '{get(f)}'")
+                problems.append(f"row {i} ({hid}): non-numeric {f} '{get(f)}'; treated as blank")
                 v = None
             if v is not None and f in WEIGHT_FIELDS:
                 v *= g
             vals[f] = v
         wet, dry = vals["wet_weight"], vals["dry_weight"]
-        rec = {"harvest_id": hid, "strain": get("strain"), "room": get("room"), "harvest_date": get("harvest_date"),
-               "source_unit": unit, "wet_g": r(wet, 2), "dry_g": r(dry, 2)}
-        dd = (1 - dry / wet) if wet and dry is not None else None
-        if wet is None or dry is None:
-            problems.append(f"row {i} ({hid}): missing wet or dry weight")
+        use, why = {}, {}  # which aggregates this row can feed, and why not
+
+        def bad(metric, reason):
+            use[metric], why[metric] = False, reason
+
+        wet_ok = wet is not None and wet > 0
+        dry_ok = dry is not None and dry > 0
+        wet_why = "no wet weight" if wet is None else f"wet weight {wet:g} g"
+        dry_why = "no dry weight" if dry is None else f"dry weight {dry:g} g"
+        if wet is None:
+            flags.append("MISSING_WET")
+            problems.append(f"row {i} ({hid}): wet weight is blank; left out of dry-down")
+        elif wet <= 0:
+            flags.append("BAD_WET")
+            problems.append(f"row {i} ({hid}): wet weight is {wet:g}; left out of dry-down. Check the entry.")
+        if dry is None:
+            flags.append("MISSING_DRY")
+            problems.append(f"row {i} ({hid}): dry weight is blank (still curing?); left out of dry-down, "
+                            f"dry totals and every per-plant / sq ft / light figure")
+        elif dry <= 0:
+            flags.append("ZERO_DRY" if dry == 0 else "BAD_DRY")
+            problems.append(f"row {i} ({hid}): dry weight is {dry:g}; treated as a data problem and left out of "
+                            f"dry-down, dry totals and every per-plant / sq ft / light figure")
+        use["wet_g"] = wet_ok
+        if not wet_ok:
+            why["wet_g"] = wet_why
+        use["dry_g"] = dry_ok
+        if not dry_ok:
+            why["dry_g"] = dry_why
+        use["dry_down_pct"] = wet_ok and dry_ok
+        if not dry_ok:
+            bad("dry_down_pct", dry_why)
+        elif not wet_ok:
+            bad("dry_down_pct", wet_why)
         elif dry > wet:
-            problems.append(f"row {i} ({hid}): dry weight exceeds wet weight — check units/entry")
-        rec["dry_down_pct"] = r(dd * 100 if dd is not None else None, 2)
-        pc, sq, lt = vals["plant_count"], vals["canopy_sqft"], vals["lights"]
-        rec["dry_g_per_plant"] = r(dry / pc if dry is not None and pc else None, 2)
-        rec["dry_g_per_sqft"] = r(dry / sq if dry is not None and sq else None, 2)
-        rec["dry_g_per_light"] = r(dry / lt if dry is not None and lt else None, 2)
-        parts = [vals[k] for k in ("flower_a", "flower_b", "trim", "waste")]
-        if any(p is not None for p in parts) and dry is not None:
-            fa, fb, tr, ws = [p or 0.0 for p in parts]
-            total = fa + fb + tr + ws
+            flags.append("DRY_EXCEEDS_WET")
+            problems.append(f"row {i} ({hid}): dry weight exceeds wet weight; check units/entry. Left out of dry-down.")
+            bad("dry_down_pct", "dry exceeds wet")
+        rec = {"harvest_id": hid, "strain": get("strain"), "room": get("room"), "harvest_date": get("harvest_date"),
+               "source_unit": unit, "wet_g": r(wet, 2), "dry_g": r(dry, 2),
+               "dry_down_pct": r((1 - dry / wet) * 100 if use["dry_down_pct"] else None, 2)}
+        for metric, field, label in RATIOS:
+            d = vals[field]
+            use[metric] = False
+            if field not in m:
+                why[metric] = f"no {label} column"
+            elif not dry_ok:
+                why[metric] = dry_why
+            elif d is None:
+                why[metric] = f"no {label}"
+            elif d <= 0:
+                why[metric] = f"{label} is {d:g}"
+                problems.append(f"row {i} ({hid}): {label} is {d:g}; {metric} left blank")
+            else:
+                use[metric] = True
+            rec[metric] = r(dry / d if use[metric] else None, 2)
+        parts = {k: vals[k] for k, _ in PARTS}
+        present = [k for k in parts if parts[k] is not None]
+        sellable = None
+        if present and dry_ok:
+            for k, col in PARTS:
+                rec[col] = r(parts[k] / dry * 100 if parts[k] is not None else None, 2)
+            total = sum(parts[k] for k in present)
             gap = dry - total
-            rec["flower_a_pct"] = r(fa / dry * 100 if dry else None, 2)
-            rec["flower_b_pct"] = r(fb / dry * 100 if dry else None, 2)
-            rec["trim_pct"] = r(tr / dry * 100 if dry else None, 2)
-            rec["waste_pct"] = r(ws / dry * 100 if dry else None, 2)
             rec["breakdown_total_g"] = r(total, 2)
             rec["unaccounted_g"] = r(gap, 2)
-            rec["sum_check"] = "OK" if abs(gap) < 0.005 else ("UNACCOUNTED" if gap > 0 else "PARTS_EXCEED_DRY")
-            sellable = fa + fb
+            blank_parts = [k for k, _ in PARTS if k in m and parts[k] is None]
+            if blank_parts:
+                rec["sum_check"] = "INCOMPLETE_BREAKDOWN"
+                problems.append(f"row {i} ({hid}): breakdown cell(s) blank: {', '.join(blank_parts)}. Shown blank, "
+                                f"not 0%; unaccounted_g ({gap:g} g) includes whatever they weigh.")
+            else:
+                rec["sum_check"] = "OK" if abs(gap) < 0.005 else ("UNACCOUNTED" if gap > 0 else "PARTS_EXCEED_DRY")
+            if parts["flower_a"] is not None and parts["flower_b"] is not None:
+                sellable = parts["flower_a"] + parts["flower_b"]
         else:
-            for k in ("flower_a_pct", "flower_b_pct", "trim_pct", "waste_pct", "breakdown_total_g", "unaccounted_g"):
-                rec[k] = ""
-            rec["sum_check"] = "NO_BREAKDOWN"
-            sellable = None
+            for k, col in PARTS:
+                rec[col] = ""
+            rec["breakdown_total_g"] = rec["unaccounted_g"] = ""
+            rec["sum_check"] = "NO_DRY_WEIGHT" if present else "NO_BREAKDOWN"
         cost = vals["cycle_cost"]
-        rec["cost_per_dry_g"] = r(cost / dry if cost is not None and dry else None, 4)
+        rec["cost_per_dry_g"] = r(cost / dry if cost is not None and dry_ok else None, 4)
         rec["cost_per_flower_g"] = r(cost / sellable if cost is not None and sellable else None, 4)
-        rec["flags"] = ""
+        if cost is not None and dry_ok and present and sellable is None:
+            problems.append(f"row {i} ({hid}): cost_per_flower_g left blank because A or B flower weight is blank")
+        rec["flags"] = "".join(f + ";" for f in flags)
+        # metrics this row is left out of (a column missing from the whole file is not a row problem)
+        rec["excluded_from"] = ", ".join(k for k in ("dry_down_pct",) + tuple(x[0] for x in RATIOS)
+                                         if not use[k] and not why[k].endswith(" column"))
+        rec["_row"], rec["_wet"], rec["_dry"], rec["_use"], rec["_why"] = i, wet, dry, use, why
+        rec["_counts"] = {metric: vals[field] for metric, field, _ in RATIOS}
+        rec["_raw"] = tuple(sorted((k or "", str(v)) for k, v in row.items()))
         out.append(rec)
+    if blank_rows:
+        problems.append(f"Skipped {blank_rows} fully blank row(s).")
+
+    # duplicate harvest IDs: keep every row, flag them, report
+    seen = {}
+    for x in out:
+        seen.setdefault(x["harvest_id"], []).append(x)
+    dup_ids = []
+    for hid, xs in seen.items():
+        if len(xs) > 1:
+            dup_ids.append(hid)
+            same = len({x["_raw"] for x in xs}) == 1
+            for x in xs:
+                x["flags"] += "DUPLICATE_ID;"
+            problems.append(f"harvest ID {hid} appears on rows {', '.join(str(x['_row']) for x in xs)}"
+                            f"{' (identical rows)' if same else ''}. All rows were kept and counted in totals and "
+                            f"aggregates. If one is a re-entry, remove it and rerun.")
 
     # anomaly flags vs operator's own data (1.5x IQR)
     rule = "Flag when a batch falls outside Q1-1.5*IQR .. Q3+1.5*IQR of this file's own batches (needs >=4 batches)"
@@ -196,53 +310,65 @@ def main():
                 if x[metric] != "" and (x[metric] < fn[0] or x[metric] > fn[1]):
                     x["flags"] += f"{metric}:{'LOW' if x[metric] < fn[0] else 'HIGH'};"
     for x in out:
-        if x["sum_check"] in ("UNACCOUNTED", "PARTS_EXCEED_DRY"):
+        if x["sum_check"] in ("UNACCOUNTED", "PARTS_EXCEED_DRY", "INCOMPLETE_BREAKDOWN"):
             x["flags"] += f"{x['sum_check']}:{x['unaccounted_g']}g;"
 
+    def coverage(xs, metric, field=None):
+        if field and field not in m:
+            return f"not computed: no {field} column"
+        used = [x for x in xs if x["_use"][metric]]
+        txt = f"{len(used)} of {len(xs)} batches"
+        left = [x for x in xs if not x["_use"][metric]]
+        if left:
+            txt += f"; {len(left)} excluded: " + "; ".join(f"{x['harvest_id']} ({x['_why'][metric]})" for x in left)
+        return txt
+
+    def agg(xs):
+        res = {"batches": len(xs)}
+        dry_rows = [x for x in xs if x["_use"]["dry_g"]]
+        res["dry_g"] = round(sum(x["_dry"] for x in dry_rows), 2)
+        dd = [x for x in xs if x["_use"]["dry_down_pct"]]
+        w, d = sum(x["_wet"] for x in dd), sum(x["_dry"] for x in dd)
+        res["dry_down_pct"] = round((1 - d / w) * 100, 2) if dd and w else None
+        for metric, field, _ in RATIOS:
+            used = [x for x in xs if x["_use"][metric]]
+            den = sum(x["_counts"][metric] for x in used)
+            res[metric] = round(sum(x["_dry"] for x in used) / den, 2) if used and den else None
+        res["coverage"] = {"dry_g": coverage(xs, "dry_g"), "dry_down_pct": coverage(xs, "dry_down_pct")}
+        for metric, field, _ in RATIOS:
+            res["coverage"][metric] = coverage(xs, metric, field)
+        return res
+
     def group(key):
-        agg = {}
+        buckets = {}
         for x in out:
-            k = x[key] or "(blank)"
-            g = agg.setdefault(k, {"batches": 0, "wet_g": 0.0, "dry_g": 0.0, "plants": 0.0, "sqft": 0.0,
-                                   "_plants_ok": True, "_sqft_ok": True})
-            g["batches"] += 1
-            g["wet_g"] += x["wet_g"] or 0
-            g["dry_g"] += x["dry_g"] or 0
-            pc = x["dry_g_per_plant"]
-            sq = x["dry_g_per_sqft"]
-            if pc == "":
-                g["_plants_ok"] = False
-            else:
-                g["plants"] += x["dry_g"] / pc
-            if sq == "":
-                g["_sqft_ok"] = False
-            else:
-                g["sqft"] += x["dry_g"] / sq
-        res = []
-        for k, g in agg.items():
-            res.append({key: k, "batches": g["batches"], "dry_g": round(g["dry_g"], 2),
-                        "dry_down_pct": round((1 - g["dry_g"] / g["wet_g"]) * 100, 2) if g["wet_g"] else None,
-                        "dry_g_per_plant": round(g["dry_g"] / g["plants"], 2) if g["_plants_ok"] and g["plants"] else None,
-                        "dry_g_per_sqft": round(g["dry_g"] / g["sqft"], 2) if g["_sqft_ok"] and g["sqft"] else None})
+            buckets.setdefault(x[key] or "(blank)", []).append(x)
+        res = [dict({key: k}, **agg(xs)) for k, xs in buckets.items()]
         res.sort(key=lambda z: (z["dry_g_per_sqft"] is None, -(z["dry_g_per_sqft"] or 0)))
         return res
 
+    public = [{k: v for k, v in x.items() if not k.startswith("_")} for x in out]
     os.makedirs(a.out_dir, exist_ok=True)
-    if out:
+    if public:
         with open(os.path.join(a.out_dir, "yield_by_batch.csv"), "w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=list(out[0].keys()))
+            w = csv.DictWriter(f, fieldnames=list(public[0].keys()))
             w.writeheader()
-            w.writerows(out)
-    tw = sum(x["wet_g"] or 0 for x in out)
-    td = sum(x["dry_g"] or 0 for x in out)
+            w.writerows(public)
+    tw = sum(x["_wet"] for x in out if x["_use"]["wet_g"])
+    td = sum(x["_dry"] for x in out if x["_use"]["dry_g"])
+    dd_rows = [x for x in out if x["_use"]["dry_down_pct"]]
+    dw, ddry = sum(x["_wet"] for x in dd_rows), sum(x["_dry"] for x in dd_rows)
     summary = {
         "file": a.harvests, "mapping": m, "batches": len(out),
         "total_wet_g": round(tw, 2), "total_dry_g": round(td, 2),
         "total_dry_lb": round(td / 453.592, 3),
-        "overall_dry_down_pct": round((1 - td / tw) * 100, 2) if tw else None,
+        "overall_dry_down_pct": round((1 - ddry / dw) * 100, 2) if dw else None,
+        "totals_coverage": {"total_wet_g": coverage(out, "wet_g"), "total_dry_g": coverage(out, "dry_g"),
+                            "overall_dry_down_pct": coverage(out, "dry_down_pct")},
         "by_strain_ranked_by_g_per_sqft": group("strain"),
         "by_room_ranked_by_g_per_sqft": group("room"),
         "anomaly_rule": rule, "anomaly_fences": fences,
+        "duplicate_harvest_ids": dup_ids,
         "flagged_batches": [{"harvest_id": x["harvest_id"], "flags": x["flags"]} for x in out if x["flags"]],
         "input_problems": problems,
     }

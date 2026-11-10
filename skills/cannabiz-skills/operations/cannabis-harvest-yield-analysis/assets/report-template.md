@@ -15,9 +15,9 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 
 ## Rankings (dry g per sq ft)
-| Room / Strain | Batches | Dry (g) | g/sq ft | g/plant | Dry-down % |
-|---|---|---|---|---|---|
-Note: [strain/room confound, small-sample caveats]
+| Room / Strain | Batches | Dry (g) | g/sq ft | g/plant | Dry-down % | Coverage |
+|---|---|---|---|---|---|---|
+Note: [strain/room confound, small-sample caveats. Quote the script's coverage line whenever a figure covers fewer than all batches, e.g. "3 of 4 batches; 1 still curing excluded".]
 
 ## Flags worth a look
 Rule used: outside 1.5 × IQR of this file's own batches (n = __).
@@ -33,6 +33,7 @@ Rule used: outside 1.5 × IQR of this file's own batches (n = __).
 |---|---|---|---|
 
 ## Data gaps
+- [Every `input_problems` line: batches excluded from a metric and why, blank unit cells filled from --weight-unit, duplicate harvest IDs, blank breakdown parts, zero weights or counts]
 - ...
 
 ---

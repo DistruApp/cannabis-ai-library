@@ -12,10 +12,13 @@ Usage:
 BOM CSV (one row per component consumed in this batch):
   component, qty, uom, unit_cost, [cost_uom]   cost_uom = unit the price is quoted in (e.g. $/lb)
   Line cost = qty (converted to cost_uom) x unit_cost.
+  If the cost unit is blank (or there is no cost unit column), weight and volume lines are BLOCKED
+  ("price per what unit?"). Count lines (each, ct, pcs...) are read as price per each and noted.
+  Fully blank rows (e.g. trailing ",,,," from Excel) are skipped and counted in input_problems.
 
 --assume key=value  supply a value the operator did NOT provide; it is used but tagged ASSUMPTION
   keys: units_produced, labor_hours, labor_rate, overhead_per_batch, overhead_per_labor_hour,
-        overhead_pct_materials, testing_cost, expected_units, cost:<component>
+        overhead_pct_materials, testing_cost, expected_units, cost:<component>, cost_uom:<component>
   Pass 0 explicitly (not via --assume) when the operator confirms a cost is truly zero.
 
 Outputs (in --out-dir, default ./cogs_out): cogs_lines.csv, summary.json
@@ -32,7 +35,7 @@ ALIASES = {
     "qty": ["qty", "quantity", "qty per batch", "quantity used", "amount", "qty used"],
     "uom": ["uom", "unit", "units", "unit of measure", "qty uom"],
     "unit_cost": ["unit cost", "cost", "price", "cost per unit", "unit price", "cost/unit"],
-    "cost_uom": ["cost uom", "cost unit", "price unit", "per", "cost per"],
+    "cost_uom": ["cost uom", "cost unit", "price unit", "price uom", "per", "cost per"],
 }
 CONV = {  # to base: g for weight, ml for volume, each for count
     "g": ("w", 1.0), "gram": ("w", 1.0), "grams": ("w", 1.0), "mg": ("w", 0.001),
@@ -71,6 +74,14 @@ def num(s):
         return float(s)
     except ValueError:
         return "BAD"
+
+
+def is_blank(row):
+    for v in row.values():
+        vals = v if isinstance(v, list) else [v]
+        if any((x or "").strip() for x in vals):
+            return False
+    return True
 
 
 def kv(pairs, what):
@@ -125,19 +136,49 @@ def main():
     elif len(oh_given) > 1:
         sys.exit(f"Give exactly one overhead method; got {oh_given}")
 
-    lines, problems = [], []
+    lines, problems, notes = [], [], []  # problems block the run; notes are reported but do not block
+    for p in ("units_produced", "expected_units"):
+        if vals[p] is not None and vals[p] <= 0:
+            problems.append(f"{p} must be greater than 0 (got {vals[p]:g}). "
+                            + ("Leave --expected-units out if there is no expected count." if p == "expected_units"
+                               else "Give the number of sellable finished units."))
+    cu_col = m.get("cost_uom")
+    if cu_col and cu_col.startswith("AMBIGUOUS:"):
+        problems.append(f"More than one column could be the cost unit ({cu_col[len('AMBIGUOUS:'):].replace('|', ', ')}). "
+                        f"Pass --map cost_uom=<Column>.")
+        cu_col = None
+    elif not cu_col:
+        notes.append("No cost unit column found (the unit each price is quoted in, e.g. $/lb). Weight and volume "
+                     "lines need it; count lines are read as price per each.")
+    blank_rows, each_read = 0, []
     for i, r in enumerate(rows, start=2):
+        if is_blank(r):
+            blank_rows += 1
+            continue
         comp = (r.get(m["component"]) or "").strip() or f"row{i}"
         qty = num(r.get(m["qty"]))
         uom = (r.get(m["uom"]) or "").strip().lower()
         cost = num(r.get(m["unit_cost"]))
-        cuom = (r.get(m["cost_uom"]) or "").strip().lower() if "cost_uom" in m else ""
-        cuom = cuom or uom
-        tag = "DATA"
+        cuom = (r.get(cu_col) or "").strip().lower() if cu_col else ""
+        cuom = re.sub(r"^(\$\s*/\s*|/\s*|per\s+)", "", cuom)  # "$/kg", "/kg", "per kg" all mean kg
+        tag, note = "DATA", ""
+        if not cuom:
+            if f"cost_uom:{comp}" in assume:
+                cuom = assume[f"cost_uom:{comp}"].strip().lower()
+                tag = "ASSUMPTION"
+                assumptions.append(f"cost unit of {comp} = per {cuom} [ASSUMPTION]")
+            elif uom in CONV and CONV[uom][0] == "e":
+                cuom = uom
+                note = "cost unit blank; price read as per each"
+                each_read.append(f"row {i} ({comp})")
+            elif uom in CONV:
+                missing.append(f"cost_uom:{comp} (row {i}): price per what unit? Quantity is in '{uom}' but the "
+                               f"cost unit is blank. Add it to the BOM (e.g. g, lb, kg, ml).")
+                cuom = None
         if cost is None and f"cost:{comp}" in assume:
             cost = float(assume[f"cost:{comp}"])
             tag = "ASSUMPTION"
-            assumptions.append(f"unit cost of {comp} = {cost} per {cuom} [ASSUMPTION]")
+            assumptions.append(f"unit cost of {comp} = {cost} per {cuom or uom or '?'} [ASSUMPTION]")
         if qty in (None, "BAD"):
             problems.append(f"row {i} ({comp}): quantity missing or non-numeric")
             continue
@@ -147,21 +188,33 @@ def main():
         if cost == "BAD":
             problems.append(f"row {i} ({comp}): non-numeric unit cost")
             continue
+        if cuom is None:
+            continue
         if uom not in CONV or cuom not in CONV:
-            problems.append(f"row {i} ({comp}): unknown unit '{uom}' or cost unit '{cuom}'")
+            problems.append(f"row {i} ({comp}): unknown unit '{uom}' or cost unit '{cuom or 'blank'}'")
             continue
         (k1, f1), (k2, f2) = CONV[uom], CONV[cuom]
         if k1 != k2:
             problems.append(f"row {i} ({comp}): qty unit '{uom}' and cost unit '{cuom}' are different kinds "
                             f"(weight/volume/each); give the conversion")
             continue
+        if qty < 0:
+            notes.append(f"row {i} ({comp}): negative quantity {qty:g} {uom}; it lowers the batch cost. "
+                         f"Confirm it is a return or correction, not a typo.")
+        if cost < 0:
+            notes.append(f"row {i} ({comp}): negative unit cost {cost:g}; confirm it is intended.")
         qty_in_cost_uom = qty * f1 / f2
         lines.append({"line": comp, "type": "material", "qty": qty, "uom": uom,
                       "unit_cost": cost, "cost_uom": cuom, "qty_in_cost_uom": round(qty_in_cost_uom, 6),
-                      "line_cost": round(qty_in_cost_uom * cost, 4), "source": tag})
+                      "line_cost": round(qty_in_cost_uom * cost, 4), "source": tag, "note": note})
+    if blank_rows:
+        notes.append(f"Skipped {blank_rows} fully blank row(s) in the BOM.")
+    if each_read:
+        notes.append(f"Cost unit blank on {len(each_read)} count line(s), so the price was read as per each: "
+                     f"{', '.join(each_read)}. Check none is priced per case or pack.")
 
     if missing or problems:
-        out = {"status": "BLOCKED", "missing_inputs": missing, "input_problems": problems,
+        out = {"status": "BLOCKED", "missing_inputs": missing, "input_problems": problems + notes,
                "how_to_fix": "Ask the operator for each missing value. If they want to proceed anyway, pass "
                              "--assume key=value so it is tagged ASSUMPTION. Pass 0 only if they confirm zero."}
         print(json.dumps(out, indent=2))
@@ -184,24 +237,34 @@ def main():
     lines.append({"line": "Direct labor", "type": "labor", "qty": vals["labor_hours"], "uom": "hour",
                   "unit_cost": vals["labor_rate"], "cost_uom": "hour", "qty_in_cost_uom": vals["labor_hours"],
                   "line_cost": round(labor, 4),
-                  "source": "ASSUMPTION" if "ASSUMPTION" in (tagof("labor_hours"), tagof("labor_rate")) else "DATA"})
+                  "source": "ASSUMPTION" if "ASSUMPTION" in (tagof("labor_hours"), tagof("labor_rate")) else "DATA",
+                  "note": ""})
     oh_key = [p for p in OH if vals[p] is not None][0]
+    oh_src, oh_note = tagof(oh_key), ""
+    # Overhead built on an assumed base is itself an assumption.
+    if oh_key == "overhead_pct_materials":
+        assumed_mats = [x["line"] for x in lines if x["type"] == "material" and x["source"] == "ASSUMPTION"]
+        if assumed_mats:
+            oh_src, oh_note = "ASSUMPTION", "% of materials that include assumed values: " + "; ".join(assumed_mats)
+    elif oh_key == "overhead_per_labor_hour" and tagof("labor_hours") == "ASSUMPTION":
+        oh_src, oh_note = "ASSUMPTION", "per labor hour, and labor hours are assumed"
+    if oh_note and oh_src != tagof(oh_key):
+        assumptions.append(f"overhead line is an ASSUMPTION because it is {oh_note}")
     lines.append({"line": "Overhead (" + oh_basis + ")", "type": "overhead", "qty": "", "uom": "",
                   "unit_cost": "", "cost_uom": "", "qty_in_cost_uom": "", "line_cost": round(overhead, 4),
-                  "source": tagof(oh_key)})
+                  "source": oh_src, "note": oh_note})
     lines.append({"line": "Testing", "type": "testing", "qty": "", "uom": "", "unit_cost": "", "cost_uom": "",
-                  "qty_in_cost_uom": "", "line_cost": round(vals["testing_cost"], 4), "source": tagof("testing_cost")})
+                  "qty_in_cost_uom": "", "line_cost": round(vals["testing_cost"], 4), "source": tagof("testing_cost"),
+                  "note": ""})
 
     total = sum(x["line_cost"] for x in lines)
     units = vals["units_produced"]
-    if units <= 0:
-        sys.exit("units_produced must be > 0")
     for x in lines:
         x["cost_per_unit"] = round(x["line_cost"] / units, 4)
         x["pct_of_total"] = round(x["line_cost"] / total * 100, 2) if total else 0
 
     yv = None
-    if vals["expected_units"]:
+    if vals["expected_units"] is not None:
         exp = vals["expected_units"]
         yv = {"expected_units": exp, "actual_units": units, "variance_units": units - exp,
               "variance_pct": round((units - exp) / exp * 100, 2),
@@ -234,7 +297,7 @@ def main():
         "yield_variance": yv,
         "sensitivity_note": "Each driver varied alone; labor varied as a rate (overhead per labor hour unchanged); "
                             "when overhead is % of materials it moves with material drivers.",
-        "sensitivity": sens, "assumptions": assumptions,
+        "sensitivity": sens, "assumptions": assumptions, "input_problems": notes,
         "lines_tagged_assumption": [x["line"] for x in lines if x["source"] == "ASSUMPTION"],
     }
     with open(os.path.join(a.out_dir, "summary.json"), "w") as f:

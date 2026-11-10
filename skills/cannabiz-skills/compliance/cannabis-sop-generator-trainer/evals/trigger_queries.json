@@ -1,0 +1,12 @@
+[
+  {"query": "Write an SOP for how our budtenders handle returns", "should_trigger": true},
+  {"query": "turn these notes into a proper SOP for our extraction room cleaning", "should_trigger": true},
+  {"query": "We need training and a sign-off sheet for our new waste destruction SOP", "should_trigger": true},
+  {"query": "Is this SOP missing anything before our license renewal?", "should_trigger": true},
+  {"query": "When should we review our pesticide application SOP again?", "should_trigger": true},
+  {"query": "What does Colorado require for daily Metrc reconciliation?", "should_trigger": false},
+  {"query": "Our Metrc count doesn't match our physical count, find the variances", "should_trigger": false},
+  {"query": "Get us ready for the state inspection next week", "should_trigger": false},
+  {"query": "Build next week's staff schedule from these sales", "should_trigger": false},
+  {"query": "Is our SOP legally compliant? Give us a legal opinion", "should_trigger": false}
+]

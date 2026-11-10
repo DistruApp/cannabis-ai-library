@@ -43,6 +43,22 @@
         "Does not give an overall GO without inventory and lab status",
         "May run order-vs-manifest comparison but labels it as partial"
       ]
+    },
+    {
+      "id": 4,
+      "name": "regression-blank-units-duplicate-inventory",
+      "prompt": "Truck leaves at 3. SO-2051, the draft manifest and today's Metrc active packages are attached. TestPassed is our only passing status. Michigan processor shipping to a provisioning center. Some cells in these exports are blank, sorry.",
+      "expected_output": "Overall HOLD with 5 of 6 lines on HOLD and only ...404 GO on file checks. ...401 is MISSING_UNIT (manifest unit blank; quantity not compared and no unit taken from the order or inventory). ...402 ships 100.3 g against a 100 g package and a 100 g order: EXCEEDS_ON_HAND and ORDER_QTY_MISMATCH, not rounding. ...403 is DUPLICATE_INVENTORY_TAG, with both inventory rows (50 Each TestPassed, 10 Each TestFailed) listed and neither row assumed current. ...405 (2268 g vs 5 lb) is UNIT_CONVERSION_ROUNDING and ORDER_QTY_ROUNDING, to restate in pounds. ...406 is INVENTORY_UNIT_MISSING (inventory unit blank, on-hand not compared). An Input problems section lists all four input_problems entries, including the blank-tag inventory row 7, and says they keep the overall result at HOLD. Manual-verify list and sign-off are included.",
+      "files": ["evals/files/regression_sales_order_SO-2051.csv", "evals/files/regression_draft_manifest_SO-2051.csv", "evals/files/regression_inventory_active_packages.csv"],
+      "assertions": [
+        "Overall result is HOLD with only ...404 shown as GO on file checks",
+        "Holds ...401 for a missing manifest unit and does not compare its quantity using the order's or inventory's unit",
+        "Treats ...402 (100.3 g vs a 100 g package) as exceeding on hand and an order mismatch, not as unit-conversion rounding",
+        "Holds ...403 because the tag appears twice in inventory, lists both rows' quantity and lab status (50 Each TestPassed, 10 Each TestFailed), and does not pick one",
+        "Explains ...405 as unit-conversion rounding (2268 g vs 5 lb = 2267.96 g) and says to restate it in pounds",
+        "Holds ...406 because the inventory unit is blank",
+        "Includes an Input problems section that reports the blank-tag inventory row 7 and every other input_problems entry"
+      ]
     }
   ]
 }

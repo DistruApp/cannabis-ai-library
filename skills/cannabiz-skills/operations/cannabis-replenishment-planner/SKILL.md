@@ -33,7 +33,7 @@ Planning parameters. Ask for them in **one** combined question. Use the operator
 
 | Parameter | Flag | If not given |
 |---|---|---|
-| Vendor lead time (days) | per-SKU column, or `--default-lead-time` | SKUs show `NO_LEAD_TIME`, with no order qty. Ask. |
+| Vendor lead time (days) | per-SKU column, or `--default-lead-time` for SKUs whose cell is blank | SKUs show `NO_LEAD_TIME`, with no order qty. Ask. A default the operator gives is used only for blank cells and flagged `DEFAULT_LEAD_TIME(Nd)`. |
 | Safety stock (days) | `--safety-days` | 0, tagged [ASSUMPTION] |
 | Days to cover after delivery (order cycle) | `--cover-days` | 14, tagged [ASSUMPTION] |
 | Velocity window | `--window-days` | Last 28 days in the data, stated in the report |
@@ -41,6 +41,8 @@ Planning parameters. Ask for them in **one** combined question. Use the operator
 | Slow-mover threshold (days of supply) | `--slow-dos` | 90, [ASSUMPTION] |
 
 Optional per-SKU columns: unit cost (needed for PO dollars and dead-stock value), case pack/MOQ, vendor, open PO qty. If the operator has a budget cap (cash is tight for most cannabis businesses), ask for it.
+
+**Vendor is never guessed from brand.** Brand is often not who you buy from (a distributor sits in between). A SKU with a blank vendor is flagged `NO_VENDOR`; if it needs ordering, its line goes to `lines_needing_vendor` instead of a vendor's PO and is not in the PO total. Ask who supplies it. If the operator confirms brand = vendor for their store, pass `--vendor-from-brand`; those lines are flagged `VENDOR_FROM_BRAND` and listed in `assumptions`.
 
 ### 2. Mapping
 
@@ -52,7 +54,13 @@ Run `python3 scripts/replenish.py --sales <file> --onhand <file> --detect-only` 
 python3 scripts/replenish.py --sales <file> --onhand <file> --out-dir <dir> [params] [mappings]
 ```
 
-Use the script's numbers as-is and don't recompute by hand. Copy every entry in `assumptions` into the report's assumptions list. Formulas and flag definitions are in `references/method.md`. Read it if the user asks how a number was calculated.
+Use the script's numbers as-is and don't recompute by hand. Copy every entry in `assumptions` into the report's assumptions list, and every `input_problems` line into Data gaps. Formulas and flag definitions are in `references/method.md`. Read it if the user asks how a number was calculated.
+
+The script never silently drops, merges or fills in on-hand data:
+- **Duplicate SKU rows** in the on-hand file: on-hand and open PO are summed. If the rows disagree on unit cost, case pack, lead time or vendor, the SKU is flagged `CONFLICTING_ROWS(...)`, gets no order, and both values are in `input_problems`. Ask which is right, fix the file, rerun.
+- **Lead time text:** "7 days" and "2 weeks" are read as 7 and 14 days (and noted). Anything else, such as "7-10 days", is flagged `BAD_LEAD_TIME` and gets no order. The default lead time is never used in its place.
+- **Unreadable numbers:** a non-numeric open PO (`BAD_OPEN_PO`) holds the SKU because it might already be on order. A non-numeric or zero case pack (`BAD_CASE_PACK`) leaves the quantity unrounded. A non-numeric unit cost (`BAD_UNIT_COST`) leaves the cost blank.
+- `skus_held_for_review` lists every SKU that got no order because of a data problem. Put them in the report so they aren't forgotten.
 
 ### 4. Sanity-check before recommending
 

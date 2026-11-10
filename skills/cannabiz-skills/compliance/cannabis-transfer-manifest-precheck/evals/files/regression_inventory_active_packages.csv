@@ -1,0 +1,9 @@
+Tag,Item,Category,Quantity,UoM,Lab Testing State
+1A4060300003B21000000401,Example Haze - Bulk Flower,Buds,5,Pounds,TestPassed
+1A4060300003B21000000402,Example Kush - Smalls,Buds,100,Grams,TestPassed
+1A4060300003B21000000403,Example Sour 1g Cart,Vape Cartridge,50,Each,TestPassed
+1A4060300003B21000000403,Example Sour 1g Cart,Vape Cartridge,10,Each,TestFailed
+1A4060300003B21000000404,Example Mints 20pk,Edible,60,Each,TestPassed
+,Example Chews 10pk,Edible,10,Each,TestPassed
+1A4060300003B21000000405,Example Kush - Bulk Flower,Buds,5,Pounds,TestPassed
+1A4060300003B21000000406,Example Shake,Shake/Trim,1000,,TestPassed

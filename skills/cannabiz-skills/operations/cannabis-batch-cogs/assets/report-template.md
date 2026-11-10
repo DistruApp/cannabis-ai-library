@@ -35,6 +35,7 @@ Causes to check: [fill loss, QC rejects, hardware defects, sample units, miscoun
 |---|---|---|
 
 ## Data gaps
+- [Each `input_problems` entry from the script: skipped blank rows, count lines read as price per each, negative quantities or costs]
 - ...
 
 ---

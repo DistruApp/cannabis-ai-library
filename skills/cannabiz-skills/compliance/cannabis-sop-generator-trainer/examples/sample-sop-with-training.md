@@ -79,7 +79,7 @@ The person who picks the order is never the person who verifies it or finalizes 
 ### 7. Controls, Thresholds, and Variance Handling
 
 - Reconciliation cadence: every outbound order, before it leaves the facility
-- Variance threshold: zero tolerance on unit count. A weight variance up to 0.5% is a commonly cited tolerance for bulk flower due to scale calibration drift, but confirm this against your state's requirement and your scale's certified tolerance rather than treating it as settled. Any unit-count mismatch, or a weight variance beyond the confirmed threshold, holds the shipment until resolved.
+- Variance threshold: zero tolerance on unit count (operator's rule). Weight variance threshold: CONFIRM: [state rule or the scale's certified tolerance]. Until it's confirmed, any weight mismatch holds the shipment. Any unit-count mismatch, or a weight variance beyond the confirmed threshold, holds the shipment until resolved.
 - Escalation protocol: Warehouse Lead notifies the Compliance/Inventory Manager immediately; the shipment does not leave until the discrepancy is resolved and documented
 - Documentation: discrepancy log, filed with the order record
 
@@ -87,14 +87,14 @@ The person who picks the order is never the person who verifies it or finalizes 
 
 - Records produced: verified pick sheet, METRC manifest, shipping log, proof of delivery
 - Stored: order management system and METRC
-- Retention: 3 to 7 years depending on the state (placeholder; confirm the actual requirement)
+- Retention: CONFIRM: retention period for transfer records in [state]
 - Access: Warehouse Operations Manager and Compliance Lead; pickers can view but not alter finalized records
 
 ### 9. Training Requirements
 
 - Roles requiring training: all warehouse pickers, warehouse leads, compliance/inventory staff
 - Method: practical demonstration (shadow a full outbound order end to end), followed by a written comprehension check
-- Retraining cadence: annually, or immediately upon any revision to this SOP or a METRC platform change
+- Retraining cadence: at each scheduled review (every 6 months), and before any revised version of this SOP takes effect or after a METRC platform change
 - Records kept in: employee training log (see Phase 2 output below)
 
 ### 10. Review and Revision
@@ -118,23 +118,35 @@ The person who picks the order is never the person who verifies it or finalizes 
 
 ### Comprehension check
 
-1. (True/False) It's fine for the same person to pick the order and verify it, as long as they're careful.
-2. What must the manifest match exactly before a shipment can leave?
-3. (Multiple choice) The picked weight comes in 2% under the sales order. You should: (a) round up on the manifest to match the order, (b) ship it anyway since it's close, (c) hold the shipment and notify the Compliance/Inventory Manager, (d) fix it after the truck leaves.
+1. **(Critical)** (True/False) It's fine for the same person to pick the order and verify it, as long as they're careful.
+2. **(Critical)** What must the manifest match exactly before a shipment can leave?
+3. **(Critical)** (Multiple choice) The picked weight comes in 2% under the sales order. You should: (a) round up on the manifest to match the order, (b) ship it anyway since it's close, (c) hold the shipment and notify the Compliance/Inventory Manager, (d) fix it after the truck leaves.
 4. Who finalizes and signs the METRC manifest?
 5. (Short answer) Why does the driver need a copy of the manifest before leaving?
 
+### Answer key (for the trainer only)
+
+1. False. A second person verifies the pick (Section 5, segregation of duties; Section 6, step 3).
+2. The verified pick: every package, quantity and weight (Section 6, step 4).
+3. (c). Any mismatch holds the shipment until the Compliance/Inventory Manager resolves it (Section 7).
+4. The Compliance/Inventory Manager (Section 5).
+5. So the load is documented while it's on the road and matches what was picked (Section 6, step 5). Accept any answer that says the shipment must travel with a matching manifest.
+
+### Pass rule
+
+Pass: questions 1, 2 and 3 all correct, and at least 4 of 5 correct overall. Otherwise the trainer reviews the missed steps with the employee, who retakes the check before picking or verifying orders unsupervised. Record each attempt in the log below.
+
 ### Sign-off / attestation log template
 
-| Employee | Role | Date Trained | Method | Trainer | Check Result | Signature |
-|---|---|---|---|---|---|---|
-| | Warehouse Picker | | Shadow + written check | | | |
-| | Warehouse Lead | | Shadow + written check | | | |
-| | Compliance/Inventory Manager | | Shadow + written check | | | |
+| Employee | Role | Date Trained | Method | Trainer | Score | Result (Pass / Retrain and retest) | Retest Date | Signature |
+|---|---|---|---|---|---|---|---|---|
+| | Warehouse Picker | | Shadow + written check | | | | | |
+| | Warehouse Lead | | Shadow + written check | | | | | |
+| | Compliance/Inventory Manager | | Shadow + written check | | | | | |
 
 ### Retraining trigger
 
-Retrain annually, tied to this SOP's own review date (2027-02-24), and immediately if this SOP is revised or the METRC platform changes before then.
+Retrain at this SOP's next scheduled review (2027-02-24), and before any revised version takes effect or after a METRC platform change.
 
 ---
 

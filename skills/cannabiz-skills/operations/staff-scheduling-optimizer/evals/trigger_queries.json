@@ -1,0 +1,12 @@
+[
+  {"query": "Build next week's budtender schedule from these POS numbers", "should_trigger": true},
+  {"query": "Are we overstaffed on Tuesdays? Labor is running 28% of sales", "should_trigger": true},
+  {"query": "Jen needs Saturday off, who can cover?", "should_trigger": true},
+  {"query": "How many trimmers do we need for next week's harvest?", "should_trigger": true},
+  {"query": "Show me overtime risks on this week's schedule", "should_trigger": true},
+  {"query": "Run payroll for last week", "should_trigger": false},
+  {"query": "Write a job posting for a budtender", "should_trigger": false},
+  {"query": "What's the overtime law in California? Give me a legal answer", "should_trigger": false},
+  {"query": "Write an SOP for opening the store", "should_trigger": false},
+  {"query": "What should we reorder this week?", "should_trigger": false}
+]
