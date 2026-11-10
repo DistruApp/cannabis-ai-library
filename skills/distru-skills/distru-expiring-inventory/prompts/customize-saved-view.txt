@@ -1,0 +1,14 @@
+Update the dashboard we just created with one small convenience: let me save
+and reopen the current product, expiry-month and location filters as a named
+view. I want to save my current [product] / [expiry month] selection as
+"[view name]". Preserve the current app, connector and private audience.
+
+Save the filter choices, not copies of the inventory or customer data. Reopening
+the view must use the current source records and show its exact month/year.
+Keep saved filters scoped to the current user/company using supported storage;
+state whether they persist only for this visit or across visits. If a saved
+month falls outside the current rolling window, explain that rather than
+silently changing the report dates or showing it as current.
+
+Show me the change, then verify it by saving the view, changing the filters
+and reopening it. Do not change Distru records or sharing permissions.

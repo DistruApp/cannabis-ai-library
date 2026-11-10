@@ -1,0 +1,4 @@
+interface:
+  display_name: "Distru Expiring Inventory"
+  short_description: "Expiring stock, its past buyers, and a reviewed promo email"
+  default_prompt: "Use $distru-expiring-inventory to build an expiring-inventory dashboard with my connected Distru account."

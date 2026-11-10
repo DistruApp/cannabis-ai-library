@@ -1,0 +1,48 @@
+{
+  "skill_name": "cannabis-transfer-manifest-precheck",
+  "evals": [
+    {
+      "id": 1,
+      "name": "messy-manifest-mi-processor",
+      "prompt": "Driver leaves at 2pm. Attached: sales order SO-1042, our draft manifest, and this morning's Metrc active packages. We're a Michigan processor shipping to a provisioning center. Anything we need to fix?",
+      "expected_output": "Runs detect-only, shows distinct lab values (SubmittedForTesting, TestFailed, TestPassed) and asks or states which count as passed before final results; overall HOLD; flags Gummies ...205 (TestFailed, not on order) and Rosin ...207 (SubmittedForTesting, duplicate tag) to be pulled, pre-roll ...204 exceeding on hand (60 vs 48) and order (50), Blue Dream ...202 as unit-conversion rounding (2268 g vs 5 lb = 2267.96 g), cart ...203 order mismatch (30 vs 24), ...206 not in inventory, tincture ...208 missing from manifest; fixes grouped by owner; manual-verify list including receiver license status; no invented Michigan manifest fields or transport rules.",
+      "files": ["evals/files/sales_order_SO-1042.csv", "evals/files/draft_manifest_SO-1042.csv", "evals/files/inventory_active_packages.csv"],
+      "assertions": [
+        "Overall result is HOLD",
+        "Confirms with the user (or explicitly states the assumption) which lab-status values count as passed rather than silently assuming",
+        "Identifies packages ...205 and ...207 as not passed / not shippable",
+        "Identifies ...204 manifest quantity 60 exceeding on-hand 48",
+        "Explains the Blue Dream 2268 g vs 5 lb (2267.96 g) rounding issue and tells them to restate in the package's unit",
+        "Flags ...208 as ordered but missing from the manifest",
+        "Includes a manual-verification list covering receiver license status and driver/vehicle/route fields",
+        "Does not state specific Michigan manifest field or transport requirements without a citation"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "clean-manifest-sku-join",
+      "prompt": "quick sanity check on SO-1043 before it ships - order, manifest and inventory export attached. testpassed is our only passing status. CA distributor.",
+      "expected_output": "Joins order to manifest by SKU, finds no file-based issues, returns 'GO on file checks' with manual checks still required, and does not call the shipment compliant.",
+      "files": ["evals/files/sales_order_SO-1043.csv", "evals/files/draft_manifest_SO-1043.csv", "evals/files/inventory_active_packages.csv"],
+      "assertions": [
+        "Result is GO on file checks with both lines GO",
+        "States that manual checks (license status, driver/vehicle/route, labeling) are still required",
+        "Does not use the word 'compliant' to describe the shipment",
+        "Includes a jurisdiction block naming California and leaves unverified CA transport rules as NEEDS VERIFICATION"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "missing-inventory-and-state",
+      "prompt": "Can you check this manifest against the invoice? Want to make sure we're good to send it out.",
+      "expected_output": "Asks in one combined message for the state, license types, the active package inventory export with lab status (and the files if not attached); explains that without inventory it cannot check lab status or on-hand; does not produce a GO.",
+      "files": ["evals/files/sales_order_SO-1043.csv", "evals/files/draft_manifest_SO-1043.csv"],
+      "assertions": [
+        "Asks for the active package inventory export including lab/testing status",
+        "Asks for state and license types in one combined question",
+        "Does not give an overall GO without inventory and lab status",
+        "May run order-vs-manifest comparison but labels it as partial"
+      ]
+    }
+  ]
+}

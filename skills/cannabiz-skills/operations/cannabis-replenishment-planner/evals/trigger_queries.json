@@ -1,0 +1,12 @@
+[
+  {"query": "what should i reorder from example coast extracts this week? dutchie export attached", "should_trigger": true},
+  {"query": "Which of our vape SKUs are about to stock out and which are just sitting? Attached POS sales + inventory.", "should_trigger": true},
+  {"query": "Build me a PO for Friday's vendor orders, budget is $8k, here's sell-through by SKU", "should_trigger": true},
+  {"query": "We're a brand. Here's sell-through from our 12 dispensary accounts. Can you suggest reorder quantities for each account?", "should_trigger": true},
+  {"query": "how many days of supply do we have on edibles? flowhub report attached", "should_trigger": true},
+  {"query": "Our Metrc package count doesn't match the vault, can you find the variance?", "should_trigger": false},
+  {"query": "Plan our flower rooms so we have enough harvest for Q1 wholesale demand", "should_trigger": false},
+  {"query": "Set wholesale prices for our new pre-roll line so we hit 45% margin after distribution fees", "should_trigger": false},
+  {"query": "Email our vendors the purchase orders we approved yesterday", "should_trigger": false},
+  {"query": "What's our cost per unit on the last batch of gummies?", "should_trigger": false}
+]

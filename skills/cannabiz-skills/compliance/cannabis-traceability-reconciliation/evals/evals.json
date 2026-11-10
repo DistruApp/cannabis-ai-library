@@ -1,0 +1,48 @@
+{
+  "skill_name": "cannabis-traceability-reconciliation",
+  "evals": [
+    {
+      "id": 1,
+      "name": "clean-mi-month-end",
+      "prompt": "Month-end. Attached is our Metrc active packages export (pulled 9/30 6pm) and the physical count our team did 9/30 after close. We're a Michigan grower + processor. Why don't these match and what do we need to do?",
+      "expected_output": "A reconciliation report with a jurisdiction block for Michigan, the confirmed column mapping, script-computed variances (net weight -23.792 g; Gummies +12 each; Live Resin -2 each), the tag typo flagged (…0011 vs …0110), pre-roll UoM mismatch not converted, trim package not counted, unknown preroll pack counted but not in system, likely causes with confidence, draft (not submitted) actions, no invented MI adjustment reason codes or deadlines, and a sign-off block.",
+      "files": ["evals/files/metrc_active_packages.csv", "evals/files/physical_count_2026-09-30.csv"],
+      "assertions": [
+        "Reports net weight variance of -23.792 g (or -23.8 g) consistent with the script output",
+        "Identifies 1A4060300003B21000000102 as a match-after-unit-conversion question: 1 lb vs 447.9 g gives -5.692 g, not a 446.9-unit difference",
+        "Flags 1A4060300003B21000000011 / ...110 as a probable tag typo rather than two separate losses",
+        "Does not convert the Pre-Roll 1g 'each' vs 'g' rows; asks for per-unit weight or recount",
+        "Treats Gummies +12 over-count and the counted-not-in-system package as high priority (possible untracked product)",
+        "Does not state a specific Michigan adjustment reason code, deadline, or threshold unless cited with a source",
+        "Marks all adjustments as DRAFT / not submitted and includes a reviewer sign-off block"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "erp-vs-metrc-colorado-messy",
+      "prompt": "can u compare our ERP on hand vs metrc? colorado medical + rec cultivation. erp export attached + metrc export. some counts are blank because we didnt get to that room",
+      "expected_output": "Detects that the ERP file has two candidate quantity columns (Qty and Counted) and asks which represents the count before running; handles blank counted quantity as BAD_QUANTITY / not counted rather than zero; treats Metrc packages absent from a partial count as scope gaps, not losses.",
+      "files": ["evals/files/metrc_active_packages.csv", "evals/files/erp_onhand_export.csv"],
+      "assertions": [
+        "Surfaces the ambiguous quantity column (Qty vs Counted) and asks or states which was used before computing",
+        "Does not treat the blank count for package ...103 as zero inventory",
+        "Separates packages outside the counted scope from genuine shortfalls",
+        "Asks for or flags the as-of timestamps of both files",
+        "Notes CO license types (medical and retail) and does not import rules from another state"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "missing-state-and-files",
+      "prompt": "Our inventory is off by like 2 pounds this month. How do we fix it in Metrc?",
+      "expected_output": "Asks one combined question for state, license type, the traceability export and count/ERP file with as-of times; explains briefly what it will do with them; does not give state-specific adjustment instructions or reason codes; does not suggest adjusting 2 lb before root cause is found.",
+      "files": [],
+      "assertions": [
+        "Asks for state and license type in a single combined question",
+        "Asks for both source files (traceability export and count/ERP) with as-of times",
+        "Does not provide a specific Metrc adjustment reason or state deadline",
+        "Explicitly advises against adjusting to force a match before finding the cause"
+      ]
+    }
+  ]
+}

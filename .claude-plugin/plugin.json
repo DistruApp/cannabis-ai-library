@@ -1,0 +1,33 @@
+{
+  "name": "cannabis-ai-library",
+  "version": "0.2.0",
+  "description": "Distru's agent skills for licensed cannabis operators: state rules lookup, inspection readiness, traceability reconciliation, manifest prechecks, SOPs, batch COGS, harvest yield, replenishment and staff scheduling, plus Distru-connected skills such as the expiring inventory dashboard.",
+  "author": {
+    "name": "Distru",
+    "url": "https://www.distru.com"
+  },
+  "homepage": "https://www.distru.com",
+  "repository": "https://github.com/DistruApp/cannabis-ai-library",
+  "license": "MIT",
+  "keywords": [
+    "cannabis",
+    "compliance",
+    "metrc",
+    "inventory",
+    "operations",
+    "skills",
+    "distru"
+  ],
+  "skills": [
+    "./skills/cannabiz-skills/compliance/cannabis-state-rules-lookup",
+    "./skills/cannabiz-skills/compliance/cannabis-inspection-readiness",
+    "./skills/cannabiz-skills/compliance/cannabis-traceability-reconciliation",
+    "./skills/cannabiz-skills/compliance/cannabis-transfer-manifest-precheck",
+    "./skills/cannabiz-skills/compliance/cannabis-sop-generator-trainer",
+    "./skills/cannabiz-skills/operations/cannabis-batch-cogs",
+    "./skills/cannabiz-skills/operations/cannabis-harvest-yield-analysis",
+    "./skills/cannabiz-skills/operations/cannabis-replenishment-planner",
+    "./skills/cannabiz-skills/operations/staff-scheduling-optimizer",
+    "./skills/distru-skills/distru-expiring-inventory"
+  ]
+}

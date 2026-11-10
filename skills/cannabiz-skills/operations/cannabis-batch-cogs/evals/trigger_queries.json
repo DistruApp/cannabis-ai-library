@@ -1,0 +1,12 @@
+[
+  {"query": "what does one of our 1g carts actually cost us to make? here's the BOM and labor", "should_trigger": true},
+  {"query": "Our gummy batch unit cost jumped from $2.10 to $2.65, can you figure out why? Both BOMs attached", "should_trigger": true},
+  {"query": "cost out this live rosin run, we got 410 jars from 50 lb of fresh frozen", "should_trigger": true},
+  {"query": "I need cost per unit for our pre-roll 5-packs so sales can build the wholesale price sheet", "should_trigger": true},
+  {"query": "If distillate goes up 15% what happens to our vape margins? Use last week's batch costs", "should_trigger": true},
+  {"query": "How should we allocate indirect costs to inventory under 280E for our tax return?", "should_trigger": false},
+  {"query": "What's our cost per gram of flower by grow room this quarter?", "should_trigger": false},
+  {"query": "Build a wholesale price sheet with tiered discounts for our dispensary accounts", "should_trigger": false},
+  {"query": "Our live resin package in Metrc is 40 g more than what's on the shelf", "should_trigger": false},
+  {"query": "Which carts should the dispensary reorder this week?", "should_trigger": false}
+]

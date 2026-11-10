@@ -1,0 +1,45 @@
+{
+  "skill_name": "cannabis-batch-cogs",
+  "evals": [
+    {
+      "id": 1,
+      "name": "cart-batch-complete-inputs",
+      "prompt": "What did our Gelato cart batch GEL-CART-1003 really cost per unit? BOM attached. 14 labor hours at $24 loaded, overhead is $35 per labor hour, lab was $425. We expected 500 carts and got 492.",
+      "expected_output": "Cost per unit $9.51 (total $4,680.75) from the script; materials $3,429.75, labor $336, overhead $490, testing $425; distillate ~46% of cost; yield variance -8 units adding ~$0.15/unit; sensitivity on distillate, hardware, overhead; no assumptions; one-line note that 280E treatment needs a CPA.",
+      "files": ["evals/files/bom_distillate_cart_batch.csv"],
+      "assertions": [
+        "Reports cost per unit of $9.51 (9.5137) and total batch cost $4,680.75",
+        "Shows a line-by-line roll-up including labor ($336), overhead ($490), and testing ($425)",
+        "Reports yield variance of -8 units and about $0.15 added cost per unit",
+        "Includes sensitivity for the top drivers (distillate first) at plus/minus 10% and 20%",
+        "Mentions 280E/tax treatment only as out of scope requiring a CPA, without explaining tax law"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "live-resin-missing-solvent-cost",
+      "prompt": "cost out our papaya live resin run. 1180 jars. biomass was 45.36 kg of fresh frozen we pay $95/lb. 30 hrs labor @ $26. we do overhead as 12% of materials. lab $600. don't have the solvent cost handy, just use whatever.",
+      "expected_output": "Converts kg biomass to lb pricing correctly (~$9,500); does not invent a solvent price — either asks for it or, since the user said proceed, uses an explicitly tagged ASSUMPTION value disclosed at the top and shows the impact; reports cost per jar from the script with assumptions listed.",
+      "files": ["evals/files/bom_live_resin_run.csv"],
+      "assertions": [
+        "Prices the biomass at about $9,500 (45.36 kg converted to ~100 lb at $95/lb), not $4,309 or $95 x 45.36",
+        "Does not present a solvent cost as fact; any value used is labeled ASSUMPTION and listed at the top",
+        "Shows or offers the cost-per-unit impact of the assumed solvent value",
+        "Applies overhead as 12% of materials as the operator specified"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "preroll-thin-inputs",
+      "prompt": "Here's our pre-roll BOM. What's our cost per pre-roll? I need it for a price sheet by end of day.",
+      "expected_output": "Runs or attempts the script, gets BLOCKED, and asks in one message for: flower cost per lb (blank in BOM), units produced, labor hours and rate, overhead method, testing cost; notes whether flower cost should be internal transfer cost or cultivation cost per gram; does not estimate any of them; offers to proceed with tagged assumptions if the user prefers speed.",
+      "files": ["evals/files/bom_preroll_mixed_units.csv"],
+      "assertions": [
+        "Identifies the missing flower cost in the BOM",
+        "Asks for units produced, labor, overhead method, and testing in a single combined request",
+        "Does not invent a flower price, labor rate, or overhead rate",
+        "Asks whether flower cost should be internal transfer cost or cultivation cost"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+[
+  {"query": "can you check this manifest against SO-1042 before the van leaves", "should_trigger": true},
+  {"query": "Attached is the Metrc transfer draft and the invoice for Example Harbor Wellness. Make sure we're not shipping anything untested.", "should_trigger": true},
+  {"query": "our driver keeps getting transfers rejected at the dispensary, here's today's order and the packages we pulled - what's wrong?", "should_trigger": true},
+  {"query": "double check the packages on this outgoing delivery match what the store ordered", "should_trigger": true},
+  {"query": "we're shipping 5 lb of bulk flower to a processor, is the quantity on this transfer right? file attached", "should_trigger": true},
+  {"query": "We just received a transfer from our supplier and the quantities look off, help me decide whether to accept it", "should_trigger": false},
+  {"query": "Plan the most efficient delivery route for our 6 dispensary drops tomorrow", "should_trigger": false},
+  {"query": "Our physical count doesn't match Metrc for the vault, find the variances", "should_trigger": false},
+  {"query": "Write an SOP for how our drivers should handle cannabis transport", "should_trigger": false},
+  {"query": "Review this COA and tell me if the potency matches our label claim", "should_trigger": false}
+]

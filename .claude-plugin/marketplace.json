@@ -1,0 +1,23 @@
+{
+  "name": "distru",
+  "owner": {
+    "name": "Distru",
+    "url": "https://www.distru.com"
+  },
+  "description": "Distru's Cannabis AI Library, as an installable Claude Code plugin.",
+  "plugins": [
+    {
+      "name": "cannabis-ai-library",
+      "source": "./",
+      "description": "Agent skills for licensed cannabis operators (compliance, traceability, cost, yield, purchasing and staffing).",
+      "category": "productivity",
+      "keywords": [
+        "cannabis",
+        "compliance",
+        "metrc",
+        "inventory",
+        "operations"
+      ]
+    }
+  ]
+}

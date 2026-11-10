@@ -1,0 +1,12 @@
+[
+  {"query": "the DCC is coming for an inspection on the 24th, what should we have ready?", "should_trigger": true},
+  {"query": "Can you run a mock audit for our Oklahoma grow? We've never been inspected.", "should_trigger": true},
+  {"query": "renewal inspection next week for our MIP, make me a binder checklist", "should_trigger": true},
+  {"query": "what will the state check when they walk our dispensary? want to be prepared", "should_trigger": true},
+  {"query": "self-audit our Massachusetts manufacturing facility against the regs, here's our SOP list", "should_trigger": true},
+  {"query": "Write an SOP for our extraction room with training quiz", "should_trigger": false},
+  {"query": "Our CPA says we're getting an IRS audit on 280E, help me prepare", "should_trigger": false},
+  {"query": "We received a notice of violation for camera downtime, draft our response to the regulator", "should_trigger": false},
+  {"query": "Our Metrc count is off by 30 grams, find the discrepancy", "should_trigger": false},
+  {"query": "Check this label against Michigan packaging rules", "should_trigger": false}
+]

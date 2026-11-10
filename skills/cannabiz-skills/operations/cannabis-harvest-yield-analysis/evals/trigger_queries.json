@@ -1,0 +1,12 @@
+[
+  {"query": "which flower room gave us the best grams per square foot last quarter? harvest log attached", "should_trigger": true},
+  {"query": "Our wet-to-dry on the last GMO run was way off compared to normal, here are the weights", "should_trigger": true},
+  {"query": "what's our cost per gram by strain? I have cycle costs per room and the harvest weights", "should_trigger": true},
+  {"query": "Build me a harvest report for the owners from this Metrc harvest batch export", "should_trigger": true},
+  {"query": "our trim percentage keeps climbing, can you look at the last 10 harvests", "should_trigger": true},
+  {"query": "Metrc shows 2 lb more flower than we counted in the vault, why?", "should_trigger": false},
+  {"query": "What's the extraction yield and cost per gram on our last live resin run?", "should_trigger": false},
+  {"query": "Plan our flip schedule for the next 6 months across 4 flower rooms", "should_trigger": false},
+  {"query": "Write an SOP for weighing and recording wet harvest weight", "should_trigger": false},
+  {"query": "Which pre-roll SKUs should we reorder for the dispensary this week?", "should_trigger": false}
+]

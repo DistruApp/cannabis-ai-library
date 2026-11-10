@@ -1,0 +1,27 @@
+Use Distru Expiring Inventory in Review mode on the new dashboard.
+
+Verify company identity, live in-app reads and a fresh Refresh. For [product],
+reconcile the selected [expiry month] stock and price-based value to
+its qualifying lots. Distinguish full product stock/value and later-expiring
+lots. Verify units, price basis, reservations and eligibility labels; do not
+infer lot-level availability from a product-level number.
+
+Trace one displayed buyer to matching completed/delivered sales lines within
+the visible period. Check samples, product filtering, net returns, pagination,
+verified quantity units, most recent date and actual purchase value. Verify the
+chosen contact belongs to that buyer. Do not reuse another product's evidence.
+
+Inspect the actual opening dashboard, filtered inventory, buyer comparison,
+purchase detail and handoff. Can the user quickly identify stock, quantity,
+expiry, a previous buyer and the next action? Exercise filter changes and
+Refresh; note actual wait time, stale-data behavior and any lost selection.
+Check missing-data states and the saved-view customization if it was added.
+
+Check the handoff separately from the generated email: does the prepared prompt
+carry the right facts, source times, recipient and literal offer terms? Does the
+conversation receive them? Does the final draft preserve those facts after a
+wording edit? Do not treat opening ChatGPT as a successful draft-generation test.
+
+Report Pass, Fail or Not tested with evidence and specific corrections. Separate
+native reads, implementation tests, hosted use and visual review. Do not change
+Distru records, send emails or claim untested behavior passed.

@@ -1,0 +1,12 @@
+[
+  {"query": "how long do we have to record a destruction in metrc in california", "should_trigger": true},
+  {"query": "Which seed-to-sale system does Washington use now? We're expanding there.", "should_trigger": true},
+  {"query": "is it legal for us to give free samples to dispensary budtenders in MA?", "should_trigger": true},
+  {"query": "Colorado changed rules in November, does that affect our daily reconciliation?", "should_trigger": true},
+  {"query": "what's the significant discrepancy threshold for CA cannabis inventory", "should_trigger": true},
+  {"query": "Here are our Metrc and count CSVs, find the variances", "should_trigger": false},
+  {"query": "Write an SOP for our waste destruction process", "should_trigger": false},
+  {"query": "What's the federal minimum wage for our trimmers?", "should_trigger": false},
+  {"query": "Calculate COGS for our live resin batch", "should_trigger": false},
+  {"query": "Draft a cold email to dispensary buyers in Michigan", "should_trigger": false}
+]

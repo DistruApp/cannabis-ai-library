@@ -1,0 +1,30 @@
+Use Distru Expiring Inventory to create a new private interactive Claude artifact
+using my connected Distru account. Verify the connected company is [your company].
+
+Make the opening screen useful: show quantities and units, expiry dates, locations,
+price-based inventory value and previous-buyer coverage. Include a monthly expiry
+chart and inspectable source lots. Keep total product value separate from the
+value of the lots inside the selected window.
+
+Default to six calendar months of expirations and 12 months of purchase history,
+with editable product, month, location and date filters. Show a customer comparison,
+purchase quantities, recent dates, actual purchase values and source sales lines.
+Keep useful results visible while refreshing and show their read time.
+
+Start with [product] and its [expiry month] expirations. Read current records; do
+not hard-code the example or its figures. The dashboard must work for other
+products too. Follow the skill's rules for units, returns, price calculations,
+availability and eligibility.
+
+Let me select a customer and saved contact, enter offer terms and review the facts
+for a drafting request. This conversation writes and revises the email.
+
+Use a supported handoff into the Claude conversation, or Copy prompt for explicit
+pasting. Verify the actual artifact connector runtime; do not guess bridge APIs
+or submit automatically. No embedded email editor or extra model API is required.
+
+Verify live in-app reads and Refresh, reconcile stock and purchases, and inspect
+the rendered screens. Report the context handoff and generated-email checks
+separately. Keep missing data honest. Do not send emails or change Distru records.
+
+Return the new artifact and what passed or remains untested.

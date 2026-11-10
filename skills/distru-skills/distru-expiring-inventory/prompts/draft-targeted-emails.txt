@@ -1,0 +1,24 @@
+Use Distru Expiring Inventory in Draft outreach mode. Use the dashboard context
+provided with this request and my connected Distru account. Confirm the company
+is [your company] and the selected product is [product]. The expiry scope is
+the selected [expiry month and year], not all stock of this
+product. Use the explicit purchase-history dates in the report.
+
+If I have not selected targets yet, show matching previous buyers with product,
+quantity/unit, last purchase, order count and candidate contacts for review.
+If I have selected a customer and contact, keep that scope and verify their
+relationship. Preserve source references and distinguish a supplied snapshot
+from any live recheck. A private dashboard URL alone is not verified evidence.
+
+Use only the offer terms, end date, optional minimum and sender details I supply.
+Ask for a missing required term before presenting a recipient-ready offer.
+Do not invent a discount, customer, address or purchase. Keep any eligibility or
+availability limitation explicit outside the customer-facing message; do not
+promise delivery or quantities that have not been confirmed.
+
+Prepare an editable subject and concise email in this conversation. Refer to
+verified prior purchases and the selected lots' expiration dates where useful.
+Do not call price-based inventory value projected sales or recovered revenue.
+Keep the evidence/check summary outside the message. I will review and may ask
+for a wording change. Do not send, schedule, enroll, reserve stock or change ERP
+records.

@@ -1,0 +1,12 @@
+[
+  {"query": "metrc says 14 packages but we only found 12 in the vault, help me figure out whats missing", "should_trigger": true},
+  {"query": "Attached: BioTrack inventory export + our cycle count from Friday. Washington processor. Need a variance report before our inspection.", "should_trigger": true},
+  {"query": "our distru on-hand and metrc dont agree on the gelato carts, one says each one says grams", "should_trigger": true},
+  {"query": "can you build me a monthly inventory true-up process for our dispensary vault vs state system", "should_trigger": true},
+  {"query": "we have extra product in the dry room that isn't showing in metrc, what do we do", "should_trigger": true},
+  {"query": "Reconcile our September bank statement against QuickBooks for the dispensary", "should_trigger": false},
+  {"query": "Our cannabis excise tax return doesn't match our sales report, can you reconcile them?", "should_trigger": false},
+  {"query": "Calculate yield per light for our last three harvests", "should_trigger": false},
+  {"query": "Check this outgoing manifest against the sales order before the driver leaves", "should_trigger": false},
+  {"query": "Which SKUs should I reorder this week based on sell-through?", "should_trigger": false}
+]

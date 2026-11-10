@@ -1,0 +1,45 @@
+{
+  "skill_name": "cannabis-state-rules-lookup",
+  "evals": [
+    {
+      "id": 1,
+      "name": "ca-reconciliation-frequency",
+      "prompt": "We're a California distributor. How often are we required to reconcile Metrc and what happens if we're off?",
+      "expected_output": "Cites 4 CCR §15051 (at least every 30 calendar days; audit + written notice to DCC if significant) and §15034 (5% difference), notes the unofficial-compilation status and the base ambiguity of the 5%, and recommends confirming with compliance.",
+      "files": [],
+      "assertions": [
+        "States 'at least once every 30 calendar days' with citation §15051",
+        "States the 5% significant-discrepancy definition with citation §15034",
+        "Flags that the rule does not specify the base (per package vs total) for the 5%",
+        "Includes a source URL and an access/verification date",
+        "Does not invent a notification deadline not present in the cited text"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "nm-system-change",
+      "prompt": "new mexico retailer here - our POS integrates with biotrack, anything we need to know about traceability right now?",
+      "expected_output": "States that NM moved from BioTrack to the state system NMS2S (transition starting 2026-08-25; BioTrack unavailable for retailers by 2026-09-04) with the RLD source, and that the POS integration must be confirmed for NMS2S; marks vendor/lawsuit details unverified.",
+      "files": [],
+      "assertions": [
+        "Identifies NMS2S as the current NM system replacing BioTrack",
+        "Cites the NM RLD source page",
+        "Advises confirming the POS integration with NMS2S rather than assuming BioTrack still works",
+        "Does not state unverified vendor or contract details as fact"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "ambiguous-state-280e",
+      "prompt": "Does the new rescheduling mean we don't have to deal with 280E anymore for our dispensary?",
+      "expected_output": "Asks for state and whether the dispensary is medical, adult-use, or both; summarizes the verified federal status with date and FR citation; does not state whether 280E applies to them; routes to a CPA.",
+      "files": [],
+      "assertions": [
+        "Asks whether the license is medical, adult-use, or both (and the state)",
+        "Cites FR Doc 2026-08176 with its 2026-04-28 effective date",
+        "Does not conclude that 280E does or does not apply to this operator",
+        "Recommends confirming with a CPA"
+      ]
+    }
+  ]
+}

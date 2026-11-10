@@ -1,0 +1,47 @@
+{
+  "skill_name": "cannabis-inspection-readiness",
+  "evals": [
+    {
+      "id": 1,
+      "name": "co-cultivation-mip-with-doc-list",
+      "prompt": "State inspection for our renewal is in 10 days. We're Example Gardens in Denver, retail cultivation + MIP (infused products manufacturer). Here's a list of what we have. What do we need to get ready?",
+      "expected_output": "Readiness summary with counts and days remaining; checklist across areas applicable to cultivation + manufacturing (not retail-floor items); critical gaps include the stale reconciliation (June), whiteboard waste entries not in the log, floor plan not reflecting the 2025 dry room, missing extraction SOP, unknown camera retention, and missing training records for 3 trimmers; gap tracker with owners and due dates before the inspection; binder index; mock questions; state-specific rules cited from state-profiles or marked NEEDS VERIFICATION; refers SOP drafting to cannabis-sop-generator-trainer; never suggests backdating the waste log.",
+      "files": ["evals/files/document_list.md"],
+      "assertions": [
+        "Makes the stale June reconciliation a Critical or top gap and recommends running a reconciliation",
+        "Flags the 2025 dry room not on the approved floor plan as a gap and does not claim a specific Colorado notification rule without citation",
+        "Flags whiteboard waste entries and says to record them accurately with actual dates, not to backdate",
+        "Marks camera retention as Unknown/Gap and labels the retention period NEEDS VERIFICATION unless cited",
+        "Excludes or marks N/A the retail-floor area",
+        "Refers SOP drafting (extraction SOP) to cannabis-sop-generator-trainer rather than writing a full SOP",
+        "Includes a gap list with owner roles and due dates before the inspection date"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "ca-retailer-mock-audit",
+      "prompt": "Run a mock audit for our California storefront retailer. No inspection scheduled, just want to be ready. We use Metrc and Dutchie POS.",
+      "expected_output": "Retail-appropriate areas (ID verification, purchase limits, retail floor, traceability, security, testing/COA, labeling, people, SOPs, returns); jurisdiction block for CA; mock-inspection questions aimed at budtenders and managers; status Unknown rather than Ready for items without evidence; asks for or suggests uploading current docs; no invented CA limits or retention periods unless cited.",
+      "files": [],
+      "assertions": [
+        "Includes retail-specific areas such as ID/age verification and purchase limits",
+        "Does not state specific California purchase limits or camera retention periods unless cited from a source",
+        "Marks items without evidence as Unknown rather than Ready",
+        "Provides at least 10 mock-inspection questions with who answers and evidence to show"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "missing-state-and-license",
+      "prompt": "we have an audit next week, can you make us a checklist?",
+      "expected_output": "Asks one combined question: state/local jurisdiction, license types at the premises, inspection type (state compliance vs financial), date, traceability system, and whether they have regulator checklists; may preview the generic area list labeled as best practice; does not produce a state-specific checklist or claim rules.",
+      "files": [],
+      "assertions": [
+        "Asks for state and license type(s) in a single combined question",
+        "Clarifies whether the audit is a regulatory/compliance inspection versus a financial or tax audit",
+        "Does not present any state-specific requirement as fact",
+        "Does not claim the business will pass"
+      ]
+    }
+  ]
+}

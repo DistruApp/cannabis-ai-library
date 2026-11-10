@@ -1,0 +1,90 @@
+---
+name: cannabis-traceability-reconciliation
+description: Reconcile cannabis inventory between the state traceability system (Metrc, BioTrack, or a state-built system) and a physical count or ERP/POS export, then produce a discrepancy report with likely causes and draft corrective actions. Use when a licensed cannabis operator says their count doesn't match Metrc, needs a month-end or pre-audit inventory reconciliation, has package variances, missing or extra package tags, unit-of-measure mismatches, or uploads a Metrc/BioTrack package export alongside a count sheet, even if they don't say "reconciliation." Not for bank, accounting, or sales-tax reconciliations, and not for submitting adjustments to the state system.
+license: MIT
+metadata:
+  version: "1.0"
+  category: compliance-traceability
+  risk-level: high
+  last-compliance-review: "2026-10-16"
+---
+
+# Traceability reconciliation
+
+Turns two inventory lists that don't agree into a report an inventory or compliance manager can act on today. Every variance is sized, classified, and given a likely cause and a next step. Adjustments are **drafted, never submitted**.
+
+## Workflow
+
+Copy this checklist and work through it:
+
+```
+- [ ] 1. Jurisdiction gate
+- [ ] 2. Identify the two sources and confirm the column mapping
+- [ ] 3. Run scripts/reconcile.py
+- [ ] 4. Investigate and classify each variance
+- [ ] 5. Draft actions (no submissions)
+- [ ] 6. Write the report from assets/report-template.md
+```
+
+### 1. Jurisdiction gate
+
+Read `references/jurisdiction-gate.md`. You need state, license type, and traceability system before saying anything about adjustment reasons, reporting deadlines, or documentation requirements. Look up the state in `references/state-profiles.md`. If those are missing, ask once. The math in steps 2–4 doesn't depend on them, so you can run it while you wait for an answer.
+
+### 2. Sources and mapping
+
+You need exactly two lists that share a package tag:
+- **System side:** traceability export (active packages) as of a stated date and time.
+- **Count side:** physical count sheet, or ERP/POS on-hand export, as of the *same* point in time.
+
+Ask for the as-of timestamp of each. A morning Metrc export against an end-of-day count produces false variances from the day's sales and transfers.
+
+Run `python3 scripts/reconcile.py --system <file> --count <file> --detect-only` and show the user the detected mapping in one line per file. If the script reports a missing or AMBIGUOUS column, ask which column to use and pass `--map-system field=Column` or `--map-count field=Column`. Column alias hints are in `references/system-mappings.md`.
+
+Tolerance: default is **0** (report everything). Only set `--tolerance-g` / `--tolerance-each` if the operator gives you their own internal threshold. Never use a "typical" or state threshold you can't cite.
+
+If the files are Excel, export each sheet to CSV first. If they're PDFs, extract the table and show the user the first rows to confirm before running.
+
+### 3. Run
+
+```
+python3 scripts/reconcile.py --system <file> --count <file> --out-dir <dir> [mappings] [tolerances]
+```
+
+Use the script's numbers as-is. Don't recompute differences by hand. Statuses: `MATCH`, `WITHIN_TOLERANCE`, `SHORT_IN_COUNT`, `OVER_IN_COUNT`, `IN_SYSTEM_NOT_COUNTED`, `COUNTED_NOT_IN_SYSTEM`, `POSSIBLE_TAG_TYPO`, `UOM_MISMATCH`, `UNKNOWN_UOM`, `BAD_QUANTITY`. Also report every line in `input_problems` (duplicate tags, blank tags, non-numeric quantities).
+
+### 4. Investigate and classify
+
+For each non-matching row, assign a **likely cause** from `references/variance-causes.md` and a confidence: **Explained** (evidence in the files), **Probable** (fits the pattern, needs one check), or **Unexplained**. Look for patterns before treating rows one at a time: a single counter, room, product type, or date accounts for most real-world variances.
+
+Evidence you can use: item type, unit, room, counter initials, the size of the gap relative to package weight, and any extra files the user gives you (sales, transfers, waste logs, lab sample records). If a cause needs data you don't have, name the file that would confirm it.
+
+### 5. Draft actions
+
+For each variance: the physical re-check to do, the record to find, and whether an adjustment in the traceability system **may** be needed. For adjustments:
+- Mark them **DRAFT, not submitted**.
+- Don't choose a reason code unless the operator supplies their state's list. In Metrc it comes from the state's adjustment-reasons list (the API exposes `GET /packages/v2/adjust/reasons`). Otherwise write `reason: select from your state's list`.
+- Any documentation, notification, or timing requirement for adjustments is **NEEDS VERIFICATION** unless `references/state-profiles.md` cites it.
+- Never propose an adjustment just to make the numbers match. An unexplained variance stays open, and you recommend escalating it.
+
+### 6. Report
+
+Fill `assets/report-template.md`. Lead with the bottom line: how many packages are off, net and gross variance in grams and units, and the top 3 patterns. Follow `references/output-conventions.md` for labels and the sign-off block.
+
+## Gotchas
+
+- **"Significant" thresholds need a base.** Example: California 4 CCR §15034 defines a significant discrepancy as "a five percent difference" between physical and track-and-trace inventory, and §15051 requires an audit and written notice to DCC when one is found. The rule doesn't say whether 5% is per package or on total inventory. The script reports both (`pct_of_system` per row, `net_difference_pct_of_system_total` overall). Show both readings and leave the interpretation to compliance or counsel. For any other state, use only a threshold cited in `references/state-profiles.md`.
+
+- **Pounds vs. grams.** 1 lb = 453.592 g. A package recorded as "1 Pounds" and counted as 453.6 g is a match, not a variance. Let the script convert.
+- **"Each" vs. weight.** Pre-rolls, carts, and edibles may be tracked as count-based in traceability but weighed on the count sheet (or the other way round). The script won't convert these (`UOM_MISMATCH`). Ask for the net weight per unit, or recount in the system's unit.
+- **Bulk flower loses weight.** Flower keeps losing moisture after packaging, so small, consistent shortfalls on bulk flower packages that have sat a long time fit that pattern. That's a *probable* cause that needs a scale check and a dated weigh history. It doesn't justify an automatic adjustment.
+- **Timing gaps.** Sales recorded in the POS but not yet reported to traceability, transfers in transit, and lab samples pulled but not recorded all show up as `SHORT_IN_COUNT` or `IN_SYSTEM_NOT_COUNTED`. Check these before calling anything a loss.
+- **Splits and repackaging.** A package that was split into new tags shows the parent as short and the children as `COUNTED_NOT_IN_SYSTEM` if the new packages weren't created in the system yet. Look for matching item names and quantities that add up.
+- **Tag typos.** `POSSIBLE_TAG_TYPO` means the tags are within 2 characters of each other. Confirm against the physical label before treating it as two variances.
+- **Over-counts matter too.** `OVER_IN_COUNT` and `COUNTED_NOT_IN_SYSTEM` can mean untracked product on site. Rank them as high-priority, not as "good news."
+- **Zero-quantity active packages** in the system export are usually finished packages someone didn't close out. List them, but don't treat them as missing inventory.
+
+## Example
+
+User: "Metrc says we have 10 active packages in Vault A / Dry Room 2 / Finished Goods, here's our Sept 30 count — why don't they match? We're in Michigan, Class C grower + processor."
+
+Good output opens with: "12 packages compared: 3 match, 9 need attention. Net weight variance −23.8 g (Blue Dream 1 lb package −5.7 g, GMO Cookies −18.1 g, both bulk flower in storage, probable moisture loss, re-weigh). Gummies counted +12 units over the system: high priority, possible untracked product. One rosin package was likely mistyped on the count sheet (…0011 vs …0110)…". It then gives the jurisdiction block, assumptions, the variance table, draft actions, and the sign-off.

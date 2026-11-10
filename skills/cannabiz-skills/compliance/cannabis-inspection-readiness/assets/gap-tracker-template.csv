@@ -1,0 +1,2 @@
+gap_id,area,gap,priority,basis,evidence_needed,owner_role,due_date,status,notes
+G-01,Traceability,No inventory reconciliation since last month-end,Critical,operational best practice: confirm against your state's rules,Completed reconciliation report with variance resolution,Inventory manager,,Open,Run cannabis-traceability-reconciliation

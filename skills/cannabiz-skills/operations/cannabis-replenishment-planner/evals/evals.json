@@ -1,0 +1,47 @@
+{
+  "skill_name": "cannabis-replenishment-planner",
+  "evals": [
+    {
+      "id": 1,
+      "name": "dispensary-weekly-reorder",
+      "prompt": "Here's our POS sales for Aug-Sep and today's on-hand (9/30). Lead times and case packs are in the on-hand sheet. Keep 3 days of safety stock. What should I order this week and how much cash do I need?",
+      "expected_output": "A replenishment plan with the confirmed mapping, the 28-day window (9/3-9/30) stated, 3 REORDER lines totaling $4,620 (Example Pines Distribution 120 units $1,680; Example Coast Extracts 110 units $1,980; Example North Farms 40 units $960), Live Resin Gelato flagged as a stockout with understated demand, Pre-Roll 5pk flagged dead with $350 at cost, Chocolate bar flagged NO_LEAD_TIME, Distillate cart not reordered because the 50-unit open PO covers it, default cover/dead/slow thresholds listed as assumptions, and a PO draft marked not sent.",
+      "files": ["evals/files/pos_sales_2026-08-02_to_2026-09-30.csv", "evals/files/onhand_2026-09-30.csv"],
+      "assertions": [
+        "States PO draft total of $4,620 across 3 vendors, matching the script output",
+        "SP-BD-35 suggested qty is 120 (rounded up to case pack 24)",
+        "Flags CE-LR-GEL as out of stock with demand likely understated, without inventing a corrected number",
+        "Lists NB-PR-5PK as dead stock with $350 at cost and says shelf-life/test-date limits are state-specific / need verification",
+        "Does not reorder CE-DIST-1G and mentions the open PO",
+        "Lists cover_days=14, dead_days=30, slow_dos=90 (or equivalent) as assumptions to confirm",
+        "Marks PO as draft / not sent to any vendor"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "promo-spike-and-new-sku",
+      "prompt": "we ran a labor day sale 9/1 on GMO Cookies, pull 35 days of sales so that's included. also the Runtz smalls just launched. same files. 7 day lead time if missing, no safety stock.",
+      "expected_output": "Runs with --window-days 35 so 9/1 is included, recognizes the GMO Cookies velocity is inflated by the 40-unit promo day and either reruns excluding it or explains the effect; treats NB-SM-14 velocity as provisional (NEW_SKU, 11 days); uses safety_days=0 as operator-provided, not as an assumption.",
+      "files": ["evals/files/pos_sales_2026-08-02_to_2026-09-30.csv", "evals/files/onhand_2026-09-30.csv"],
+      "assertions": [
+        "Uses a 35-day window ending 2026-09-30",
+        "Calls out that the 9/1 promo spike inflates GMO Cookies velocity and asks whether it will repeat or shows the result without it",
+        "Labels Runtz smalls velocity as provisional due to limited history",
+        "Does not invent an industry sell-through or days-of-supply benchmark"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "ambiguous-columns-missing-lead-times",
+      "prompt": "what do i need to reorder? sales and inventory attached",
+      "expected_output": "Detects that the sales file has no SKU column and the on-hand file has two candidate quantity columns (On Hand vs Available); asks one combined question covering which on-hand column to use, whether product name can serve as SKU, vendor lead times, safety stock and order cycle; does not produce order quantities until lead times are provided or explicitly assumed and labeled.",
+      "files": ["evals/files/sales_by_product_no_sku.csv", "evals/files/onhand_messy.csv"],
+      "assertions": [
+        "Identifies the On Hand vs Available ambiguity and asks which to use",
+        "Notes there is no SKU column and proposes using product name with the SKU-churn caveat",
+        "Asks for lead times (and safety/cover days) in a single combined question",
+        "Does not present order quantities based on invented lead times"
+      ]
+    }
+  ]
+}

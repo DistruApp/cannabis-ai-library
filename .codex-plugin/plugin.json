@@ -1,0 +1,37 @@
+{
+  "name": "cannabis-ai-library",
+  "version": "0.2.0",
+  "description": "Distru's agent skills for licensed cannabis operators: state rules lookup, inspection readiness, traceability reconciliation, manifest prechecks, SOPs, batch COGS, harvest yield, replenishment and staff scheduling, plus Distru-connected skills such as the expiring inventory dashboard.",
+  "keywords": [
+    "cannabis",
+    "compliance",
+    "metrc",
+    "inventory",
+    "operations",
+    "skills",
+    "distru"
+  ],
+  "skills": [
+    "./skills/cannabiz-skills/compliance/cannabis-state-rules-lookup",
+    "./skills/cannabiz-skills/compliance/cannabis-inspection-readiness",
+    "./skills/cannabiz-skills/compliance/cannabis-traceability-reconciliation",
+    "./skills/cannabiz-skills/compliance/cannabis-transfer-manifest-precheck",
+    "./skills/cannabiz-skills/compliance/cannabis-sop-generator-trainer",
+    "./skills/cannabiz-skills/operations/cannabis-batch-cogs",
+    "./skills/cannabiz-skills/operations/cannabis-harvest-yield-analysis",
+    "./skills/cannabiz-skills/operations/cannabis-replenishment-planner",
+    "./skills/cannabiz-skills/operations/staff-scheduling-optimizer",
+    "./skills/distru-skills/distru-expiring-inventory"
+  ],
+  "interface": {
+    "displayName": "Cannabis AI Library",
+    "shortDescription": "Compliance and operations skills for cannabis operators",
+    "longDescription": "Agent skills from Distru for running a licensed cannabis business: cited state rule lookups, inspection readiness, Metrc and BioTrack reconciliation, transfer manifest prechecks, SOPs with training, batch COGS, harvest yield, replenishment planning and staff scheduling. Distru customers also get skills that read their Distru data, starting with an expiring inventory dashboard that finds past buyers and drafts promo emails for review. Skills never submit to a state system or change Distru, and flag anything they can't verify.",
+    "developerName": "Distru",
+    "category": "Productivity",
+    "websiteURL": "https://www.distru.com",
+    "brandColor": "#4D8062",
+    "logo": "./assets/icon.png",
+    "composerIcon": "./assets/icon.png"
+  }
+}

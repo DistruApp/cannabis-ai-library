@@ -1,0 +1,48 @@
+{
+  "skill_name": "cannabis-harvest-yield-analysis",
+  "evals": [
+    {
+      "id": 1,
+      "name": "q3-rooms-and-cost",
+      "prompt": "Q3 harvests attached (harvests_2026_q3.csv). Which rooms are pulling their weight and what's our cost per gram? Our internal goal is 25 g/sq ft dry. Note one batch was logged in pounds.",
+      "expected_output": "Report ranking rooms by dry g/sq ft from the script (Flower 1 28.34, Flower 2 25.48, Flower 3 24.29, Flower 4 15.25), compared against the operator's own 25 g/sq ft goal; cost per dry gram per batch (Papaya ~$2.70 highest); unaccounted weight on 4 batches (GMO-F2-0913 400 g, GEL-F3-0920 125 g, PAP-F4-0927 200 g, BD-F1-1004 200 g); anomaly rule stated; strain/room confound noted; no outside industry benchmarks.",
+      "files": ["evals/files/harvests_2026_q3.csv"],
+      "assertions": [
+        "Ranks Flower 1 first at about 28.3 g/sq ft and Flower 4 last at about 15.3 g/sq ft",
+        "Compares rooms to the operator's 25 g/sq ft goal and labels it as their target",
+        "Converts the pound-unit batch BD-F1-0906 correctly (about 13,789 g dry), not treating 30.4 as grams",
+        "Lists the four batches with unaccounted weight and recommends finding the missing records",
+        "States the anomaly rule (1.5x IQR of the operator's own batches) when presenting flags",
+        "Notes that strain and room are confounded (one strain per room)",
+        "Does not cite any outside or 'industry typical' yield or dry-down benchmark"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "best-strain-no-canopy",
+      "prompt": "Which of our strains yields best? Here's what we track (batches H-101 to H-103). Just tell me which one to grow more of.",
+      "expected_output": "Notices no unit column and asks for the weight unit before running (values like 118/26 could be lb or kg); notes canopy and lights are missing so only per-plant comparison is possible; caveats tiny sample (3 batches, too few for anomaly fences) and that strain is confounded with room; does not recommend a strain based on outside benchmarks.",
+      "files": ["evals/files/harvest_log_no_units.csv"],
+      "assertions": [
+        "Asks for (or explicitly confirms) the weight unit instead of assuming grams or pounds",
+        "Says per-sq-ft comparison is not possible without canopy data and uses per-plant only",
+        "Caveats that 3 batches is too few for anomaly flags or a confident recommendation",
+        "Notes strain and room are confounded",
+        "Does not cite outside yield benchmarks"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "vague-light-harvest",
+      "prompt": "our last harvest came in light, like way lighter than usual. what happened?",
+      "expected_output": "Asks in one message for the harvest data (this batch plus prior batches for comparison: wet, dry, breakdown, plant count, canopy, units, dry-weight definition) and lists the process checks it will run (weigh timing, unit mix-ups, unrecorded waste/samples, canopy/plant count changes); does not speculate a cultivation cause or cite benchmarks without data.",
+      "files": [],
+      "assertions": [
+        "Asks for this batch's data and prior batches in a single combined request",
+        "Asks what 'usual' is based on (operator's history or target)",
+        "Mentions data/process checks (weigh timing, units, unrecorded waste/samples) before cultivation causes",
+        "Does not invent a cause or cite an industry benchmark"
+      ]
+    }
+  ]
+}
