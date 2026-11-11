@@ -81,7 +81,7 @@ When the state, license type and kind of inspection are known (for example "mock
 - **SOPs vs. reality.** Inspectors compare written SOPs with what staff actually do. A good SOP that nobody follows is a finding. Mock questions should test the floor staff, not just managers.
 - **Multiple licenses at one site.** Co-located licenses can have separate obligations and separate inventory. Check each one.
 - **Traceability first.** A clean binder doesn't make up for a count that doesn't match the system. If reconciliation status is unknown, make it the first gap.
-- **Don't cite rules from memory.** Even well-known requirements (camera retention periods, waste handling, visitor logs) differ by state and change over time. Cite them or mark them NEEDS VERIFICATION.
+- **Don't cite rules from memory.** Even well-known requirements (camera retention periods, waste handling, visitor logs) differ by state and change over time. Cite them or mark them NEEDS VERIFICATION, writing that label rather than a paraphrase.
 - **Local rules.** City or county permits and conditions may apply on top of state rules. Ask whether they hold a local permit.
 
 ## Example
