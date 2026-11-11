@@ -7,7 +7,7 @@ Judge only the assistant's final reply.
 Context, the expected behaviour: Converts the target to worker-hours (480 ÷ 20 = 24 worker-hours), then to workers using productive hours (24 ÷ 6 = 4 packagers), not 24 workers. Asks for or notes what it still needs before building a schedule (who is available and qualified, rates and hour caps, any minimum or hard constraints) and does not invent them.
 
 PASS only if ALL of these hold:
-- Calculates 24 worker-hours from 480 units at 20 units per worker-hour
+- Shows the calculation from 480 units at 20 units per worker-hour and 6 productive hours: 24 worker-hours ÷ 6, or the equivalent 120 units per packager into 480
 - Answers 4 packagers using the 6 productive hours, not 24 workers
 - Does not invent roster, rates or availability; asks for them before assigning anyone
 
