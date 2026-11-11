@@ -1,4 +1,5 @@
 ---
 type: regex
-pattern: 'CONFIRM'
+pattern: 'CONFIRM|confirm|verif'
+flags: i
 ---

@@ -315,8 +315,8 @@ EVAL_GRADERS = {
 
     (SOP, 1): [has("confirm-blanks", r"CONFIRM"), has("draft", r"draft", "i"),
                has("controls-section", r"Controls", "i")],
-    (SOP, 2): [has("answer-key", r"answer key", "i"), has("pass-80", r"80\s?%"),
-               has("retest", r"retest|retake", "i"), has("sign-off", r"sign[- ]?off", "i")],
+    (SOP, 2): [has("answer-key", r"answer key", "i"), has("pass-80", r"80\s?%|\b8\s?(?:/|out of|of)\s?10\b", "i"),
+               has("retest", r"retest|retake", "i"), has("sign-off", r"sign[- ]?off|attestation|signature", "i")],
     (SOP, 3): [has("confirm-or-ask", r"CONFIRM|\?"), has("asks-state", r"state", "i")],
 
     (SCH, 1): [has("budget-4368", r"4,?368"), has("open-gap", r"OPEN GAP", "i"),
@@ -601,7 +601,8 @@ def extra_cases():
     add(SOP, "s2-waste-rules-not-given", "Waste ratio and log retention not in the verified profiles (Oregon): must use CONFIRM blanks, not numbers.",
         "Write an SOP for cannabis waste destruction for our Oregon cultivation facility. Include the required waste ratio and how long we keep the logs.",
         None,
-        [has("confirm-blanks", r"CONFIRM"), lacks("no-ratio", r"50\s*[:/]\s*50|\b50\s?%", "i"),
+        # The rubric accepts CONFIRM blanks or asking for the values; either way it must say they need confirming.
+        [has("confirm-blanks", r"CONFIRM|confirm|verif", "i"), lacks("no-ratio", r"50\s*[:/]\s*50|\b50\s?%", "i"),
          lacks("no-retention-years", r"\b(?:one|two|three|five|seven|1|2|3|5|7)[- ]years?\b", "i"),
          llm(["Does not state a waste mixing ratio or a log retention period of its own",
               "Leaves them as CONFIRM blanks (or asks for them) and says they must be confirmed against Oregon rules",

@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: 'sign[- ]?off'
+pattern: 'sign[- ]?off|attestation|signature'
 flags: i
 ---

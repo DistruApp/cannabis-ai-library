@@ -8,7 +8,7 @@ Context, the expected behaviour: Builds a quick-reference summary that keeps eve
 
 PASS only if ALL of these hold:
 - Every question maps to a step, warning or control in the SOP
-- Quick-reference summary keeps the Section 7 hold and escalation (a unit-count or weight mismatch holds the shipment until the Compliance/Inventory Manager resolves it) and the no-undocumented-substitution warning, not only the manifest-match rule
+- Quick-reference summary keeps the Section 7 hold and escalation (a unit-count or weight mismatch holds the shipment until the discrepancy is resolved and documented, and the Warehouse Lead notifies the Compliance/Inventory Manager immediately) and the no-undocumented-substitution warning, not only the manifest-match rule
 - Includes an answer key with the source step for each answer
 - States a pass rule and a retrain-and-retest rule on fail
 - Sign-off log identifies the SOP ID and version and has columns for score, result and retest date

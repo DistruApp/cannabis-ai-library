@@ -122,7 +122,9 @@ with edits, and the edits are applied), build:
   regulatory citations. Shorten wording, never controls: carry over every
   warning, hold or stop condition, escalation step and role restriction in
   the SOP, including the ones in the Controls and Variance section, not
-  just the numbered steps.
+  just the numbered steps. Keep who does what: for each hold, keep the role
+  the SOP names to escalate to, resolve or release it. If the SOP names none,
+  keep its wording and list the gap for the compliance lead; don't assign one.
 - **Comprehension check**: 5 to 10 questions tied directly to the SOP's
   critical steps, warnings, and quality checks, not generic questions about
   the topic. Mix formats based on what the step requires someone to know or
