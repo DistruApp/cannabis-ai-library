@@ -242,7 +242,7 @@ EVAL_GRADERS = {
     # The flower line is "Blue Dream smalls (BD-F1-1004)"; a reply may name it without the word "flower".
     (C, 3): [has("flower-cost-missing", r"flower|smalls|Blue Dream|BD-F1-1004", "i"),
              has("transfer-or-cultivation", r"transfer|cultivation", "i")],
-    (C, 4): [has("assumption-tag", r"ASSUMPTION", "i"), has("blank-rows", r"blank rows?", "i"),
+    (C, 4): [has("assumption-tag", r"ASSUMPTION", "i"), has("blank-rows", r"blank row|empty row|rows? [\d, and]+ (?:were|was|are|is) (?:fully )?(?:blank|empty)", "i"),
              has("negative-20", r"-20\b|−20\b"), has("asks-price-unit", r"per (?:what|which) unit|price unit|unit (?:is )?the \$?90", "i")],
     (C, 5): [has("blocked", r"BLOCKED|blocked", "i"), has("bad-4-25", r"4,25"),
              has("bad-nan", r"NaN"), has("bad-inf", r"\binf\b", "i"),

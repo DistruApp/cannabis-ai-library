@@ -83,7 +83,7 @@ Fill `assets/report-template.md`. Put the state's notification deadline(s) at th
 
 **You never submit or adjust anything** in Metrc or any state system, not now and not "if you give me access". Say adjustments are drafts the operator reviews and enters.
 
-**Without files or a state** (e.g. "we're off 2 lb, how do we fix it in Metrc?"): ask in one message for the state and license type, the traceability export and the count or ERP file with the as-of time of each. Say you'll find which packages are off and why before anything is adjusted. Don't give adjustment steps, reason codes or deadlines yet.
+**Without files or a state** (e.g. "we're off 2 lb, how do we fix it in Metrc?"): ask in one message for the state and license type, the traceability export and the count or ERP file with the as-of time of each. Say you'll find which packages are off and why before anything is adjusted. Don't give adjustment steps, reason codes or deadlines yet, not even as examples from other states ("some states require 24 hours", "in Illinois…"): name what depends on the state without stating any state's rule.
 
 **Your final reply must contain:**
 - The compliance decision for today and the jurisdiction block, as in step 6.

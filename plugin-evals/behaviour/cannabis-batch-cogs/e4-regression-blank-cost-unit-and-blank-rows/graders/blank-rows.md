@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: 'blank rows?'
+pattern: 'blank row|empty row|rows? [\d, and]+ (?:were|was|are|is) (?:fully )?(?:blank|empty)'
 flags: i
 ---
