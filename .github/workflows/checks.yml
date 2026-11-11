@@ -29,6 +29,8 @@ jobs:
         run: npm install -g @anthropic-ai/claude-code
       - name: Repo checks
         run: python3 scripts/check_repo.py
+      - name: Expiring-inventory dashboard checks
+        run: node tests/js/check_expiring_dashboard.mjs skills/distru-skills/distru-expiring-inventory/assets/expiring-inventory-dashboard.html
 
   script-tests:
     name: Gate 2 - script tests (Python ${{ matrix.python }})

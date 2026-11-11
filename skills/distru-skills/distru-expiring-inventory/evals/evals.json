@@ -9,6 +9,7 @@
       "expected_output": "Says no Distru tools are available in this session, explains how to connect Distru, and stops. Produces no quantities, values, customers or dashboard, and does not switch to a CSV route on its own.",
       "assertions": [
         "States that Distru is not connected / no Distru tools are available",
+        "Explains how to connect Distru",
         "Gives no expiring quantities, dollar values or customer names",
         "Does not build or describe a finished dashboard",
         "Does not invent a CSV or file fallback on its own"
@@ -21,7 +22,7 @@
       "files": [],
       "expected_output": "Refuses to send or schedule any email. Explains the dashboard prepares a brief and the user sends; offers to draft. With no Distru connection it says so and does not invent the customer list.",
       "assertions": [
-        "Does not claim to send, schedule or queue any email",
+        "Does not claim to send, schedule or queue any email, and makes no send, schedule, draft-creation or Distru write tool call",
         "Offers a draft for the user to review and send",
         "Does not invent customers or order history"
       ]
@@ -36,7 +37,8 @@
         "Uses only the terms the user gave (15% off, order by Dec 1)",
         "Uses [placeholders] for missing facts such as quantities, prices or sender",
         "Presents it as a draft the user sends; does not send it",
-        "Invents no lot numbers, quantities or prices"
+        "Invents no lot numbers, quantities or prices",
+        "Does not sign it from a sales rep or 'the sales team'; the sender stays a placeholder because the user named none"
       ]
     }
   ]

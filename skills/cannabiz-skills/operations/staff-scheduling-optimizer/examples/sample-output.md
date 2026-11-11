@@ -18,6 +18,12 @@
 | Mike T. | Budtender | $17/hr | No | All days | 30 |
 | Amy W. | Front Desk | $16/hr | No | All days | 25 |
 
+**Location:** one store in Example State (fictional). Every compliance item below is a question for the operator's HR or counsel, not a conclusion.
+
+**Other hours:** none. Nobody works anywhere else this week, so the hours below are everyone's full week.
+
+**Current schedule:** not provided, so this run makes no comparison with it.
+
 **State worker credential:** this operator's state requires a cannabis worker credential for every scheduled employee (confirm the rule for your own state). All are current except **Tom K., whose credential expires Sunday this week.**
 
 **Shifts:** Open 10am-4pm and Close 4pm-10pm (6 hours each).
@@ -47,7 +53,7 @@ Hour budget ≈ **245 hours** for the week
 
 ## 2. Headcount by shift
 
-Budtenders needed = peak-hour transactions ÷ 12, rounded up. Headcount = the larger of budtenders needed and the 2-person minimum, plus any fixed role.
+Budtenders needed = peak-hour transactions ÷ 12, rounded up. Demand staff = budtenders needed + any fixed role (the front-desk ID checker). Headcount = the larger of demand staff and the 2-person site minimum; the ID checker counts toward that minimum, so it isn't added on top of it. The vault rule doesn't add a person: one of each shift's people has to be vault-certified.
 
 | Day | Shift | Projected sales | Transactions (÷ $45) | Peak hour (× 30%) | Budtenders needed | Fixed roles | Headcount |
 |---|---|---|---|---|---|---|---|
@@ -95,38 +101,46 @@ Everyone is inside their stated availability and weekly hour cap:
 | Tom K. | 3 | 18 | 32 | $306 |
 | Mike T. | 5 | 30 | 30 | $510 |
 | Amy W. | 3 | 18 | 25 | $288 |
-| **Filled** | **29** | **174** | | **$3,120** |
-| Open gap (Sun close) | 1 | 6 | | about $108 if filled at $18/hr |
+| **Assigned** | **29** | **174** | | **$3,120** |
+| Open gap (Sun close) | 1 | 6 | | not filled; see Flags |
 
 ---
 
 ## 4. Labor summary
 
-| | Current (flat 3 per shift, every day) | Recommended (demand-matched, gap filled) |
-|---|---|---|
-| Total hours | 252 | 180 |
-| Total labor cost | $4,483 | about $3,228 |
-| Labor % of sales | 24.6% | about 17.7% |
-| vs. $4,368 budget | Over by $115 | Under by about $1,140 |
+| | Hours | Labor cost | % of $18,200 sales | vs. $4,368 budget |
+|---|---|---|---|---|
+| Required by the headcount table | 180 | | | |
+| Assigned in this draft | 174 | $3,120 | 17.1% | under by $1,248 |
+| Open gap (Sunday close) | 6 | | | |
+| If the gap is filled by Sarah M. at $19/hr (conditional: only if she volunteers) | 180 | about $3,234 | about 17.8% | under by about $1,134 |
+
+Blended rate across the roster ≈ $17.79/hr; hour budget ≈ 245 hours.
 
 ---
 
 ## 5. What changed vs. current schedule
 
-Every shift except Friday and Saturday close drops from 3 people to 2. The demand data says one budtender covers the peak hour on those shifts, so the 2-person minimum is what sets their headcount. Friday and Saturday close stay at 3: two budtenders for the evening peak plus the front-desk ID check. Net: 72 fewer hours and about $1,255 less labor.
+The current schedule wasn't provided, so there's no comparison and no savings figure. Share it (each shift's assignments, or hours and cost by day) to see net hours added or removed by day.
 
-Don't treat the gap to budget as savings to bank. If the manager sees long waits on Friday or Saturday close, adding a third budtender there costs about $210 a week and still lands well under budget. Some of the room may also be covering side work (opening prep, closing cleanup, restock) that the current schedule absorbs.
+Don't treat the gap to budget as savings to bank. If the manager sees long waits on Friday or Saturday close, adding a third budtender there costs about $210 a week and still lands well under budget. Some of the room may also be covering side work (opening prep, closing cleanup, restock) that this draft doesn't schedule.
 
 ---
 
 ## 6. Flags
 
-- **Open gap: Sunday close has no vault-certified staff.** Sarah, Dave and Jen aren't available Sundays, and Lisa already opens. The skill did not schedule anyone outside their availability or over their cap to close it. Options for the manager:
-  - ask Sarah, Dave or Jen whether one of them will volunteer outside their usual availability, or Lisa (for her it would be a 12-hour day and 2 hours over her 28-hour cap);
-  - get Mike T. or Amy W. vault-certified, which also fixes every future Sunday;
-  - change the Sunday rule or hours, if the operator's own policy allows it.
-- **Tom K.'s credential expires Sunday.** He's scheduled Wednesday, Thursday and Saturday, all before it expires, and not Sunday. Confirm the renewal before scheduling him next week.
-- **Overtime:** none this week. The highest is 30 hours (Dave, Jen, Mike).
+- **Open gap: Sunday close has no vault-certified staff.** Only three people can work Sunday this week (Lisa, Mike and Amy; Tom is off because his credential expires that day) for four slots, and Lisa, the only vault-certified one, already opens. The skill did not schedule anyone outside their availability or over their cap to close it. Options for the manager:
+
+  | Option | Hours after | What still blocks it |
+  |---|---|---|
+  | Sarah M. volunteers | 30 of 34 | Sunday is outside her stated availability: only if she agrees |
+  | Dave S. or Jen R. volunteers | 36 of 34 | Over cap, and Sunday is outside their availability: not an option unless one of their weekday shifts moves to someone else |
+  | Lisa P. also closes (a double) | 34 of 28 | Over cap and a 12-hour day: not an option unless the manager changes her cap; a double may also trigger daily overtime or break rules |
+  | Get Mike T. vault-certified | Mike 30 of 30 (no change; he already closes Sunday) | Doesn't fill this Sunday by itself: the slot still needs a second person. If Tom's renewal is also confirmed, a week like this one could run Sunday as Lisa + Amy open and Mike + Tom close, inside everyone's availability and caps (Tom 24 of 32) |
+  | Change the Sunday rule or hours | | Only if the operator's own policy allows it |
+
+- **Tom K.'s credential expires Sunday.** He's scheduled Wednesday, Thursday and Saturday, all before it expires, and not on Sunday, the expiry day. Confirm the renewal before scheduling him next week.
+- **Overtime:** no one is scheduled above 30 hours in this draft (Dave, Jen and Mike are at 30). Whether any overtime applies depends on Example State's daily and weekly thresholds and the operator's workweek; see the compliance items.
 - **Mike T. is at his 30-hour cap.** Any swap that adds a shift for Mike needs a different person.
 
 ---
@@ -136,6 +150,8 @@ Don't treat the gap to budget as savings to bank. If the manager sees long waits
 - Do any local predictive scheduling or fair workweek rules require advance notice or premium pay if the Sunday gap is filled late?
 - Close-then-open turnarounds: Dave (Tue close → Wed open, and Thu close → Fri open), Jen (Fri close → Sat open) and Lisa (Sat close → Sun open) each get 12 hours between shifts. Confirm that meets any local rest-between-shifts rule.
 - Confirm the meal and rest break rules for a 6-hour shift.
+- Confirm the daily and weekly overtime thresholds and when the operator's workweek starts and ends.
+- Confirm whether a worker credential is still valid on its expiry date. This draft leaves Tom off Sunday either way.
 - Confirm whether your state requires a worker credential, and what it's called. This example assumed it does.
 
 ---

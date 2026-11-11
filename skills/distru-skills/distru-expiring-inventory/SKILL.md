@@ -73,8 +73,11 @@ the bracketed parts with the user's own company, product and expiry month.
   page and call it live; if live reads are impossible in this host, label the
   page a snapshot with its read time (see your route).
 - **Handoff, not a send.** The dashboard prepares a brief (customer, product,
-  expiring lots, their past orders, sales rep, the user's terms) and opens it in
-  the agent's chat, or copies it. The user sends it; the agent drafts there.
+  the selected lots and their expiry dates, past paid orders with the history
+  period and how much of it was read, the read time, and the recipient, offer,
+  deadline and sender exactly as the user entered them) and opens it in the
+  agent's chat, or copies it. A term the user left blank stays a placeholder;
+  order reps are context, never the sender. The user sends it; the agent drafts there.
   No sends, scheduling, stock reservations or Distru writes. A draft is not
   consent, a sent email or a sale.
 - **Honesty.** Show missing or partial data as missing or partial (for example

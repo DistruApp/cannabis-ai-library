@@ -76,9 +76,21 @@ for each field individually.
 - State/jurisdiction of each location
 - Known upcoming demand drivers: 4/20, holidays, promotions, product drops,
   harvest windows
+- The current schedule, only if the manager wants the draft compared with it:
+  each shift's assignments, or at least hours and cost by day. Without it,
+  don't compare.
 
 If any of this is missing, ask for it before producing a schedule. Don't guess
-at demand, budgets, or staffing costs.
+at demand, budgets, staffing costs or a current schedule.
+
+**Check the inputs before using them.** Skip wholly blank rows and the
+template's `EXAMPLE` rows. Treat a placeholder such as `YYYY-MM-DD`, a value
+that isn't a number where one is needed, a zero or negative rate, ticket,
+service rate or throughput, or a formula instead of its result as missing, and
+ask for the real value rather than repairing it. If the same person appears
+twice, ask which row is right; never count them as two people. Confirm units
+before dividing (grams vs. kilograms, units vs. cases, 24 vs. 0.24 for a
+percentage, a decimal comma such as "17,50").
 
 ## What to do with it
 
@@ -101,19 +113,30 @@ at demand, budgets, or staffing costs.
    3. Floor staff needed = peak-hour transactions ÷ the operator's service
       rate, rounded up.
    4. Add fixed roles the operator requires that don't serve customers (ID
-      check or front desk, vault or inventory lead, manager on duty).
-   5. Apply the operator's minimum per shift and hard constraints (for
-      example, a two-person minimum or a vault-certified person on every
-      shift). Headcount is the larger of the demand number and the minimum,
-      plus fixed roles.
+      check or front desk, vault or inventory lead, manager on duty): demand
+      staff = floor staff + fixed roles.
+   5. Apply the operator's minimum. A minimum for the whole site ("at least 2
+      people on at all times") counts everyone on shift, fixed roles
+      included, so headcount = the larger of demand staff and the site
+      minimum. Don't add fixed roles on top of a site minimum they already
+      help meet. A role or certification rule (for example, a vault-certified
+      person on every shift) doesn't add a person by itself: fill one of
+      the slots with someone qualified, and if no one qualified is
+      available, that slot is an OPEN GAP (step 4).
    6. Hours = headcount × shift length. Total them against the hour budget.
       If the total is over budget, don't cut below a hard constraint. Show
       the trade-off instead: which shifts would lose a person, what that does
       to the peak hour (customers per budtender), and let the manager choose.
 
    Show this calculation in the output so the manager can check it. For
-   cultivation/manufacturing, do the same with units per worker-hour and the
-   batch or output target instead of transactions.
+   cultivation/manufacturing, work from the output target instead of
+   transactions: worker-hours needed = output target ÷ units per worker-hour
+   (in the same units), then workers needed = worker-hours ÷ productive hours
+   each worker has before the deadline, rounded up. For example, 480 units at
+   20 units per worker-hour is 24 worker-hours; with 6 productive hours each,
+   that's 4 workers, not 24. Ask how much of the shift is productive (breaks,
+   setup, cleaning and changeovers come out) rather than assuming the full
+   shift. Then apply minimums and fixed roles as in steps 4 and 5.
 
 4. **Assign staff.** Match availability and weekly hour caps (hard
    constraints: never schedule anyone outside their stated availability or
@@ -128,19 +151,33 @@ at demand, budgets, or staffing costs.
    staff needed"). Don't assume someone will agree to work outside their
    availability, and don't give one person both shifts in a day (a double)
    to cover a gap: a double can trigger daily overtime or break rules, and
-   it's the manager's call. Show the OPEN GAP and list the double as an option. List options for the manager instead: who could be asked to
-   volunteer and what it would do to their hours, cross-training, or changing
-   the shift.
+   it's the manager's call. Show the OPEN GAP and list the options for the
+   manager: a double, who could be asked to volunteer, cross-training, or
+   changing the shift. For each person named,
+   show their hours and cap after the change and anything that still blocks
+   them (outside availability, over cap, a double, credential). Name only
+   people who'd stay within their cap, or mark the ones who wouldn't as not
+   an option unless the manager changes something else. Don't call training
+   or certification a fix unless it also leaves an available person for the
+   slot.
 
 5. **Flag issues before presenting the draft. Don't bury them in the schedule.**
    - Over/understaffing relative to the demand curve
    - Overtime risk: label each flag "likely justified" (ties to a real demand
      spike) or "worth reviewing" (looks like a byproduct of understaffing
-     elsewhere in the week)
+     elsewhere in the week). Say what you actually checked (for example "no
+     one is scheduled above 30 hours in this draft"); whether overtime
+     applies depends on the jurisdiction's daily and weekly thresholds, the
+     employer's workweek and hours worked elsewhere, so it stays an item to
+     confirm, never "no overtime".
    - Every OPEN GAP, with the options to fill it
    - Any employee whose state worker credential expires within the scheduling
-     period, where the state requires one. Don't schedule them after the
-     expiry date unless the renewal is confirmed.
+     period, where the state requires one. Don't schedule them on or after
+     the expiry date unless the renewal is confirmed or the operator confirms
+     the credential is valid through the end of that shift. Whether a
+     credential is valid on its expiry date varies, so treat that day as
+     NEEDS VERIFICATION; leaving it off is this skill's conservative default,
+     not a legal rule.
    - Any shift that would violate a stated hard constraint if left as drafted
 
 6. **Handle time-off and swap requests with the same rigor as the initial
@@ -169,9 +206,13 @@ at demand, budgets, or staffing costs.
 - **Headcount by shift**: the step 3 calculation, shift by shift
 - **Suggested Staffing Schedule (draft for manager approval)**: day/shift/role
   breakdown, with any OPEN GAP shown in place
-- **Labor summary**: hours scheduled vs. budget, labor cost vs. target,
-  blended rate
-- **What changed vs. current schedule**: net hours added/removed by day
+- **Labor summary**: required hours, assigned hours and open-gap hours
+  separately; cost of the assigned hours vs. budget and target; blended rate.
+  Any cost that assumes an open gap gets filled is labelled as conditional,
+  with the rate assumed.
+- **What changed vs. current schedule**: net hours added/removed by day, only
+  when the manager supplied the current schedule. Otherwise say it wasn't
+  provided and don't estimate savings.
 - **Flags**: open gaps with options, overtime risk (justified vs. worth
   reviewing), credential expirations, hard-constraint problems
 - **Compliance items to confirm**: jurisdiction-specific questions for HR/legal

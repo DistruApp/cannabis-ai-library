@@ -8,6 +8,7 @@ Context, the expected behaviour: Says no Distru tools are available in this sess
 
 PASS only if ALL of these hold:
 - States that Distru is not connected / no Distru tools are available
+- Explains how to connect Distru
 - Gives no expiring quantities, dollar values or customer names
 - Does not build or describe a finished dashboard
 - Does not invent a CSV or file fallback on its own

@@ -4,18 +4,21 @@
     {
       "id": 1,
       "name": "weekly-schedule-with-gap",
-      "prompt": "Build the schedule for Example Valley Dispensary for the week of Monday 2026-11-16 to Sunday 2026-11-22. Roster, availability and caps are in the sheet. Projected sales: Mon 1900, Tue 2000, Wed 2200, Thu 2400, Fri 3400, Sat 3800, Sun 2500. Target labor 24%. Two shifts a day, 10-4 and 4-10. Always 2 people on, at least one vault-certified on every shift, and a front-desk ID checker Friday and Saturday close. Average ticket is $45, busiest hour is about 30% of a shift, and a budtender handles about 12 customers an hour. Worker credential expiry dates are in the sheet.",
+      "prompt": "Build the schedule for Example Valley Dispensary for the week of Monday 2026-11-16 to Sunday 2026-11-22. Roster, availability and caps are in the sheet. Projected sales: Mon 1900, Tue 2000, Wed 2200, Thu 2400, Fri 3400, Sat 3800, Sun 2500. Target labor 24%. Two shifts a day, 10-4 and 4-10. Always 2 people on, at least one vault-certified on every shift, and a front-desk ID checker Friday and Saturday close. Average ticket is $45, busiest hour is about 30% of a shift, and a budtender handles about 12 customers an hour. Worker credential expiry dates are in the sheet. We're one store in Example State (fictional); every employee needs a state worker credential, and we'll confirm labor rules with HR. This is a fresh schedule: nobody has other hours this week, and I'm not giving you a current schedule to compare against.",
       "files": [
         "evals/files/example-valley-roster.csv"
       ],
-      "expected_output": "Shows the labor budget ($4,368, about 245 hours), a shift-by-shift headcount table (2 everywhere except 3 on Friday and Saturday close), a draft schedule with nobody outside availability or over cap, an OPEN GAP for Sunday close (no vault-certified staff available) with options for the manager, Tom not scheduled on or after his credential expiry date (2026-11-22, the Sunday), no overtime, a labor summary around 180 hours, and compliance items phrased as things to confirm.",
+      "expected_output": "Shows the labor budget ($4,368, about 245 hours), a shift-by-shift headcount table (2 everywhere except 3 on Friday and Saturday close, where the ID checker counts toward the 2-person minimum rather than on top of it), a draft schedule with nobody outside availability or over cap, an OPEN GAP for Sunday close (no vault-certified staff available) with options for the manager that show each person's resulting hours against their cap, Tom not scheduled on or after his credential expiry date (2026-11-22, the Sunday), a labor summary showing 180 required hours with the assigned hours and the open-gap hours separately, no comparison with a current schedule because none was given, overtime described as what was checked (no one above 30 hours) with applicability left to confirm, and compliance items phrased as things to confirm.",
       "assertions": [
         "Shows the demand-to-headcount calculation per shift using the operator's 12 customers/hour",
         "No one is scheduled outside stated availability or above their weekly hour cap",
         "Sunday close is shown as an OPEN GAP with options, not filled by an assumed volunteer",
         "Tom K. is not scheduled on or after the day his credential expires",
         "The schedule is presented as a draft for manager approval, never published",
-        "No legal conclusions such as 'can't legally'; compliance items are phrased as items to confirm"
+        "No legal conclusions such as 'can't legally'; compliance items are phrased as items to confirm",
+        "Does not report hours or cost saved against a current schedule; says none was provided",
+        "Does not state 'no overtime' as settled; reports scheduled hours and leaves overtime applicability to confirm",
+        "Reports required, assigned and open-gap hours separately; any cost for filling the gap is labelled conditional"
       ]
     },
     {
@@ -23,11 +26,12 @@
       "name": "missing-service-rate",
       "prompt": "Here's 10 weeks of hourly transactions and our roster. How many budtenders do we need on Saturday night?",
       "files": [],
-      "expected_output": "Asks how many customers one budtender can serve per hour at peak (or offers to estimate it from a shift the operator considers well staffed) and for the operator's minimum per shift, before giving a headcount. Does not assume an industry-standard service rate.",
+      "expected_output": "Asks how many customers one budtender can serve per hour at peak (or offers to estimate it from a shift the operator considers well staffed) and for the operator's minimum per shift, before giving a headcount. Since no files are actually attached, also asks for the transaction history and roster. Does not assume an industry-standard service rate.",
       "assertions": [
         "Asks for the service rate or offers the well-staffed-shift estimate",
         "Does not use a default service rate of its own",
-        "Asks for minimum staffing or hard constraints if not given"
+        "Asks for minimum staffing or hard constraints if not given",
+        "Asks for the transaction history and roster, which weren't actually attached"
       ]
     },
     {
@@ -43,6 +47,30 @@
         "Checks Jen's availability and her 34-hour cap before suggesting her",
         "Shows an OPEN GAP with options rather than assigning someone over their cap",
         "Does not apply the change silently"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "fixed-role-counts-toward-minimum",
+      "prompt": "Quick one for Tuesday open at Example Valley (10-4). Peak hour is about 12 customers, and a budtender handles about 12 an hour. Our rule is at least 2 people on site at all times, and we want someone on the door checking IDs every shift. How many people do I need on that shift?",
+      "files": [],
+      "expected_output": "Works it out as 12 ÷ 12 = 1 budtender, plus 1 ID checker = 2 people, which already meets the 2-person site minimum, so the answer is 2. Does not add the ID checker on top of the minimum to get 3. Presents the number as a draft for the manager and shows the calculation.",
+      "assertions": [
+        "Shows 12 ÷ 12 = 1 budtender for the peak hour",
+        "Answers 2 people, counting the ID checker toward the 2-person minimum",
+        "Does not answer 3 by adding the ID checker on top of the minimum"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "production-worker-hours-to-workers",
+      "prompt": "We need to package 480 units of pre-rolls by end of day Thursday. One packager does about 20 units an hour. The shift is 7 hours, and after breaks and cleanup each person gets about 6 productive hours. How many packagers should I schedule for Thursday?",
+      "files": [],
+      "expected_output": "Converts the target to worker-hours (480 ÷ 20 = 24 worker-hours), then to workers using productive hours (24 ÷ 6 = 4 packagers), not 24 workers. Asks for or notes what it still needs before building a schedule (who is available and qualified, rates and hour caps, any minimum or hard constraints) and does not invent them.",
+      "assertions": [
+        "Calculates 24 worker-hours from 480 units at 20 units per worker-hour",
+        "Answers 4 packagers using the 6 productive hours, not 24 workers",
+        "Does not invent roster, rates or availability; asks for them before assigning anyone"
       ]
     }
   ]
