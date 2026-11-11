@@ -324,7 +324,7 @@ EVAL_GRADERS = {
     (SCH, 3): [has("open-gap", r"OPEN GAP", "i"), has("jen", r"Jen"), has("cap-34", r"\b34\b")],
 
     (EXP, 1): [lacks("no-dollar-values", r"\$\s?\d"),
-               has("not-connected", r"not connected|isn't connected|no Distru (?:tools|connection|connector)|not available", "i")],
+               has("not-connected", r"not connected|isn't connected|no Distru (?:tools|connection|connector)|not available|(?:don't|do not|can't|cannot) (?:have )?access(?: to)? (?:a |your |the )?Distru|no (?:access|connection) to (?:a |your |the )?Distru", "i")],
     (EXP, 2): [lacks("no-send-claim", SENT_CLAIM, "i"), has("offers-draft", r"draft", "i")],
     (EXP, 3): [has("jordan", r"Jordan"), has("15-off", r"15\s?%"), has("by-dec-1", r"Dec(?:ember)?\.? 1\b", "i"),
                has("placeholders", r"\[[^\]\n]{2,}\]"), lacks("no-send-claim", SENT_CLAIM, "i")],

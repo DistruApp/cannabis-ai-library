@@ -1,6 +1,20 @@
 ---
 name: cannabis-harvest-yield-analysis
-description: Analyze cannabis harvest results by batch, strain, and room. Covers wet-to-dry loss (dry-down), dry yield per plant / per square foot of canopy / per light, A-flower vs. smalls vs. trim mix, unaccounted weight, and cost per gram, with anomalies flagged against the grower's own history. Use whenever a licensed cultivator shares harvest weights, a harvest log (file or pasted), or a traceability harvest batch export and asks anything about it: which strains or rooms perform best, whether one named strain or room beats another, why a harvest came in light, their cost per gram, a harvest/yield report, or to close out or finalize harvests (it checks the weights first; closing them in Metrc is the operator's job). Use it even if they don't say "yield analysis" or the question looks quick: its script does the math, never sum or compare harvests by hand. Not for inventory reconciliation against Metrc, manufacturing/extraction yields or batch costing, or forecasting future harvest schedules.
+description: >-
+  Analyze cannabis harvest results by batch, strain, and room. Covers wet-to-dry
+  loss (dry-down), dry yield per plant / per square foot of canopy / per light,
+  A-flower vs. smalls vs. trim mix, unaccounted weight, and cost per gram, with
+  anomalies flagged against the grower's own history. Use whenever a licensed
+  cultivator shares harvest weights, a harvest log (file or pasted), or a
+  traceability harvest batch export and asks anything about it: which strains or
+  rooms perform best, whether one named strain or room beats another, why a
+  harvest came in light, their cost per gram, a harvest/yield report, or to
+  close out or finalize harvests (it checks the weights first; closing them in
+  Metrc is the operator's job). Use it even if they don't say "yield analysis"
+  or the question looks quick: its script does the math, never sum or compare
+  harvests by hand. Not for inventory reconciliation against Metrc,
+  manufacturing/extraction yields or batch costing, or forecasting future
+  harvest schedules.
 license: MIT
 metadata:
   version: "1.0"

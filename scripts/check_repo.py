@@ -77,6 +77,25 @@ def frontmatter(skill_md):
     return fm
 
 
+def plain_scalar_yaml_errors(skill_md):
+    """Unquoted one-line values that a strict YAML parser rejects or misreads.
+
+    A plain scalar may not contain ": " or " #", end with ":", or start with a YAML indicator.
+    """
+    m = re.match(r"^---\n(.*?)\n---\n", skill_md.read_text(), re.S)
+    errors = []
+    for line in (m.group(1).splitlines() if m else []):
+        mm = re.match(r"^\s*([a-zA-Z_-]+):\s+(.+)$", line)
+        if not mm:
+            continue
+        key, val = mm.group(1), mm.group(2).rstrip()
+        if val[0] in "\"'>|[{":
+            continue
+        if ": " in val or " #" in val or val.endswith(":") or val[0] in "*&!%@`,?-":
+            errors.append(f"`{key}` has an unquoted ': ', ' #' or leading indicator")
+    return errors
+
+
 def check_plugin_validate(c):
     if not shutil.which("claude"):
         c.ok(False, "claude CLI not found: install Claude Code or pass --no-cli")
@@ -105,6 +124,9 @@ def check_manifests(c):
         c.ok(name == d.name, f"{rel}: folder name '{d.name}' != SKILL.md name '{name}'")
         c.ok(bool(fm.get("description")), f"{rel}: SKILL.md has no description")
         c.ok(fm.get("license") == "MIT", f"{rel}: SKILL.md frontmatter needs `license: MIT`")
+        for bad in plain_scalar_yaml_errors(smd):
+            c.ok(False, f"{rel}: SKILL.md frontmatter isn't strict YAML ({bad}). Claude tolerates it, but strict "
+                        "loaders (Codex, pi) drop the skill. Quote the value or use `>-`.")
         rel_md = smd.relative_to(REPO).as_posix()
         c.ok(f"]({rel_md})" in readme or f"](./{rel_md})" in readme, f"{rel}: README.md doesn't link {rel_md}")
         doc = REPO / "docs" / d.relative_to(REPO / "skills").parent / f"{d.name}.md"

@@ -40,6 +40,25 @@ Drop `--ablation none` to add the no-plugin baseline (`W/OUT` and `Δ` columns).
 
 `results/` is written here on every run and must be gitignored.
 
+## Running against other models through pi
+
+`tools/run_pi.py` plays the same cases against a non-Claude model through the `pi` CLI (standard library only). The default model is GPT 6.1 Sol (`openai-codex/gpt-6.1-sol`, thinking `high`):
+
+```bash
+python3 plugin-evals/tools/run_pi.py 'behaviour/*/*' 'triggers/*/*' --runs 2 -j 6 \
+  --out plugin-evals/results/pi/gpt-pass1.json
+python3 plugin-evals/tools/gate4_summary.py plugin-evals/results/pi/gpt-pass1.json
+```
+
+- Positional arguments are case globs relative to `plugin-evals/` (or case folder names). `--tag` keeps cases that have any of the listed tags. `--exclude-tag` defaults to `needs-bash`.
+- The pi agent gets only the `read` tool. All ten skills are loaded with `--skill`, and pi's own skill, extension, MCP and context-file discovery is turned off. Cases tagged `needs-bash` are skipped.
+- At start the runner copies `skills/` and the matched case folders to a temp snapshot and runs everything from it, so edits made during a long run don't mix two versions into one result. The git HEAD and dirty paths at start are saved under `tree`.
+- Each run gets a fresh temp directory, and the case's `setup.sh` copies `resources/` into it. `append_system_prompt` is passed through. `timeout_seconds` is enforced (x `--timeout-mult`, default 2). `max_turns` is not, because pi has no flag for it.
+- Skill detection: pi has no Skill tool. A skill counts as fired once for each `read` of a path ending in `<skill-name>/SKILL.md`, and the `tool_used: Skill` grader's `input_match`, `min` and `max` are applied to those reads.
+- `regex` graders check the final assistant message. `llm` graders use a pi judge (`--judge-model`, thinking `medium`, no tools) that must answer strict JSON. The judge votes 3 times, 2 of 3 must pass, and a malformed vote counts as a fail. `file_exists` and `baseline` graders are N/A and left out of the score.
+- Score per case is the mean over completed runs of graders passed / graders scored. On a usage limit, pi calls back off and retry (`--retries`, `--backoff`). Runs that still fail are left out of the mean and mark the result `partial`.
+- The JSON keeps each run's final text, tool calls, skills read and every grader's reason. Raw pi events go in `<out>-raw/`. `costUsd` is always 0.
+
 ## How the runs are set up
 
 These points come from the 2026-11-11 pilot:
