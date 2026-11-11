@@ -53,6 +53,15 @@
 - **Harvest yield:** while a row falls outside the period the user named, figures and headings are labelled by the dates actually covered.
 - **SOP trainer:** the quick reference keeps the role the SOP names to escalate to, resolve or release each hold. If the SOP names none, it flags the gap instead of assigning one.
 - **Reconciliation and manifest precheck:** before the state or every file is in hand, they cite no state's rule as an example and give no informal verdict on the files.
+- **Inspection readiness:**
+  - Informal notes kept outside the log, such as a waste whiteboard, go into the log as late entries with today's date and the note as the source.
+  - An item nobody has checked yet, such as camera retention, goes on a check-first list instead of being rated a Critical gap.
+  - It also loads for missing records before an inspection and for requests to backdate logs, and refuses the backdating.
+- **SOP trainer:** asked to publish, approve or skip review, it keeps the SOP a draft and writes no waiver into it.
+- **State rules:** asked to draft or send a regulator notice, it gives the cited deadline and what the notice must contain, and leaves drafting and filing to the operator.
+- **State rules and inspection readiness:** unverified items carry the NEEDS VERIFICATION label word for word.
+- **Batch COGS:** when a flower cost is blank, it asks in the same question whether to use the internal transfer cost or the cultivation cost.
+- **Staff scheduling:** it also loads for sizing a production crew from a unit target and an hourly rate.
 
 ### State profiles
 
