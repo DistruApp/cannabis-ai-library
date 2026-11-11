@@ -10,6 +10,6 @@ allowed_tools: ["Read", "Glob", "Grep", "Skill", "TodoWrite"]
 append_system_prompt: "Put your complete reply in your final message: the full report, plan or draft, and any questions you need answered. Do not only write it to a file."
 ---
 
-Q3 harvests attached (harvests_2026_q3.csv). Which rooms are pulling their weight and what's our cost per gram? Our internal goal is 25 g/sq ft dry. Note one batch was logged in pounds.
+Our harvests from July through early October are attached (harvests_2026_q3.csv). Which rooms are pulling their weight and what's our cost per gram? Our internal goal is 25 g/sq ft dry. Note one batch was logged in pounds.
 
 (The attached files are in the `resources` folder: `harvests_2026_q3.csv`.)

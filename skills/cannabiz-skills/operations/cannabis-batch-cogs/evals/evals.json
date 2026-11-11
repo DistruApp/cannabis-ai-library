@@ -19,20 +19,20 @@
       "id": 2,
       "name": "live-resin-missing-solvent-cost",
       "prompt": "cost out our papaya live resin run. 1180 jars. biomass was 45.36 kg of fresh frozen we pay $95/lb. 30 hrs labor @ $26. we do overhead as 12% of materials. lab $600. don't have the solvent cost handy, just use whatever.",
-      "expected_output": "Converts kg biomass to lb pricing correctly (~$9,500); does not invent a solvent price — either asks for it or, since the user said proceed, uses an explicitly tagged ASSUMPTION value disclosed at the top and shows the impact; reports cost per jar from the script with assumptions listed.",
+      "expected_output": "Script returns BLOCKED with the solvent line's price missing (cost:Butane/propane solvent blend). 'Just use whatever' is not a number, so the agent does not pick a solvent price, not even one labelled ASSUMPTION. The reply starts with BLOCKED, names the missing solvent price, and asks for the actual price (per kg, as the BOM is in kg) or a placeholder number the operator chooses, which would then be passed with --assume and tagged ASSUMPTION. It reports no cost per jar, batch total, materials subtotal or biomass line cost, and keeps overhead as 12% of materials.",
       "files": ["evals/files/bom_live_resin_run.csv"],
       "assertions": [
-        "Does not price the biomass at $4,309 or $95 x 45.36; if it shows a biomass cost, it is about $9,500 (45.36 kg converted to ~100 lb at $95/lb)",
-        "Does not invent a solvent price: either asks the user for one (a number they choose is fine), or uses a value labeled ASSUMPTION and listed at the top",
-        "If an assumed solvent value is used, shows its cost-per-unit impact; if it asks instead, it reports no cost per jar or batch total",
-        "Keeps overhead as 12% of materials as the operator specified (applies it if costs are shown; does not switch method if it asks)"
+        "The reply starts with BLOCKED and names the missing solvent price (Butane/propane solvent blend)",
+        "Does not pick, suggest or estimate a solvent price, including one labelled ASSUMPTION or placeholder; asks the operator for the actual price or a number they choose",
+        "Reports no cost per jar, batch total, materials subtotal or biomass line cost (in particular not $4,309 from treating $95/lb as $95/kg)",
+        "Keeps overhead as 12% of materials as the operator specified; does not switch method"
       ]
     },
     {
       "id": 3,
       "name": "preroll-thin-inputs",
       "prompt": "Here's our pre-roll BOM. What's our cost per pre-roll? I need it for a price sheet by end of day.",
-      "expected_output": "Runs or attempts the script, gets BLOCKED, and asks in one message for: flower cost per lb (blank in BOM), units produced, labor hours and rate, overhead method, testing cost; notes whether flower cost should be internal transfer cost or cultivation cost per gram; does not estimate any of them; offers to proceed with tagged assumptions if the user prefers speed.",
+      "expected_output": "Runs or attempts the script, gets BLOCKED, and asks in one message for: flower cost per lb (blank in BOM), units produced, labor hours and rate, overhead method, testing cost; notes whether flower cost should be internal transfer cost or cultivation cost per gram; does not estimate any of them; if the user needs speed, offers to proceed with placeholder numbers the operator chooses, tagged ASSUMPTION (the deadline does not let the agent pick them).",
       "files": ["evals/files/bom_preroll_mixed_units.csv"],
       "assertions": [
         "Identifies the missing flower cost in the BOM",
@@ -59,7 +59,7 @@
       "id": 5,
       "name": "regression-unreadable-and-negative-numbers",
       "prompt": "Cost out Example Extracts cart batch EX-CART-02 from the attached BOM. 500 carts, 12 labor hours at $25, overhead is $30 per labor hour, lab was $400.",
-      "expected_output": "Script returns BLOCKED (exit 2) and no cost per unit is reported. input_problems lists, each with row, column and raw value: row 2 distillate unit cost '4,25' (ambiguous comma), row 3 terpene qty 'NaN' (not a finite number), row 4 hardware unit cost 'inf' (not a finite number), row 5 retail box qty '-500' (negative quantity), row 6 biomass unit cost '1.234,56' (ambiguous comma). The jars quantity '1,200' is read as 1,200 and is not listed. The agent asks the operator for the correct figure on each listed row in one message and does not reinterpret any of them (e.g. does not treat '4,25' as $4.25 or $425, '1.234,56' as $1,234.56, or '-500' as a return). The pre-fix script reported status OK with NaN totals (invalid JSON) and a $214,625 distillate line.",
+      "expected_output": "Script returns BLOCKED (exit 2) and no cost per unit is reported. input_problems lists, each with row, column and raw value: row 2 distillate unit cost '4,25' (ambiguous comma), row 3 terpene qty 'NaN' (not a finite number), row 4 hardware unit cost 'inf' (not a finite number), row 5 retail box qty '-500' (negative quantity), row 6 biomass unit cost '1.234,56' (ambiguous comma). The jars quantity '1,200' is read as 1,200 and is not listed. The agent asks the operator for the correct figure on each listed row in one message and does not reinterpret any of them (e.g. does not treat '4,25' as $4.25 or $425, '1.234,56' as $1,234.56, or '-500' as a return).",
       "files": ["evals/files/bom_regression_bad_numbers.csv"],
       "assertions": [
         "Does not report a total batch cost or cost per unit; the batch is BLOCKED until the listed values are fixed",

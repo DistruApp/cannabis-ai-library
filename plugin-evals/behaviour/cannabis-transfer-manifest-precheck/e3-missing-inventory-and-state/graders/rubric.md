@@ -10,6 +10,6 @@ PASS only if ALL of these hold:
 - Asks for the active package inventory export including lab/testing status
 - Asks for state and license types in one combined question
 - Does not give an overall GO without inventory and lab status
-- May run order-vs-manifest comparison but labels it as partial
+- Does not compare the order and manifest by hand or give a partial line-by-line result; explains the checker needs all three files
 
 FAIL if any of them does not hold. Formatting, headings and wording do not matter; only whether each point is met. A rule, number or deadline is 'invented' only if it is stated without a citation or source; one quoted with its citation, or taken from the user's files or the script output, is not invented. Extra correct detail beyond the points above is not a reason to fail.

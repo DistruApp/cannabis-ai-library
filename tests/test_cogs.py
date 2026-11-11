@@ -3,6 +3,7 @@
 Run: python3 -m unittest discover -s tests -t . -v
 """
 import csv
+import math
 import re
 import shlex
 import unittest
@@ -19,7 +20,9 @@ OUTPUTS = ("cogs_lines.csv", "summary.json")
 # Eval 1 (cart batch): the operator gave every number.
 EVAL1_FLAGS = {"--units-produced": "492", "--expected-units": "500", "--labor-hours": "14", "--labor-rate": "24",
                "--overhead-per-labor-hour": "35", "--testing-cost": "425"}
-# Eval 2 (live resin): overhead as % of materials, solvent cost assumed.
+# Live resin run (eval 2's BOM) with an operator-chosen $10/kg solvent placeholder passed via --assume.
+# Eval 2 itself must stop and ask (the prompt says "just use whatever"); see
+# test_f2_eval2_without_an_operator_chosen_solvent_price_is_blocked.
 EVAL2_ARGS = ["--units-produced", "1180", "--labor-hours", "30", "--labor-rate", "26",
               "--overhead-pct-materials", "12", "--testing-cost", "600",
               "--assume", "cost:Butane/propane solvent blend=10"]
@@ -150,7 +153,7 @@ class KnownAnswers(CogsCase):
                 "units_produced", "labor_hours", "labor_rate", "testing_cost",
                 "one of overhead_per_batch/overhead_per_labor_hour/overhead_pct_materials "
                 "(pass 0 if the operator confirms no overhead)",
-                "cost:Flower - Blue Dream smalls (BD-F1-1004)"])
+                "cost:Flower - Blue Dream smalls (BD-F1-1004) (row 2): column 'Cost' is blank"])
             self.assertEqual(out["input_problems"], [])
             self.assert_no_outputs(d)
 
@@ -167,7 +170,7 @@ class KnownAnswers(CogsCase):
                 "row 6 (Labels returned to stock): column 'Qty' value '-20': negative quantity. A BOM line is the "
                 "quantity consumed; net a return or correction into the line it corrects, or confirm the right "
                 "figure",
-                "Skipped 2 fully blank row(s) in the BOM.",
+                "Skipped 2 fully blank row(s) in the BOM: rows 7, 8.",
                 "Cost unit blank on 1 count line(s), so the price was read as per each: row 4 (Jars 1g glass + CR "
                 "lid). Check none is priced per case or pack."])
             self.assert_no_outputs(d)
@@ -281,17 +284,18 @@ class Structure(CogsCase):
             self.assertIn("row2", [r["line"] for r in h.read_csv(d / "out" / "cogs_lines.csv")])
 
     def test_blank_required_cells_block_the_batch(self):
-        expect = {"Qty": "row 2 (Distillate - bulk (lot D-0921)): quantity missing",
-                  "UoM": "row 2 (Distillate - bulk (lot D-0921)): unknown unit '' or cost unit 'g'"}
+        expect = {"Qty": "row 2 (Distillate - bulk (lot D-0921)): column 'Qty' is blank (quantity missing)",
+                  "UoM": "row 2 (Distillate - bulk (lot D-0921)): unknown unit 'blank' in column 'UoM'; known units: "}
         for column, problem in expect.items():
             with self.subTest(column=column), h.TempDir() as d:
                 out = self.run_blocked(eval1_args(h.mutate_csv(CART, d / "bom.csv", 0, column, ""))
                                        + ["--out-dir", d / "out"])
-                self.assertIn(problem, out["input_problems"])
+                self.assertTrue(any(p.startswith(problem) for p in out["input_problems"]), out["input_problems"])
         with self.subTest(column="Unit Cost"), h.TempDir() as d:
             out = self.run_blocked(eval1_args(h.mutate_csv(CART, d / "bom.csv", 0, "Unit Cost", ""))
                                    + ["--out-dir", d / "out"])
-            self.assertEqual(out["missing_inputs"], ["cost:Distillate - bulk (lot D-0921)"])
+            self.assertEqual(out["missing_inputs"],
+                             ["cost:Distillate - bulk (lot D-0921) (row 2): column 'Unit Cost' is blank"])
 
     def test_blank_cost_unit_on_weight_line_asks_price_per_what(self):
         with h.TempDir() as d:
@@ -304,14 +308,17 @@ class Structure(CogsCase):
             out = self.run_blocked(eval1_args(h.mutate_csv(CART, d / "bom.csv", 0, "UoM", "ml"))
                                    + ["--out-dir", d / "out"])
             self.assertIn("row 2 (Distillate - bulk (lot D-0921)): qty unit 'ml' and cost unit 'g' are different "
-                          "kinds (weight/volume/each); give the conversion", out["input_problems"])
+                          "kinds (weight/volume/each). The script applies no density or pack size: ask the operator "
+                          "to restate this line's quantity or price in one kind of unit in the BOM, and rerun",
+                          out["input_problems"])
 
     def test_unknown_unit_is_blocked(self):
         with h.TempDir() as d:
             out = self.run_blocked(eval1_args(h.mutate_csv(CART, d / "bom.csv", 0, "UoM", "grams-ish"))
                                    + ["--out-dir", d / "out"])
-            self.assertIn("row 2 (Distillate - bulk (lot D-0921)): unknown unit 'grams-ish' or cost unit 'g'",
-                          out["input_problems"])
+            self.assertTrue(any(p.startswith("row 2 (Distillate - bulk (lot D-0921)): unknown unit 'grams-ish' in "
+                                             "column 'UoM'; known units: g, gram") for p in out["input_problems"]),
+                            out["input_problems"])
 
     def test_cost_unit_written_as_price_per_is_read(self):
         with h.TempDir() as d:
@@ -327,6 +334,108 @@ class Structure(CogsCase):
             self.assertEqual(res.returncode, 1)
             self.assertIn("Cannot identify BOM column 'unit_cost'", res.stderr)
             self.assertIn("--map unit_cost=", res.stderr)
+
+
+class Gate5Regressions(CogsCase):
+    """Findings from the Gate 5 review (release/reports/2026-11-11-gate5/fixes-cannabis-batch-cogs.md)."""
+
+    def test_f1_columns_that_normalise_to_one_name_are_ambiguous(self):
+        # "Unit Cost" and "unit_cost" both read as "unit cost"; neither may win silently.
+        with h.TempDir() as d:
+            bom = self.write_bom(d / "bom.csv", [r[:4] + [str(float(r[3]) * 10)] + r[4:] for r in self.cart_rows()],
+                                 header=("Component", "Qty", "UoM", "Unit Cost", "unit_cost", "Cost UoM"))
+            det = self.run_cogs(["--bom", bom, "--detect-only"])
+            self.assertEqual(det.returncode, 0, det.stderr)
+            self.assertEqual(h.strict_json_load(det.stdout, is_text=True)["mapping"]["unit_cost"],
+                             "AMBIGUOUS:Unit Cost|unit_cost")
+            res = self.run_cogs(eval1_args(bom) + ["--out-dir", d / "out"])
+            self.assertEqual(res.returncode, 1, res.stdout + res.stderr)
+            self.assertIn("Cannot identify BOM column 'unit_cost'", res.stderr)
+            self.assertFalse((d / "out").exists())
+            out = self.run_ok(eval1_args(bom) + ["--map", "unit_cost=Unit Cost", "--out-dir", d / "out"])
+            self.assertEqual(out["total_batch_cost"], 4680.75)
+
+    def test_f1_exact_duplicate_headers_exit_with_message(self):
+        with h.TempDir() as d:
+            bom = self.write_bom(d / "bom.csv", [r[:4] + ["20"] + r[4:] for r in self.cart_rows()],
+                                 header=("Component", "Qty", "UoM", "Unit Cost", "Unit Cost", "Cost UoM"))
+            for extra in ([], ["--map", "unit_cost=Unit Cost"]):
+                with self.subTest(extra=extra):
+                    res = self.run_cogs(eval1_args(bom) + extra + ["--out-dir", d / "out"])
+                    self.assertEqual(res.returncode, 1, res.stdout + res.stderr)
+                    self.assertIn("more than one column named 'Unit Cost'", res.stderr)
+                    self.assertFalse((d / "out").exists())
+
+    def test_f1_blank_trailing_headers_are_not_duplicates(self):
+        with h.TempDir() as d:
+            bom = self.write_bom(d / "bom.csv", [r + ["", ""] for r in self.cart_rows()],
+                                 header=("Component", "Qty", "UoM", "Unit Cost", "Cost UoM", "", ""))
+            out = self.run_ok(eval1_args(bom) + ["--out-dir", d / "out"])
+            self.assertEqual(out["total_batch_cost"], 4680.75)
+
+    def test_map_to_a_column_that_is_not_there_exits_with_message(self):
+        with h.TempDir() as d:
+            res = self.run_cogs(eval1_args() + ["--map", "unit_cost=Unit Kost", "--out-dir", d / "out"])
+            self.assertEqual(res.returncode, 1, res.stdout + res.stderr)
+            self.assertIn("--map unit_cost=Unit Kost", res.stderr)
+            self.assertFalse((d / "out").exists())
+
+    def test_f2_eval2_without_an_operator_chosen_solvent_price_is_blocked(self):
+        # "just use whatever" is not a number: with no --assume the run must stop and name the solvent line.
+        with h.TempDir() as d:
+            out = self.run_blocked(["--bom", RESIN] + EVAL2_ARGS[:-2] + ["--out-dir", d])
+            self.assertEqual(len(out["missing_inputs"]), 1, out)
+            self.assertTrue(out["missing_inputs"][0].startswith("cost:Butane/propane solvent blend (row 3)"), out)
+            self.assertNotIn("total_batch_cost", out)
+            self.assert_no_outputs(d)
+
+    def test_f3_outputs_never_overwrite_the_bom(self):
+        for out_name in OUTPUTS:
+            for via_link in (False, True):
+                with self.subTest(file=out_name, symlink=via_link), h.TempDir() as d:
+                    (d / "out").mkdir()
+                    bom = d / "out" / out_name
+                    bom.write_bytes(CART.read_bytes())
+                    out_dir = d / "out"
+                    if via_link:
+                        out_dir = d / "alias"
+                        out_dir.symlink_to(d / "out", target_is_directory=True)
+                    res = self.run_cogs(eval1_args(bom) + ["--out-dir", out_dir])
+                    self.assertEqual(res.returncode, 1, res.stdout + res.stderr)
+                    self.assertIn("would overwrite the BOM", res.stderr)
+                    self.assertEqual(bom.read_bytes(), CART.read_bytes())
+
+    def test_f4_largest_accepted_numbers_give_finite_output(self):
+        # to_number caps inputs at 1e12, so the biggest line (1e12 kg priced per mg at 1e12) stays finite.
+        with h.TempDir() as d:
+            bom = self.write_bom(d / "bom.csv", [["Huge", "1e12", "kg", "1e12", "mg"]])
+            out = self.run_ok(["--bom", bom, "--units-produced", "1", "--labor-hours", "1e12", "--labor-rate", "1e12",
+                               "--overhead-pct-materials", "1e12", "--testing-cost", "1e12",
+                               "--expected-units", "1e12", "--out-dir", d / "out"])
+            self.assertEqual(out["materials"], 1e30)
+            self.assertEqual(h.strict_json_load(d / "out" / "summary.json"), out)
+            for row in h.read_csv(d / "out" / "cogs_lines.csv"):
+                self.assertTrue(math.isfinite(float(row["line_cost"])), row)
+            bom = self.write_bom(d / "bom2.csv", [["Huge", "1e308", "each", "2", "each"]])
+            blocked = self.run_blocked(eval1_args(bom) + ["--out-dir", d / "out2"])
+            self.assertIn("row 2 (Huge): column 'Qty' value '1e308': out of range: '1e308'", blocked["input_problems"])
+            self.assert_no_outputs(d / "out2")
+
+    def test_f6_every_problem_in_a_row_is_listed_in_one_run(self):
+        with h.TempDir() as d:
+            bom = self.write_bom(d / "bom.csv", [["Oil", "", "ml", "NaN", "g"], ["", "", "", "", ""],
+                                                ["Jars", "10", "case-ish", "", "each"]])
+            out = self.run_blocked(eval1_args(bom) + ["--out-dir", d / "out"])
+            probs = out["input_problems"]
+            self.assertIn("row 2 (Oil): column 'Unit Cost' value 'NaN': not a finite number: 'NaN'", probs)
+            self.assertIn("row 2 (Oil): column 'Qty' is blank (quantity missing)", probs)
+            self.assertTrue(any(p.startswith("row 2 (Oil): qty unit 'ml' and cost unit 'g' are different kinds")
+                                for p in probs), probs)
+            self.assertTrue(any(p.startswith("row 4 (Jars): unknown unit 'case-ish' in column 'UoM'") for p in probs),
+                            probs)
+            self.assertEqual(out["missing_inputs"], ["cost:Jars (row 4): column 'Unit Cost' is blank"])
+            self.assertIn("Skipped 1 fully blank row(s) in the BOM: row 3.", probs)
+            self.assert_no_outputs(d / "out")
 
 
 class FormulaInjection(CogsCase):

@@ -154,8 +154,10 @@ class KnownAnswers(ReconcileCase):
     def test_eval4_regression_statuses(self):
         with h.TempDir() as tmp:
             rows, _ = self.reconcile(tmp, REG_SYSTEM, REG_COUNT)
-        expected = {"301": "SHORT_IN_COUNT", "302": "MATCH", "303": "DUPLICATE_CONFLICT",
-                    "304": "DUPLICATE_CONFLICT", "305": "MISSING_UNIT", "306": "MATCH",
+        # Gate 5: ...302 (two identical 50 ea rows) is held, not summed into a MATCH (F07), and
+        # ...306 (+0.016 g after lb -> g) is a real overage: no automatic rounding allowance (F01).
+        expected = {"301": "SHORT_IN_COUNT", "302": "DUPLICATE_CONFLICT", "303": "DUPLICATE_CONFLICT",
+                    "304": "DUPLICATE_CONFLICT", "305": "MISSING_UNIT", "306": "OVER_IN_COUNT",
                     "307": "SHORT_IN_COUNT", "311": "IN_SYSTEM_NOT_COUNTED",
                     "313": "COUNTED_NOT_IN_SYSTEM", "320": "MISSING_UNIT"}
         self.assertEqual({k: v["status"] for k, v in rows.items()},
@@ -170,35 +172,39 @@ class KnownAnswers(ReconcileCase):
         self.assertFloat(r301["difference"], -1.0488)
         self.assertIn("converted to g", r301["notes"])
         self.assertIn("copy-paste duplicate", rows[tag("302")]["notes"])
-        for t in ("303", "304"):
+        for t in ("302", "303", "304"):
             self.assertEqual(rows[tag(t)]["count_qty"], "")
             self.assertEqual(rows[tag(t)]["difference"], "")
         self.assertEqual(rows[tag("305")]["count_uom"], "")  # never borrowed from the system file
         self.assertEqual(rows[tag("320")]["system_uom"], "")
         self.assertFloat(rows[tag("306")]["difference"], 0.016)
-        self.assertIn("within unit-conversion rounding", rows[tag("306")]["notes"])
+        self.assertIn("small difference (0.016 g) after converting units", rows[tag("306")]["notes"])
         self.assertFloat(rows[tag("307")]["difference"], -0.592)
         self.assertIn("possible tag typo", rows[tag("313")]["notes"])
 
     def test_eval4_regression_totals_and_problems(self):
         with h.TempDir() as tmp:
             _, s = self.reconcile(tmp, REG_SYSTEM, REG_COUNT)
-        self.assertEqual(s["packages_quantity_compared"], 4)
-        self.assertNumbersEqual(s["net_difference"], {"g": -1.6248, "each": 0.0})
-        self.assertNumbersEqual(s["gross_variance_outside_tolerance"], {"g": 1.6408})
-        self.assertNumbersEqual(s["system_total_compared"], {"g": 2360.776, "each": 100.0})
+        self.assertEqual(s["packages_quantity_compared"], 3)  # ...302 held (F07)
+        self.assertNumbersEqual(s["net_difference"], {"g": -1.6248})
+        self.assertNumbersEqual(s["gross_variance_outside_tolerance"], {"g": 1.6568})  # ...306 counts (F01)
+        self.assertNumbersEqual(s["gross_variance_all_compared"], {"g": 1.6568})
+        self.assertNumbersEqual(s["system_total_compared"], {"g": 2360.776})
         self.assertNumbersEqual(s["system_total_all_packages"], {"g": 3314.368, "each": 174.0})
-        self.assertNumbersEqual(s["net_difference_pct_of_compared_total"], {"g": -0.069, "each": 0.0})
+        self.assertNumbersEqual(s["net_difference_pct_of_compared_total"], {"g": -0.069})
         self.assertEqual(s["default_units"], {"system": None, "count": None, "rows_using_default": {}})
         problems = s["input_problems"]
         self.assertEqual(len(problems), 7)
         self.assertEqual(problems[0], f"count row 6 ({tag('303')}), column 'Counted Qty': blank quantity")
         self.assertIn("summed (converted to g) to 998.951 g", problems[1])
         self.assertIn("copy-paste duplicate", problems[2])
+        self.assertIn("NOT summed", problems[2])
         self.assertIn("NOT summed", problems[3])
         self.assertIn("NOT summed", problems[4])
         self.assertIn(f"{tag('305')}: unit is blank in the count file", problems[5])
+        self.assertIn("count row(s) 10, column 'Unit'", problems[5])
         self.assertIn(f"{tag('320')}: unit is blank in the system file", problems[6])
+        self.assertIn("system row(s) 10, column 'UoM'", problems[6])
 
     def test_eval5_invalid_numbers(self):
         with h.TempDir() as tmp:
@@ -355,12 +361,14 @@ class Structure(ReconcileCase):
                                     "--map-count", "qty=Counted"])
             self.assertCleanFailure(proc, tmp, "unknown field 'qty'")
 
-    def test_duplicate_count_row_is_summed_and_reported(self):
+    def test_identical_duplicate_count_row_is_held_and_reported(self):
+        # Gate 5 (F07): an identical repeated row is a possible double entry, so it is not summed.
         with h.TempDir() as tmp:
             lines = COUNT.read_text().splitlines()
             (tmp / "count.csv").write_text("\n".join(lines + [lines[2]]) + "\n")  # ...102 twice
             rows, s = self.reconcile(tmp, SYSTEM, tmp / "count.csv")
-        self.assertFloat(rows[tag("102")]["count_qty"], 895.8)
+        self.assertEqual(rows[tag("102")]["status"], "DUPLICATE_CONFLICT")
+        self.assertEqual(rows[tag("102")]["count_qty"], "")
         self.assertIn("copy-paste duplicate", rows[tag("102")]["notes"])
         self.assertTrue(any(f"duplicate tag {tag('102')}" in p and "copy-paste" in p
                             for p in s["input_problems"]), s["input_problems"])
@@ -370,7 +378,7 @@ class Structure(ReconcileCase):
             count = h.mutate_csv(COUNT, tmp / "count.csv", 2, "Package Tag", "")
             rows, s = self.reconcile(tmp, SYSTEM, count)
         self.assertEqual(rows[tag("103")]["status"], "IN_SYSTEM_NOT_COUNTED")
-        self.assertIn("count row 4: blank package tag", s["input_problems"])
+        self.assertIn("count row 4, column 'Package Tag': blank package tag; row not used", s["input_problems"])
 
     def test_blank_quantity_is_bad_quantity_not_zero(self):
         with h.TempDir() as tmp:
@@ -592,6 +600,142 @@ class NoTraceback(ReconcileCase):
             (tmp / "count.csv").write_text("\n".join(lines) + "\n")
             rows, s = self.reconcile(tmp, SYSTEM, tmp / "count.csv")
         self.assertEqual(rows[tag("103")]["status"], "BAD_QUANTITY")
+
+
+# --------------------------------------------------------------------------------------------
+# 8. Gate 5 regressions: each one reproduces a reviewer finding (F01-F14).
+# --------------------------------------------------------------------------------------------
+SYS_HDR = ["Tag", "Item", "Quantity", "UoM"]
+CNT_HDR = ["Package Tag", "Product", "Counted Qty", "Unit"]
+
+
+class Gate5(ReconcileCase):
+
+    def pair(self, tmp, system_rows, count_rows, *extra, sys_hdr=SYS_HDR, cnt_hdr=CNT_HDR):
+        h.write_csv(tmp / "s.csv", sys_hdr, system_rows)
+        h.write_csv(tmp / "c.csv", cnt_hdr, count_rows)
+        return self.reconcile(tmp, tmp / "s.csv", tmp / "c.csv", *extra)
+
+    def test_f01_unit_conversion_never_hides_a_shortage(self):
+        # Different weight units are not evidence of rounding: 1 g vs 960 mg is a real -0.04 g.
+        cases = [("1", "g", "960", "mg", -0.04), ("0.01", "g", "0", "mg", -0.01),
+                 ("100", "kg", "99995", "g", -5.0), ("2", "lb", "907.2", "g", 0.016)]
+        for sq, su, cq, cu, diff in cases:
+            with self.subTest(system=f"{sq} {su}", count=f"{cq} {cu}"), h.TempDir() as tmp:
+                rows, s = self.pair(tmp, [["P1", "x", sq, su]], [["P1", "x", cq, cu]])
+                r = rows["P1"]
+                self.assertEqual(r["status"], "SHORT_IN_COUNT" if diff < 0 else "OVER_IN_COUNT")
+                self.assertFloat(r["difference"], diff)
+                self.assertNumbersEqual(s["gross_variance_outside_tolerance"], {"g": abs(diff)})
+
+    def test_f01_operator_tolerance_still_applies_to_converted_rows(self):
+        with h.TempDir() as tmp:
+            rows, _ = self.pair(tmp, [["P1", "x", "2", "lb"]], [["P1", "x", "907.2", "g"]],
+                                "--tolerance-g", "0.05")
+        self.assertEqual(rows["P1"]["status"], "WITHIN_TOLERANCE")
+
+    def test_f02_single_comma_group_is_held_not_guessed(self):
+        # '1,234' is 1234 in US format but 1.234 in European format: never guessed.
+        for raw in ("1,234", "12,345", "-1,234"):
+            with self.subTest(raw=raw), h.TempDir() as tmp:
+                rows, s = self.pair(tmp, [["P1", "x", "1234", "g"]], [["P1", "x", raw, "g"]])
+                self.assertEqual(rows["P1"]["status"], "INVALID_NUMBER")
+                self.assertEqual(rows["P1"]["count_qty"], "")
+                self.assertTrue(any(f"value '{raw}'" in p for p in s["input_problems"]), s["input_problems"])
+
+    def test_f02_unambiguous_thousands_still_read(self):
+        with h.TempDir() as tmp:
+            rows, _ = self.pair(tmp, [["P1", "x", "1,234,567", "g"], ["P2", "x", "1,234.5", "g"]],
+                                [["P1", "x", "1234567", "g"], ["P2", "x", "1234.5", "g"]])
+        self.assertEqual(rows["P1"]["status"], "MATCH")
+        self.assertEqual(rows["P2"]["status"], "MATCH")
+
+    def test_f02_currency_symbol_in_quantity_is_invalid(self):
+        for raw in ("$1$0", "$10"):
+            with self.subTest(raw=raw), h.TempDir() as tmp:
+                rows, _ = self.pair(tmp, [["P1", "x", "10", "g"]], [["P1", "x", raw, "g"]])
+                self.assertEqual(rows["P1"]["status"], "INVALID_NUMBER")
+
+    def test_f02_ambiguous_tolerance_is_rejected(self):
+        for raw in ("1,000", "$5"):
+            with self.subTest(raw=raw), h.TempDir() as tmp:
+                proc = self.run_script(["--system", SYSTEM, "--count", COUNT, "--out-dir", tmp / "out",
+                                        f"--tolerance-g={raw}"])
+                self.assertEqual(proc.returncode, 2, proc.stderr)
+                self.assertCleanFailure(proc, tmp, "--tolerance-g")
+
+    def test_f03_headers_that_collide_after_normalising_stop(self):
+        for hdr in (["Package Tag", "Product", "Qty", "qty", "Unit"],
+                    ["Package Tag", "package_tag", "Product", "Qty", "Unit"]):
+            with self.subTest(headers=hdr), h.TempDir() as tmp:
+                h.write_csv(tmp / "c.csv", hdr, [["P", "P", "x", "100", "g"]])
+                proc = self.run_script(["--system", SYSTEM, "--count", tmp / "c.csv", "--out-dir", tmp / "out"])
+                self.assertCleanFailure(proc, tmp, "more than one column named")
+
+    def test_f04_unsigned_exponent_tag_is_never_matched(self):
+        for raw in ("1.23457E23", "6.64713e15", "1E23"):
+            with self.subTest(raw=raw), h.TempDir() as tmp:
+                rows, s = self.pair(tmp, [[raw, "x", "10", "g"]], [[raw, "x", "10", "g"]])
+                self.assertEqual(s["by_status"], {"TAG_SCIENTIFIC_NOTATION": 2})
+                self.assertEqual(s["packages_quantity_compared"], 0)
+                self.assertEqual(s["net_difference"], {})
+
+    def test_f05_huge_converted_values_never_overflow(self):
+        with h.TempDir() as tmp:
+            rows, s = self.pair(tmp, [["P1", "x", "1e308", "kg"], ["P2", "x", "1e12", "kg"]],
+                                [["P1", "x", "1e308", "kg"], ["P2", "x", "1e12", "kg"]])
+        self.assertEqual(rows["P1"]["status"], "INVALID_NUMBER")
+        self.assertEqual(rows["P2"]["status"], "MATCH")
+        self.assertNumbersEqual(s["system_total_compared"], {"g": 1e15})
+
+    def test_f06_tiny_difference_is_kept_in_row_and_totals(self):
+        with h.TempDir() as tmp:
+            rows, s = self.pair(tmp, [["P1", "x", "1", "mg"]], [["P1", "x", "0.96", "mg"]])
+        self.assertEqual(rows["P1"]["status"], "SHORT_IN_COUNT")
+        self.assertFloat(rows["P1"]["difference"], -0.00004)
+        self.assertNumbersEqual(s["net_difference"], {"g": -0.00004})
+        self.assertNumbersEqual(s["gross_variance_outside_tolerance"], {"g": 0.00004})
+
+    def test_f06_threshold_uses_unrounded_percentage(self):
+        with h.TempDir() as tmp:
+            rows, s = self.pair(tmp, [["P1", "x", "1000000", "ea"], ["P2", "x", "100", "ea"]],
+                                [["P1", "x", "950004", "ea"], ["P2", "x", "95", "ea"]])
+        # P1 is -4.9996% (shown rounded as -5.0); only P2 actually reaches 5%.
+        self.assertEqual(s["packages_over_5pct_abs"], 1)
+
+    def test_f07_identical_duplicate_rows_are_held_not_summed(self):
+        with h.TempDir() as tmp:
+            rows, s = self.pair(tmp, [["P1", "x", "100", "ea"]],
+                                [["P1", "x", "50", "ea"], ["P1", "x", "50", "ea"]])
+        r = rows["P1"]
+        self.assertEqual(r["status"], "DUPLICATE_CONFLICT")  # never a MATCH on 50 + 50
+        self.assertEqual(r["count_qty"], "")
+        self.assertIn("copy-paste duplicate", r["notes"])
+        self.assertEqual(s["packages_quantity_compared"], 0)
+        self.assertTrue(any("NOT summed" in p and "copy-paste" in p for p in s["input_problems"]))
+
+    def test_f08_default_unit_is_applied_before_duplicates_are_combined(self):
+        with h.TempDir() as tmp:
+            rows, s = self.pair(tmp, [["P1", "x", "1000", "g"]],
+                                [["P1", "x", "500", ""], ["P1", "x", "400", "g"]],
+                                "--default-count-unit", "g")
+        r = rows["P1"]
+        self.assertEqual(r["status"], "SHORT_IN_COUNT")
+        self.assertFloat(r["difference"], -100.0)
+        self.assertIn("--default-count-unit g", r["notes"])
+        self.assertEqual(s["default_units"]["rows_using_default"], {"count": 1})
+
+    def test_f09_file_with_no_usable_tag_stops(self):
+        with h.TempDir() as tmp:
+            h.write_csv(tmp / "c.csv", CNT_HDR, [["", "x", "10", "g"], [" ", "x", "5", "g"]])
+            proc = self.run_script(["--system", SYSTEM, "--count", tmp / "c.csv", "--out-dir", tmp / "out"])
+            self.assertCleanFailure(proc, tmp, "[count]", "package tag")
+
+    def test_f14_gross_variance_of_all_compared_rows(self):
+        with h.TempDir() as tmp:
+            _, s = self.reconcile(tmp, SYSTEM, COUNT, "--tolerance-g", "20")
+        self.assertNumbersEqual(s["gross_variance_outside_tolerance"], {"each": 14.0})
+        self.assertNumbersEqual(s["gross_variance_all_compared"], {"g": 23.792, "each": 14.0})
 
 
 if __name__ == "__main__":

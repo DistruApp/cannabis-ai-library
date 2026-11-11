@@ -28,6 +28,7 @@ Gives a buyer a reorder list they can defend: what to buy, how much, from whom, 
 Required:
 - **Sales export** by SKU with a date per row (POS for a dispensary; account sell-through for a distributor/brand). At least 4 weeks of history is ideal.
 - **Current on-hand by SKU**, as of the end of the sales period. Say if the as-of dates don't line up.
+- **One account or store per run.** A brand or distributor planning several retail accounts, or a chain with several stores, runs the script once per account with both exports filtered to it. If either file has an account or store column with more than one value, the script stops and says so. Never add accounts together: one store's surplus hides another's stockout.
 - **The date of the on-hand count.** It is passed as `--as-of` and the sales window ends on it. If the user hasn't said when on-hand was counted, run the step 2 command without `--as-of`: the script stops and says it needs the count date. Report that as the reason, and ask for the date in your one combined question (along with any mapping questions you can see from the file headers). Don't take the date from the last sale in the export or from a file name (that may be the export date, not the count date).
 
 Planning parameters. Ask for them in **one** combined question. Use the operator's values and never invent "industry standard" targets:
@@ -41,7 +42,7 @@ Planning parameters. Ask for them in **one** combined question. Use the operator
 | Dead-stock threshold | `--dead-days` | 30 days with no sales, [ASSUMPTION] |
 | Slow-mover threshold (days of supply) | `--slow-dos` | 90, [ASSUMPTION] |
 
-Optional per-SKU columns: unit cost (needed for PO dollars and dead-stock value), case pack/MOQ, vendor, open PO qty. If the operator has a budget cap (cash is tight for most cannabis businesses), ask for it.
+Optional per-SKU columns: unit cost (needed for PO dollars and dead-stock value), case pack (order multiple), minimum order qty (MOQ), vendor, open PO qty. MOQ is not a case pack: a quantity below the MOQ is flagged `BELOW_MOQ(n)` and left as calculated; whether to buy up to the minimum is the buyer's call. If the operator has a budget cap (cash is tight for most cannabis businesses), ask for it.
 
 **Vendor is never guessed from brand.** Brand is often not who you buy from (a distributor sits in between). A SKU with a blank vendor is flagged `NO_VENDOR`; if it needs ordering, its line goes to `lines_needing_vendor` instead of a vendor's PO and is not in the PO total. Ask who supplies it. If the operator confirms brand = vendor for their store, pass `--vendor-from-brand`; those lines are flagged `VENDOR_FROM_BRAND` and listed in `assumptions`.
 
@@ -60,25 +61,29 @@ python3 <skill-dir>/scripts/replenish.py --sales <file> --onhand <file> --as-of 
 Use the script's numbers as-is and don't recompute by hand. Copy every entry in `assumptions` into the report's assumptions list, and every `input_problems` line into Data gaps. If `warnings` says the last sale is days before the on-hand count date, tell the buyer and ask whether the sales export covers the full period: missing days understate velocity. Formulas and flag definitions are in `references/method.md`. Read it if the user asks how a number was calculated.
 
 The script never silently drops, merges or fills in on-hand data:
-- **Duplicate SKU rows** in the on-hand file: on-hand and open PO are summed. If the rows disagree on unit cost, case pack, lead time or vendor, the SKU is flagged `CONFLICTING_ROWS(...)`, gets no order, and both values are in `input_problems`. Ask which is right, fix the file, rerun.
-- **Lead time text:** "7 days" and "2 weeks" are read as 7 and 14 days (and noted). Anything else, such as "7-10 days", is flagged `BAD_LEAD_TIME` and gets no order. The default lead time is never used in its place.
-- **Unreadable numbers:** NaN, inf and decimal commas such as `4,25` or `1.234,56` are never guessed. Each is listed in `input_problems` with its row, column and raw value; an unreadable sales units cell leaves that sales row out. US thousands separators such as `1,200` are read normally. A non-numeric or negative open PO (`BAD_OPEN_PO`) holds the SKU because it might already be on order. A non-numeric or zero case pack (`BAD_CASE_PACK`) leaves the quantity unrounded. A non-numeric or negative unit cost (`BAD_UNIT_COST`) leaves the cost blank.
+- **Duplicate SKU rows** in the on-hand file: on-hand and open PO are summed. If the rows disagree on unit cost, case pack, MOQ, lead time or vendor, the SKU is flagged `CONFLICTING_ROWS(...)`, gets no order, and both values are in `input_problems`. Ask which is right, fix the file, rerun. An unreadable cell on one row is never outvoted by a readable one on another. If duplicate rows each show the same open PO, ask whether it is per bin or repeated for the SKU: if repeated, the sum double-counts it.
+- **Open PO:** a blank open PO cell, or no open PO column, counts as 0 and is listed in `assumptions`. Ask whether anything is on order before the buyer acts on those lines.
+- **Lead time text:** "7 days" and "2 weeks" are read as 7 and 14 days (and noted). Anything else, such as "7-10 days", or a lead time over 365 days, is flagged `BAD_LEAD_TIME` and gets no order. The default lead time is never used in its place.
+- **Unreadable numbers:** NaN, inf and decimal commas such as `4,25` or `1.234,56` are never guessed. Each is listed in `input_problems` with its row, column and raw value; an unreadable sales units cell leaves that sales row out. US thousands separators such as `1,200` are read normally. A non-numeric or negative open PO (`BAD_OPEN_PO`) holds the SKU because it might already be on order. A case pack that is not a whole number above 0 (`BAD_CASE_PACK`, e.g. `2.5`) leaves the quantity unrounded. A non-numeric or negative unit cost (`BAD_UNIT_COST`) leaves the cost blank.
 - **Negative numbers:** negative on-hand (`NEGATIVE_ONHAND`) holds the SKU with no order until the count is corrected. Negative sales units are returns (`RETURNS_IN_WINDOW`); if returns exceed sales for a SKU in the window, its velocity is 0 and it is flagged `NEGATIVE_NET_SALES`.
 - **SKU spelling:** SKUs are matched ignoring case and spacing, so `e-case` in sales and `E-CASE ` on hand are one SKU, not a fake `DEAD` plus a fake `NO_ONHAND_RECORD`. The SKU is flagged `SKU_VARIANTS` and every spelling is in `input_problems`. Mention it so the exports get fixed.
+- **Dates:** slash dates are read as month/day. If any could be read the other way (`03/09/2026`), `warnings` says so: ask whether the export uses US dates before using the numbers.
 - `skus_held_for_review` lists SKUs held for a negative on-hand, an unreadable or negative open PO, an unreadable on-hand row among duplicate rows, or conflicting duplicate rows. It is not every SKU without an order because of a data problem: a SKU whose only on-hand cell is unreadable shows `NO_ONHAND_RECORD`, and a blank or unreadable lead time is in `skus_missing_lead_time`. Put all of them in the report so they aren't forgotten.
 
 ### 4. Sanity-check before recommending
 
 Look at `replenishment.csv` for these and adjust **the recommendation, not the math**:
-- `STOCKOUT(demand understated)`: zero on hand with recent sales. Measured velocity is too low because days with no stock record no sales. Say the true need is likely higher and recommend the buyer bump the qty. Don't invent a number.
-- `NEW_SKU`: velocity comes from fewer days of history. Treat it as provisional.
+- `STOCKOUT(demand understated)`: zero on hand at the count, with sales in the last 7 days. The files don't show when it sold out. If the shelf was empty for part of the window, measured velocity understates demand. Say so, and ask the buyer when it ran out. Don't invent a sell-out date or a corrected number.
+- `NEW_SKU`: first sale inside the window, and no sales in the earlier history the export covers. Velocity is over the days since that first sale. Treat it as provisional and ask whether the SKU really is new.
+- `NEW_OR_SLOW`: first sale inside the window, but the export doesn't reach back before the window, so it could be a slow seller. Velocity is over the whole window. If the buyer says it launched on its first-sale date, it's understated: say so, don't recompute.
+- `NO_SALES_SEEN`: stock on hand, no sales, but the export is shorter than the dead-stock threshold. Don't call it dead; ask for a longer sales export.
 - Promo or holiday spikes: if a big one-day spike sits inside the window (4/20, Green Wednesday, a vendor day, a Labor Day sale), rerun with a `--window-days` that leaves it out (keep `--as-of` on the on-hand count date), or call it out. Ask the buyer whether the spike will repeat.
 - `RETURNS_IN_WINDOW`: returns reduce net units. Note them.
 - Open POs: a low days-of-supply SKU with a large open PO isn't a reorder. It's an "is the PO arriving on time?" question.
 
 ### 5. Report
 
-Fill `assets/plan-template.md`, then `assets/po-draft-template.md` grouped by vendor with line and total cost. Lead with the bottom line: number of SKUs to reorder, total PO dollars, stockouts, and the dollar value tied up in dead stock. Follow `references/output-conventions.md` for labels.
+Fill `assets/plan-template.md`, then `assets/po-draft-template.md` grouped by vendor with line and total cost. Lead with the bottom line: number of SKUs to reorder, total PO dollars, stockouts, and the dollar value tied up in dead stock. `dead_stock_cost_value` covers only dead SKUs with a unit cost. List `dead_stock_missing_cost` (SKU and units) next to it, so the figure isn't read as the full total. Follow `references/output-conventions.md` for labels.
 
 ## Before you reply
 
@@ -101,11 +106,11 @@ Fill `assets/plan-template.md`, then `assets/po-draft-template.md` grouped by ve
 - **Unit mismatch.** The sales export may count units (each) while on-hand is in grams for bulk or deli-style flower. Don't mix them. Ask for the conversion or exclude those SKUs.
 - **Case packs round up.** Suggested qty is rounded up to the case pack. Say so when rounding meaningfully increases cash outlay.
 - **Cash first.** If the PO total exceeds the budget, rank lines by days of supply (lowest first) and margin if cost and price are known, and show where the budget runs out. Don't cut lines silently.
-- **Distributor/brand use.** Running this on retail account data means the "PO draft" is a *suggested order* to propose to the account's buyer. Label it that way.
+- **Distributor/brand use.** Running this on retail account data means the "PO draft" is a *suggested order* to propose to the account's buyer. Label it that way, and run one account at a time.
 - **Never send.** The output is a draft for the buyer. No emailing vendors and no submitting orders in any system.
 
 ## Example
 
 User: "Here's our Dutchie sales for Aug–Sep and today's on-hand. Lead times are in the sheet. Keep 3 days safety. What do I order?"
 
-Good output opens with: "3 SKUs to reorder, $4,620 across 3 vendors (Example Pines Distribution $1,680, Example Coast Extracts $1,980, Example North Farms $960). Live Resin Gelato sold out 9/28, so its 110-unit order is probably low because velocity was measured while out of stock. $350 at cost is tied up in the Sativa 5pk pre-rolls, which haven't sold since 8/20. Check package and test dates before discounting. Chocolate bar has no lead time or vendor, so it isn't ordered yet…". It then gives the assumptions (14-day cover and 30-day dead threshold are defaults, confirm), the SKU table, the PO draft by vendor, and data gaps.
+Good output opens with: "3 SKUs to reorder, $4,620 across 3 vendors (Example Pines Distribution $1,680, Example Coast Extracts $1,980, Example North Farms $960). Live Resin Gelato has 0 on hand and last sold 9/28. If it was out of stock for part of the window, its 110-unit order is low. When did it run out? $350 at cost is tied up in the Sativa 5pk pre-rolls, which haven't sold since 8/20. Check package and test dates before discounting. Chocolate bar has no lead time or vendor, so it isn't ordered yet…". It then gives the assumptions (14-day cover and 30-day dead threshold are defaults, confirm), the SKU table, the PO draft by vendor, and data gaps.

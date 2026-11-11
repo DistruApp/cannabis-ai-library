@@ -26,9 +26,14 @@ input_problems is not empty. A quantity that is NaN, inf, negative or written wi
 decimal comma is never guessed: the line is held as INVALID_NUMBER. When both the
 manifest and inventory have an item (or SKU) column, each line's item must match the
 package's (ITEM_MISMATCH / ITEM_MISSING); without one, verify_manually asks for it.
-A tag that Excel turned into scientific notation ("1.23457E+23") is never matched: the
-line holds as TAG_SCIENTIFIC_NOTATION. Text cells that a spreadsheet would run as a
-formula are written with a leading apostrophe.
+When the order is joined by SKU or item name and the package can't be tied to the order
+through the inventory file, the order's item/SKU must match the manifest line's
+(ORDER_ITEM_MISMATCH); without one, verify_manually asks for it. When the order and manifest
+both carry a receiver license, they must agree (RECEIVER_LICENSE_MISMATCH).
+A tag that Excel turned into scientific notation ("1.23457E+23", "1.23457E23") is never
+matched: the line holds as TAG_SCIENTIFIC_NOTATION. A row with more cells than the header,
+or two columns whose names differ only in case or spacing, stops the run. Text cells that a
+spreadsheet would run as a formula are written with a leading apostrophe.
 """
 import argparse
 import csv
@@ -51,13 +56,16 @@ ALIASES = {
     "uom": ["uom", "unit", "unit of measure", "unitofmeasurename", "units", "unit of measure name"],
     "lab_status": ["lab status", "testing status", "labtestingstate", "test status",
                    "lab testing state", "lab test status"],
+    "receiver_license": ["customer license", "destination license", "recipient license", "receiver license",
+                         "receiving license", "buyer license", "customer license number",
+                         "destination license number", "recipient license number"],
 }
 
 GRAMS_PER = {"g": 1.0, "gram": 1.0, "grams": 1.0, "kg": 1000.0, "kilogram": 1000.0, "kilograms": 1000.0,
              "mg": 0.001, "milligram": 0.001, "milligrams": 0.001,
-             "lb": 453.592, "lbs": 453.592, "pound": 453.592, "pounds": 453.592,
-             "oz": 28.3495, "ounce": 28.3495, "ounces": 28.3495}
-# Differences smaller than this, arising only from converting between units (e.g. 5 lb = 2267.96 g
+             "lb": 453.59237, "lbs": 453.59237, "pound": 453.59237, "pounds": 453.59237,
+             "oz": 28.349523125, "ounce": 28.349523125, "ounces": 28.349523125}  # exact avoirdupois
+# Differences smaller than this, arising only from converting between units (e.g. 5 lb = 2267.96185 g
 # written as 2268 g), are flagged as rounding rather than as a real over-shipment. Still a HOLD:
 # the manifest must be restated in the package's own unit.
 ROUNDING_G = 0.5
@@ -91,9 +99,15 @@ def norm_text(t):
     return re.sub(r"\s+", " ", (t or "").strip().lower())
 
 
+def _keep_between_digits(m):
+    s, a, b = m.string, m.start(), m.end()
+    return m.group(0) if 0 < a and b < len(s) and s[a - 1].isdigit() and s[b].isdigit() else ""
+
+
 def norm_item(t):
-    """Compare key for item names and SKUs: case, whitespace and punctuation are ignored."""
-    return re.sub(r"[\W_]+", "", (t or "").lower())
+    """Compare key for item names and SKUs: case, whitespace and punctuation are ignored,
+    except between two digits, so "Gummies 2.5mg" never matches "Gummies 25mg"."""
+    return re.sub(r"[\W_]+", _keep_between_digits, re.sub(r"\s+", " ", (t or "").strip().lower()))
 
 
 def detect(headers, overrides):
@@ -134,7 +148,13 @@ def read_csv_rows(path, label):
         with open(path, newline="", encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
             headers = list(reader.fieldnames or [])
-            rows = list(reader)
+            rows = []
+            for r in reader:
+                if None in r:  # more cells than the header: a value may hold an unquoted comma
+                    sys.exit(f"[{label}] {path} line {reader.line_num} has more cells than the header "
+                             f"(extra: {r[None]}). A value may contain an unquoted comma, such as a "
+                             "decimal comma. Fix the row and rerun; extra cells are never dropped.")
+                rows.append(r)
     except UnicodeDecodeError:
         sys.exit(f"[{label}] {path} is not UTF-8 text. Save it as 'CSV UTF-8' and rerun.")
     except (OSError, csv.Error) as e:
@@ -144,8 +164,11 @@ def read_csv_rows(path, label):
     if not rows:
         sys.exit(f"[{label}] {path} has a header row but no data rows. Check that the right file "
                  "was exported.")
-    named = [h.strip() for h in headers if h and h.strip()]
-    dupes = sorted({h for h in named if named.count(h) > 1})
+    same = defaultdict(list)  # compared the way columns are mapped: case, spaces, "_" ignored
+    for h in headers:
+        if h and h.strip():
+            same[norm_header(h)].append(h)
+    dupes = sorted(" / ".join(repr(h) for h in hs) for hs in same.values() if len(hs) > 1)
     if dupes:
         sys.exit(f"[{label}] {path} has more than one column named {dupes}. Rename or remove the "
                  "extra column and rerun.")
@@ -169,7 +192,9 @@ def load(path, overrides, label, required):
     return rows, m
 
 
-_THOUSANDS_RE = re.compile(r"^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$")
+_THOUSANDS_RE = re.compile(r"^[+-]?[1-9]\d{0,2}(,\d{3})+(\.\d+)?$")
+# No real quantity, weight or cost is this large; bigger values overflow later sums.
+_MAX_ABS = 1e12
 
 
 def to_number(s):
@@ -197,6 +222,8 @@ def to_number(s):
         return None, f"not a number: '{s}'"
     if not math.isfinite(v):
         return None, f"not a finite number: '{s}'"
+    if abs(v) > _MAX_ABS:
+        return None, f"out of range: '{s}'"
     return v, None
 
 
@@ -217,9 +244,10 @@ def csv_safe(v):
     return v
 
 
-# A numeric tag that Excel turned into scientific notation ("1.23457E+23"). The real digits
-# are gone, so the tag can't be matched, and two packages can collapse to the same value.
-_SCI_TAG_RE = re.compile(r"^\d+(\.\d+)?[eE][+-]\d+$")
+# A numeric tag that Excel turned into scientific notation ("1.23457E+23" or "1.23457E23").
+# The real digits are gone, so the tag can't be matched, and two packages can collapse to the
+# same value.
+_SCI_TAG_RE = re.compile(r"^\d+(\.\d+)?[eE][+-]?\d+$")
 
 
 def is_sci_tag(raw):
@@ -349,7 +377,15 @@ def main():
 
     # Order aggregated by join key
     order = defaultdict(lambda: {"qty": 0.0, "uom": "", "bad": False, "invalid": [], "label": "",
-                                 "unit_missing": False, "factors": set(), "rows": [], "sci": False})
+                                 "unit_missing": False, "factors": set(), "rows": [], "sci": False,
+                                 "ids": defaultdict(list), "licenses": []})
+    # Is each manifest line's package tied to what was ordered? A tag join is direct. A SKU or
+    # item join is tied only if the inventory file confirms that same field for the package;
+    # otherwise compare the order's other item/SKU field with the manifest line's (F02).
+    item_fields = [f for f in ("item", "sku") if ok(im, f) and ok(mm, f)]
+    chained = key == "package_id" or key in item_fields
+    order_id_fields = [] if chained else [f for f in item_fields if f != key and ok(om, f)]
+    check_license = ok(om, "receiver_license") and ok(mm, "receiver_license")
     if not ok(om, "uom"):
         problems.append("order file: no unit column found; order quantities can't be compared with the "
                         "manifest (ORDER_UNIT_MISSING)")
@@ -363,6 +399,10 @@ def main():
         o = order[k]
         o["label"] = r.get(om[key], "")
         o["rows"].append(str(i))
+        for f in order_id_fields:
+            o["ids"][f].append((i, (r.get(om[f]) or "").strip()))
+        if check_license:
+            o["licenses"].append((i, (r.get(om["receiver_license"]) or "").strip()))
         if key == "package_id" and is_sci_tag(o["label"]):
             o["sci"] = True
             problems.append(f"order row {i}, column '{om[key]}', value '{o['label'].strip()}': package tag "
@@ -398,20 +438,40 @@ def main():
                             "quantities were added together. Confirm this is not a copy-paste duplicate")
 
     # Item check: compare the manifest's item and/or SKU with the package's, where both files have it.
-    item_fields = [f for f in ("item", "sku") if ok(im, f) and ok(mm, f)]
     extra_manual = []
     if not item_fields:
         why = ("inventory export had no item column" if not (ok(im, "item") or ok(im, "sku"))
                else "manifest had no item or SKU column to compare with the inventory's")
         extra_manual.append((f"Confirm each package's item matches the manifest ({why})",
                              "Physical package label and the inventory record for each tag"))
+    if not chained and not order_id_fields:
+        extra_manual.append((f"Confirm each package is the ordered product (the files can't tie the order's "
+                             f"{key} to the package: add the {key} to the inventory export, or the item name "
+                             "to the order, and rerun)",
+                             "Order/invoice line, manifest line and physical package label"))
+    order_licenses = set()
+    if check_license:
+        for k, o in order.items():
+            for i, v in o["licenses"]:
+                if v:
+                    order_licenses.add(norm_tag(v))
+                else:
+                    problems.append(f"order row {i}, column '{om['receiver_license']}': blank receiver license; "
+                                    "manifest destination not compared with it")
+        if len(order_licenses) > 1:
+            problems.append(f"order: more than one receiver license ({', '.join(sorted(order_licenses))}); "
+                            "confirm which licensee this transfer goes to")
+    else:
+        extra_manual.append(("Manifest destination license matches the buyer's license on the order "
+                             "(no receiver license column in both files to compare)",
+                             "Order/invoice and the draft manifest"))
 
     # Manifest lines
     lines = []
     unusable_qty_rows = set()  # manifest rows whose own quantity or unit is unusable
     tag_counts = Counter(norm_tag(r.get(mm["package_id"])) for r in mrows)
     manifest_by_key = defaultdict(float)
-    manifest_key_kind = {}
+    manifest_key_kinds = defaultdict(set)
     manifest_key_factors = defaultdict(set)
     incomplete_keys = set()  # order keys with a manifest line whose quantity or unit is unusable
     for i, r in enumerate(mrows, start=2):
@@ -458,6 +518,34 @@ def main():
             if ok(mm, "uom"):
                 problems.append(f"manifest row {i} ({tag or 'blank tag'}): blank unit; line held as MISSING_UNIT")
         k = keyval(r, mm, key)
+        if k in order:
+            for f in order_id_fields:
+                name = "item" if f == "item" else "SKU"
+                mv = (r.get(mm[f]) or "").strip()
+                ovs = order[k]["ids"][f]
+                blank_rows = [str(oi) for oi, ov in ovs if not ov]
+                if not mv or blank_rows:
+                    add("ITEM_MISSING")
+                    notes.append(f"{name} is blank on the {'manifest' if not mv else 'order'}; can't confirm this "
+                                 "package is the ordered product")
+                    problems.append(f"manifest row {i}, column '{mm[f]}': blank {name}; line held as ITEM_MISSING"
+                                    if not mv else
+                                    f"order row(s) {', '.join(blank_rows)}, column '{om[f]}': blank {name}; "
+                                    f"manifest row {i} held as ITEM_MISSING")
+                elif any(norm_item(ov) != norm_item(mv) for _, ov in ovs):
+                    add("ORDER_ITEM_MISMATCH")
+                    ordered = "', '".join(sorted({ov for _, ov in ovs}))
+                    notes.append(f"manifest {name} '{mv}' but the order's {name} for {key} '{order[k]['label']}' "
+                                 f"is '{ordered}'")
+        if check_license:
+            ml = (r.get(mm["receiver_license"]) or "").strip()
+            if not ml or norm_tag(ml) not in order_licenses:
+                add("RECEIVER_LICENSE_MISMATCH")
+                notes.append(f"manifest destination license '{ml or '(blank)'}' but the order's receiver license is "
+                             f"'{', '.join(sorted(order_licenses)) or '(blank)'}'")
+                if not ml:
+                    problems.append(f"manifest row {i}, column '{mm['receiver_license']}': blank destination "
+                                    "license; line held as RECEIVER_LICENSE_MISMATCH")
         if k not in order:
             flags.append("NOT_ON_ORDER")
         elif mq is None or not mu:
@@ -465,7 +553,7 @@ def main():
         else:
             kind, fac = unit_kind(mu)
             manifest_by_key[k] += mq * (fac or 1.0)
-            manifest_key_kind[k] = kind
+            manifest_key_kinds[k].add(kind)
             manifest_key_factors[k].add(fac)
         iv = inv.get(tag)
         onhand = ""
@@ -529,18 +617,22 @@ def main():
         lines.append({"source": "manifest", "manifest_row": i, "package_id": tag, "item": item,
                       "join_key": k, "manifest_qty": "" if mq is None else mq, "manifest_uom": mu,
                       "on_hand_qty": onhand, "on_hand_uom": iv["uom"] if iv else "", "lab_status": lab,
-                      "order_qty": "", "flags": ";".join(flags), "result": "HOLD" if flags else "GO",
+                      "order_qty": "", "order_uom": "", "flags": ";".join(flags),
+                      "result": "HOLD" if flags else "GO",
                       "notes": " | ".join(notes)})
 
     # Order vs manifest totals per key
     for k, o in order.items():
         shipped = manifest_by_key.get(k)
         order_qty = "" if o["unit_missing"] or o["bad"] or o["invalid"] else o["qty"]
+        # Weights are totalled in grams; counts keep the order's own unit.
+        order_uom = "" if order_qty == "" else ("g" if o.get("norm_kind") == "weight" else o["uom"])
         order_note = "; ".join(o["invalid"]) + "; order quantity not compared" if o["invalid"] else ""
         if shipped is None and not any(l["join_key"] == k for l in lines):
             lines.append({"source": "order", "manifest_row": "", "package_id": k if key == "package_id" else "",
                           "item": o["label"], "join_key": k, "manifest_qty": "", "manifest_uom": "",
                           "on_hand_qty": "", "on_hand_uom": "", "lab_status": "", "order_qty": order_qty,
+                          "order_uom": order_uom,
                           "flags": "ON_ORDER_NOT_ON_MANIFEST" + (";INVALID_NUMBER" if o["invalid"] else "")
                                    + (";TAG_SCIENTIFIC_NOTATION" if o["sci"] else ""),
                           "result": "HOLD", "notes": order_note})
@@ -559,8 +651,8 @@ def main():
         elif k in incomplete_keys:
             mismatch = "ORDER_QTY_NOT_CHECKED"
             note = "a manifest line for this order line has no usable quantity or unit; order total not compared"
-        elif manifest_key_kind.get(k) and o.get("norm_kind") and manifest_key_kind[k] != o["norm_kind"]:
-            mismatch = "ORDER_VS_MANIFEST_UOM_MISMATCH"
+        elif manifest_key_kinds.get(k) and o.get("norm_kind") and manifest_key_kinds[k] != {o["norm_kind"]}:
+            mismatch = "ORDER_VS_MANIFEST_UOM_MISMATCH"  # also count and weight rows on one key (F01)
         elif shipped is not None and abs(shipped - o["qty"]) > 1e-9:
             converted = len(manifest_key_factors[k] | o["factors"]) > 1
             mismatch = ("ORDER_QTY_ROUNDING" if o.get("norm_kind") == "weight" and converted
@@ -568,6 +660,7 @@ def main():
         for l in lines:
             if l["source"] == "manifest" and l["join_key"] == k:
                 l["order_qty"] = order_qty
+                l["order_uom"] = order_uom
                 if mismatch == "ORDER_QTY_NOT_CHECKED" and l["manifest_row"] in unusable_qty_rows:
                     continue  # this line is the reason; its own flag already says it was not compared
                 if note:

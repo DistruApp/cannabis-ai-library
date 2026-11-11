@@ -118,7 +118,7 @@ class KnownAnswers(PrecheckCase):
                          ("60.0", "48.0", "50.0"))
         self.assertEqual((by_row["3"]["manifest_qty"], by_row["3"]["manifest_uom"], by_row["3"]["on_hand_qty"],
                           by_row["3"]["on_hand_uom"]), ("2268.0", "Grams", "5.0", "Pounds"))
-        self.assertEqual(by_row["3"]["order_qty"], "2267.96")  # 5 lb in grams
+        self.assertEqual(by_row["3"]["order_qty"], "2267.96185")  # 5 lb in grams (exact factor since gate 5)
         self.assertEqual(by_row["4"]["order_qty"], "24.0")
         self.assertEqual(by_row["6"]["lab_status"], "TestFailed")
         self.assertEqual(by_row["8"]["lab_status"], "SubmittedForTesting")
@@ -645,12 +645,190 @@ class NoTraceback(PrecheckCase):
             proc = self.run_script(self.files_args(files) + ["--out-dir", tmp / "out", *PASSED])
             self.assertCleanFailure(proc, tmp, "No shared key")
 
-    def test_ragged_rows(self):
+    def test_short_row(self):
         with h.TempDir() as tmp:
-            files = self.with_lines(tmp, SO_1043, "manifest",
-                                    lambda l: [l[0], l[1].split(",")[0], l[2] + ",extra"])
+            files = self.with_lines(tmp, SO_1043, "manifest", lambda l: [l[0], l[1].split(",")[0], l[2]])
             lines, s = self.precheck(tmp, files, *PASSED)
         self.assertEqual(self.line(lines, 2)["result"], "HOLD")
+        self.assertEqual(s["overall"], "HOLD")
+
+    def test_row_with_extra_cell(self):
+        # Since gate 5 (F05) a row longer than the header stops the run instead of being trimmed.
+        with h.TempDir() as tmp:
+            files = self.with_lines(tmp, SO_1043, "manifest", lambda l: [l[0], l[1], l[2] + ",extra"])
+            proc = self.run_script(self.files_args(files) + ["--out-dir", tmp / "out", *PASSED])
+            self.assertCleanFailure(proc, tmp, "[manifest]", "line 3", "more cells than the header")
+
+
+
+# --------------------------------------------------------------------------------------------
+# 8. Gate 5 review (2026-11-11): every path the reviewer found to a false GO, plus the P1s.
+# --------------------------------------------------------------------------------------------
+class Gate5Review(PrecheckCase):
+
+    ORDER_H = ["Order #", "SKU", "Product Name", "Qty", "Unit"]
+    MAN_H = ["Package Tag", "SKU", "Item", "Quantity", "UoM"]
+    INV_H = ["Tag", "Item", "Quantity", "UoM", "Lab Testing State"]
+
+    def write_set(self, tmp, order, manifest, inventory, order_h=None, man_h=None, inv_h=None):
+        files = []
+        for role, header, rows in (("order", order_h or self.ORDER_H, order),
+                                   ("manifest", man_h or self.MAN_H, manifest),
+                                   ("inventory", inv_h or self.INV_H, inventory)):
+            path = tmp / f"{role}.csv"
+            h.write_csv(path, header, rows)
+            files.append(path)
+        return files
+
+    # F01: count and weight rows on one order key must never be added together.
+    def test_f01_mixed_count_and_weight_on_one_order_key_holds_in_either_row_order(self):
+        rows = [[tag("701"), "SKU-X", "Flower", "50", "Each"], [tag("702"), "SKU-X", "Flower", "50", "g"]]
+        for manifest in (rows, rows[::-1]):
+            with self.subTest(first=manifest[0][4]), h.TempDir() as tmp:
+                files = self.write_set(
+                    tmp, [["SO-9", "SKU-X", "Flower", "100", "g"]], manifest,
+                    [[tag("701"), "Flower", "50", "Each", "TestPassed"],
+                     [tag("702"), "Flower", "50", "g", "TestPassed"]])
+                lines, s = self.precheck(tmp, files, *PASSED)
+                self.assertEqual(s["overall"], "HOLD")
+                for row in (2, 3):
+                    self.assertHeld(self.line(lines, row), "ORDER_VS_MANIFEST_UOM_MISMATCH")
+
+    # F02: with a SKU join and no SKU in inventory, the package must still be the ordered product.
+    def test_f02_sku_swapped_onto_the_wrong_packages_holds(self):
+        with h.TempDir() as tmp:
+            files = self.with_lines(tmp, SO_1043, "manifest", lambda l: [
+                l[0], f"{tag('208')},GEL-35,Tincture 30ml - 1:1,24,Each",
+                f"{tag('201')},TIN-11,Gelato 3.5g Jar,12,Each"])
+            lines, s = self.precheck(tmp, files, *PASSED)
+        self.assertEqual(s["overall"], "HOLD")
+        for row in (2, 3):
+            self.assertHeld(self.line(lines, row), "ORDER_ITEM_MISMATCH")
+        self.assertIn("'Gelato 3.5g Jar'", self.line(lines, 2)["notes"])
+
+    def test_f02_no_way_to_link_order_sku_to_package_is_a_manual_check(self):
+        # Order has a SKU but no product name; inventory has a name but no SKU.
+        with h.TempDir() as tmp:
+            files = self.with_lines(tmp, SO_1043, "order",
+                                    lambda l: [",".join(c for i, c in enumerate(x.split(",")) if i != 3)
+                                               for x in l])
+            _, s = self.precheck(tmp, files, *PASSED)
+        checks = " ".join(v["check"] for v in s["verify_manually"])
+        self.assertIn("ordered product", checks)
+
+    # F03: a decimal point between digits is meaningful.
+    def test_f03_potency_decimal_is_not_ignored(self):
+        with h.TempDir() as tmp:
+            files = self.mutated(tmp, SO_1043, "manifest", 0, "Item", "Gummies 2.5mg")
+            files = self.mutated(tmp, files, "order", 0, "Product Name", "Gummies 2.5mg")
+            files = self.mutated(tmp, files, "inventory", 0, "Item", "Gummies 25mg")
+            lines, s = self.precheck(tmp, files, *PASSED)
+        self.assertHeld(self.line(lines, 2), "ITEM_MISMATCH")
+        self.assertEqual(s["overall"], "HOLD")
+
+    def test_f03_spacing_and_case_still_match(self):
+        with h.TempDir() as tmp:
+            files = self.mutated(tmp, SO_1043, "manifest", 0, "Item", "GELATO 3.5 g jar")
+            lines, s = self.precheck(tmp, files, *PASSED)
+        self.assertEqual(self.line(lines, 2)["result"], "GO")
+        self.assertEqual(s["overall"], "GO")
+
+    # F04: an unsigned exponent is still scientific notation.
+    def test_f04_unsigned_exponent_tag_never_goes(self):
+        for raw in ("1.23457E23", "1.23457e+23", "1E23"):
+            with self.subTest(tag=raw), h.TempDir() as tmp:
+                files = self.mutated(tmp, SO_1043, "manifest", 0, "Package Tag", raw)
+                files = self.mutated(tmp, files, "inventory", 0, "Tag", raw)
+                lines, s = self.precheck(tmp, files, *PASSED)
+                self.assertHeld(self.line(lines, 2), "TAG_SCIENTIFIC_NOTATION")
+                self.assertTrue(any(f"inventory row 2, column 'Tag', value '{raw}'" in p
+                                    for p in s["input_problems"]))
+                self.assertEqual(s["overall"], "HOLD")
+
+    def test_f04_unsigned_exponent_tag_on_order(self):
+        with h.TempDir() as tmp:
+            files = self.mutated(tmp, SO_1042, "order", 0, "Package Tag", "1.23457E23")
+            files = self.mutated(tmp, files, "manifest", 0, "Package Label", "1.23457E23")
+            files = self.mutated(tmp, files, "inventory", 0, "Tag", "1.23457E23")
+            lines, s = self.precheck(tmp, files, *PASSED)
+        self.assertHeld(self.line(lines, 2), "TAG_SCIENTIFIC_NOTATION")
+        self.assertEqual(s["overall"], "HOLD")
+
+    # F05: a row with more cells than the header is a broken file, never silently trimmed.
+    def test_f05_extra_cell_stops_the_run(self):
+        for role in ROLES:
+            with self.subTest(file=role), h.TempDir() as tmp:
+                files = self.with_lines(tmp, SO_1043, role, lambda l: [l[0], l[1] + ",5"] + l[2:])
+                proc = self.run_script(self.files_args(files) + ["--out-dir", tmp / "out", *PASSED])
+                self.assertCleanFailure(proc, tmp, f"[{role}]", "line 2", "more cells than the header")
+
+    def test_f05_decimal_comma_split_into_an_extra_cell(self):
+        # Quantity is the last column, so "1,5" unquoted reads as 1 plus a stray "5".
+        man_h = ["Package Tag", "SKU", "Item", "UoM", "Quantity"]
+        with h.TempDir() as tmp:
+            files = self.write_set(tmp, [["SO-9", "SKU-X", "Flower", "1", "g"]],
+                                   [[tag("701"), "SKU-X", "Flower", "g", "1", "5"]],
+                                   [[tag("701"), "Flower", "1", "g", "TestPassed"]], man_h=man_h)
+            proc = self.run_script(self.files_args(files) + ["--out-dir", tmp / "out", *PASSED])
+            self.assertCleanFailure(proc, tmp, "[manifest]", "more cells than the header")
+
+    # F06: headers equal once case, spaces and underscores are ignored are duplicates.
+    def test_f06_case_variant_duplicate_header_stops_the_run(self):
+        for dup in ("QUANTITY", "quantity ", "Quantity"):
+            with self.subTest(header=dup), h.TempDir() as tmp:
+                files = self.with_lines(tmp, SO_1043, "manifest",
+                                        lambda l: [l[0] + "," + dup] + [x + ",999" for x in l[1:]])
+                proc = self.run_script(self.files_args(files) + ["--out-dir", tmp / "out", *PASSED])
+                self.assertCleanFailure(proc, tmp, "[manifest]", "more than one column")
+
+    # F07: values that overflow once converted to grams never reach a comparison.
+    def test_f07_huge_weights_in_every_file_never_go(self):
+        for raw in ("1e308", "1e13"):
+            with self.subTest(value=raw), h.TempDir() as tmp:
+                files = SO_1043
+                for role, qty_col, unit_col in (("manifest", "Quantity", "UoM"), ("inventory", "Quantity", "UoM"),
+                                                ("order", "Qty", "Unit")):
+                    files = self.mutated(tmp, files, role, 0, qty_col, raw)
+                    files = self.mutated(tmp, files, role, 0, unit_col, "kg")
+                lines, s = self.precheck(tmp, files, *PASSED)
+                self.assertHeld(self.line(lines, 2), "INVALID_NUMBER")
+                self.assertEqual(s["overall"], "HOLD")
+                self.assertNotIn("inf", (out := self.line(lines, 2))["order_qty"] + out["manifest_qty"])
+
+    # F08: the order quantity is written with its unit.
+    def test_f08_order_quantity_has_a_unit(self):
+        with h.TempDir() as tmp:
+            lines, _ = self.precheck(tmp, SO_1042, *PASSED)
+        by_row = {l["manifest_row"]: l for l in lines}
+        self.assertEqual((by_row["3"]["order_qty"], by_row["3"]["order_uom"]), ("2267.96185", "g"))
+        self.assertEqual((by_row["4"]["order_qty"], by_row["4"]["order_uom"]), ("24.0", "ea"))
+        self.assertEqual((by_row[""]["order_qty"], by_row[""]["order_uom"]), ("12.0", "ea"))
+
+    # F09: a manifest addressed to a different licensee than the buyer holds.
+    def test_f09_wrong_receiver_license_holds(self):
+        with h.TempDir() as tmp:
+            files = self.mutated(tmp, SO_1042, "manifest", 0, "Destination License", "AU-R-999999")
+            lines, s = self.precheck(tmp, files, *PASSED)
+        l = self.line(lines, 2)
+        self.assertHeld(l, "RECEIVER_LICENSE_MISMATCH")
+        self.assertIn("AU-R-999999", l["notes"])
+        self.assertEqual(s["overall"], "HOLD")
+        self.assertNotIn("RECEIVER_LICENSE_MISMATCH", self.line(lines, 3)["flags"])
+
+    def test_f09_without_license_columns_it_is_a_manual_check(self):
+        with h.TempDir() as tmp:
+            _, s = self.precheck(tmp, SO_1043, *PASSED)
+        checks = " ".join(v["check"] for v in s["verify_manually"])
+        self.assertIn("destination license matches the buyer", checks)
+
+    # F12: exact avoirdupois factors, so 1 lb on the manifest exceeds a 453.592 g package.
+    def test_f12_exact_pound_factor(self):
+        with h.TempDir() as tmp:
+            files = self.write_set(tmp, [["SO-9", "SKU-X", "Flower", "1", "lb"]],
+                                   [[tag("701"), "SKU-X", "Flower", "1", "lb"]],
+                                   [[tag("701"), "Flower", "453.592", "g", "TestPassed"]])
+            lines, s = self.precheck(tmp, files, *PASSED)
+        self.assertHeld(self.line(lines, 2), "UNIT_CONVERSION_ROUNDING")
         self.assertEqual(s["overall"], "HOLD")
 
 

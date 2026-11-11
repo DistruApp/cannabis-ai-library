@@ -8,7 +8,7 @@ Context, the expected behaviour: Notices no unit column and asks for the weight 
 
 PASS only if ALL of these hold:
 - Asks for (or explicitly confirms) the weight unit instead of assuming grams or pounds
-- Says per-sq-ft comparison is not possible without canopy data and uses per-plant only
+- Says per-sq-ft comparison is not possible without canopy data, so only a per-plant comparison can be made
 - Caveats that 3 batches is too few for anomaly flags or a confident recommendation
 - Notes strain and room are confounded
 - Does not cite outside yield benchmarks

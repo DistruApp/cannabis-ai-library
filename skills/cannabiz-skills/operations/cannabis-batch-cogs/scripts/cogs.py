@@ -20,6 +20,11 @@ BOM CSV (one row per component consumed in this batch):
   Text cells written to cogs_lines.csv that start with = + - @ get a leading apostrophe (csv_safe).
   Numbers are parsed strictly (see to_number): NaN, inf, decimal commas ("4,25", "1.234,56") and
   negative quantities or costs BLOCK the batch and are listed with row, column and raw value.
+  Every problem in a row is listed in the same run (bad number, blank quantity, unknown or mixed units).
+  Quantity and price must be in the same kind of unit (weight, volume or count). The script applies no
+  density or pack size: the operator restates the line in one kind and reruns.
+  Two non-blank headers with the same name stop the script (a CSV reader keeps only one of them). Two
+  headers that read as the same field (e.g. "Unit Cost" and "unit_cost") are AMBIGUOUS: pass --map.
 
 --overhead-pct-materials is a whole-number percentage: 12 means 12%. A value between 0 and 1
   (e.g. 0.12) is used as given (0.12%) and a warning is added to input_problems.
@@ -33,6 +38,7 @@ Numeric flags must be finite and not negative (units must be greater than 0); a 
   Pass 0 explicitly (not via --assume) when the operator confirms a cost is truly zero.
 
 Outputs (in --out-dir, default ./cogs_out): cogs_lines.csv, summary.json
+  The script stops before writing if either output path is the BOM file itself.
 """
 import argparse
 import csv
@@ -58,6 +64,7 @@ CONV = {  # to base: g for weight, ml for volume, each for count
 }
 PARAMS = ["units_produced", "labor_hours", "labor_rate", "testing_cost"]
 OH = ["overhead_per_batch", "overhead_per_labor_hour", "overhead_pct_materials"]
+OUTPUTS = ("cogs_lines.csv", "summary.json")
 
 
 def nh(h):
@@ -65,12 +72,15 @@ def nh(h):
 
 
 def detect(headers, overrides):
-    found, m = {}, {nh(h): h for h in headers}
+    by_name = {}  # every header that normalises to a name, so "Unit Cost" and "unit_cost" both count
+    for h in headers:
+        by_name.setdefault(nh(h), []).append(h)
+    found = {}
     for f, al in ALIASES.items():
         if f in overrides:
             found[f] = overrides[f]
             continue
-        hits = [m[a] for a in al if a in m]
+        hits = [h for a in al for h in by_name.get(a, [])]
         if len(hits) == 1:
             found[f] = hits[0]
         elif len(hits) > 1:
@@ -78,7 +88,9 @@ def detect(headers, overrides):
     return found
 
 
-_THOUSANDS_RE = re.compile(r"^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$")
+_THOUSANDS_RE = re.compile(r"^[+-]?[1-9]\d{0,2}(,\d{3})+(\.\d+)?$")
+# No real quantity, weight or cost is this large; bigger values overflow later sums.
+_MAX_ABS = 1e12
 
 
 def to_number(s):
@@ -106,6 +118,8 @@ def to_number(s):
         return None, f"not a number: '{s}'"
     if not math.isfinite(v):
         return None, f"not a finite number: '{s}'"
+    if abs(v) > _MAX_ABS:
+        return None, f"out of range: '{s}'"
     return v, None
 
 
@@ -188,10 +202,26 @@ def main():
         sys.exit(f"Cannot read the BOM file {a.bom} as a UTF-8 CSV ({e}). Export it as CSV (UTF-8) and rerun.")
     if not headers:
         sys.exit(f"The BOM file {a.bom} is empty (no header row). Export the BOM again with its column headers.")
-    m = detect(headers, kv(a.map, "mapping"))
+    dupes = [x for i, x in enumerate(headers) if x.strip() and x in headers[:i]]
+    if dupes:  # the CSV reader keeps only the last of two same-named columns, so one would be lost silently
+        sys.exit(f"The BOM has more than one column named {', '.join(repr(x) for x in dict.fromkeys(dupes))}. "
+                 f"Ask the operator which one to use, rename or delete the other, and rerun.")
+    overrides = kv(a.map, "mapping")
+    for f, col in overrides.items():
+        if f not in ALIASES:
+            sys.exit(f"Bad --map {f}={col}: field must be one of {', '.join(ALIASES)}.")
+        if col not in headers:
+            sys.exit(f"Bad --map {f}={col}: the BOM has no column named '{col}'. Headers: {headers}.")
+    m = detect(headers, overrides)
     if a.detect_only:
         print(json.dumps({"mapping": m, "rows": len(rows), "headers": headers}, indent=2, allow_nan=False))
         return
+    for name in OUTPUTS:  # never let a report overwrite its own source file (also through a symlink)
+        path = os.path.join(a.out_dir, name)
+        if os.path.realpath(path) == os.path.realpath(a.bom) or (
+                os.path.exists(path) and os.path.samefile(path, a.bom)):
+            sys.exit(f"--out-dir {a.out_dir} would overwrite the BOM file {a.bom} with {name}. "
+                     f"Choose a different --out-dir and rerun.")
     for req in ("component", "qty", "uom", "unit_cost"):
         if req not in m or m[req].startswith("AMBIGUOUS:"):
             sys.exit(f"Cannot identify BOM column '{req}' (found: {m.get(req, 'none')}). Headers: {headers}. "
@@ -234,10 +264,10 @@ def main():
     elif not cu_col:
         notes.append("No cost unit column found (the unit each price is quoted in, e.g. $/lb). Weight and volume "
                      "lines need it; count lines are read as price per each.")
-    blank_rows, each_read, seen_rows = 0, [], {}
+    blank_rows, each_read, seen_rows = [], [], {}
     for i, r in enumerate(rows, start=2):
         if is_blank(r):
-            blank_rows += 1
+            blank_rows.append(i)
             continue
         key = tuple(sorted((k or "", str(v).strip()) for k, v in r.items()))
         if key in seen_rows:  # kept and costed, but the operator should rule out a double entry
@@ -278,37 +308,41 @@ def main():
             cost = assumed_number(f"cost:{comp}", assume[f"cost:{comp}"])
             tag = "ASSUMPTION"
             assumptions.append(f"unit cost of {comp} = {cost} per {cuom or uom or '?'} [ASSUMPTION]")
-        bad_cells = [f"row {i} ({comp}): column '{col}' value '{raw}': {why}"
+        # Collect every problem in the row so the operator gets one complete list, not one per rerun.
+        row_probs = [f"row {i} ({comp}): column '{col}' value '{raw}': {why}"
                      for col, raw, why in ((m["qty"], raw_qty, qty_prob), (m["unit_cost"], raw_cost, cost_prob))
-                     if why]
-        if bad_cells:  # an unreadable or negative number blocks the batch; never guessed
-            problems.extend(bad_cells)
+                     if why]  # an unreadable or negative number blocks the batch; never guessed
+        if qty is None and not qty_prob:
+            row_probs.append(f"row {i} ({comp}): column '{m['qty']}' is blank (quantity missing)")
+        cost_missing = cost is None and not cost_prob
+        if cost_missing:
+            missing.append(f"cost:{comp} (row {i}): column '{m['unit_cost']}' is blank")
+        if cuom is not None:  # None: the blank price unit is already listed in missing_inputs
+            if uom not in CONV or cuom not in CONV:
+                bad = [f"{what} '{u or 'blank'}' in column '{col}'"
+                       for what, u, col in (("unit", uom, m["uom"]), ("cost unit", cuom, cu_col or "none"))
+                       if u not in CONV]
+                row_probs.append(f"row {i} ({comp}): unknown {' and '.join(bad)}; known units: {', '.join(CONV)}")
+            elif CONV[uom][0] != CONV[cuom][0]:
+                row_probs.append(f"row {i} ({comp}): qty unit '{uom}' and cost unit '{cuom}' are different kinds "
+                                 f"(weight/volume/each). The script applies no density or pack size: ask the "
+                                 f"operator to restate this line's quantity or price in one kind of unit in the "
+                                 f"BOM, and rerun")
+        if row_probs or cost_missing or cuom is None:
+            problems.extend(row_probs)
             continue
-        if qty is None:
-            problems.append(f"row {i} ({comp}): quantity missing")
-            continue
-        if cost is None:
-            missing.append(f"cost:{comp}")
-            continue
-        if cuom is None:
-            continue
-        if uom not in CONV or cuom not in CONV:
-            problems.append(f"row {i} ({comp}): unknown unit '{uom}' or cost unit '{cuom or 'blank'}'")
-            continue
-        (k1, f1), (k2, f2) = CONV[uom], CONV[cuom]
-        if k1 != k2:
-            problems.append(f"row {i} ({comp}): qty unit '{uom}' and cost unit '{cuom}' are different kinds "
-                            f"(weight/volume/each); give the conversion")
-            continue
+        f1, f2 = CONV[uom][1], CONV[cuom][1]
         qty_in_cost_uom = qty * f1 / f2
         lines.append({"line": comp, "type": "material", "qty": qty, "uom": uom,
                       "unit_cost": cost, "cost_uom": cuom, "qty_in_cost_uom": round(qty_in_cost_uom, 6),
                       "line_cost": round(qty_in_cost_uom * cost, 4), "source": tag, "note": note})
-    if blank_rows == len(rows):  # header only, or nothing but blank rows: there is nothing to cost
+    if len(blank_rows) == len(rows):  # header only, or nothing but blank rows: there is nothing to cost
         problems.append(f"The BOM has no component rows (only the header{' and blank rows' if rows else ''}). "
                         f"Ask for the components consumed in this batch.")
     if blank_rows:
-        notes.append(f"Skipped {blank_rows} fully blank row(s) in the BOM.")
+        where = (f"row {blank_rows[0]}" if len(blank_rows) == 1
+                 else "rows " + ", ".join(str(n) for n in blank_rows))
+        notes.append(f"Skipped {len(blank_rows)} fully blank row(s) in the BOM: {where}.")
     if each_read:
         notes.append(f"Cost unit blank on {len(each_read)} count line(s), so the price was read as per each: "
                      f"{', '.join(each_read)}. Check none is priced per case or pack.")
@@ -316,8 +350,10 @@ def main():
     if missing or problems:
         out = {"status": "BLOCKED", "missing_inputs": missing, "input_problems": problems + notes,
                "how_to_fix": "Ask the operator for each missing value, and for the right figure behind each "
-                             "unreadable or negative number (never reinterpret it). If they want to proceed anyway, pass "
-                             "--assume key=value so it is tagged ASSUMPTION. Pass 0 only if they confirm zero."}
+                             "unreadable or negative number (never reinterpret it). If they want to proceed before "
+                             "they have a figure, they choose a placeholder number and you pass it with --assume "
+                             "key=value (cost:<component>=N for a BOM price) so it is tagged ASSUMPTION. 'Use "
+                             "whatever' is not a number: never pick one yourself. Pass 0 only if they confirm zero."}
         print(json.dumps(out, indent=2, allow_nan=False))
         sys.exit(2)
 
@@ -386,7 +422,7 @@ def main():
         sens.append(row)
 
     os.makedirs(a.out_dir, exist_ok=True)
-    with open(os.path.join(a.out_dir, "cogs_lines.csv"), "w", newline="") as f:
+    with open(os.path.join(a.out_dir, OUTPUTS[0]), "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(lines[0].keys()))
         w.writeheader()
         w.writerows([{k: csv_safe(v) for k, v in x.items()} for x in lines])
@@ -401,7 +437,7 @@ def main():
         "sensitivity": sens, "assumptions": assumptions, "input_problems": notes,
         "lines_tagged_assumption": [x["line"] for x in lines if x["source"] == "ASSUMPTION"],
     }
-    with open(os.path.join(a.out_dir, "summary.json"), "w") as f:
+    with open(os.path.join(a.out_dir, OUTPUTS[1]), "w") as f:
         json.dump(summary, f, indent=2, allow_nan=False)
     print(json.dumps(summary, indent=2, allow_nan=False))
 

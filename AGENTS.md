@@ -25,4 +25,4 @@ Skills here are public-facing. Before adding or changing one, check that it cont
 
 To (re)link every skill into the local harness skill directories (`~/.claude/skills`, `~/.agents/skills`), run `scripts/link-skills.sh`. Each entry is a symlink into this repo, so a `git pull` keeps installed skills current; re-run the script after adding, removing, or renaming a skill.
 
-Before finishing any change, run `python3 scripts/check_repo.py` and `scripts/test-scripts.sh`, and fix what fails. A change to a bundled script needs a test in `tests/`. Releases follow `RELEASING.md`: never call a skill ready from reading it; say which evidence label (RUN, SCRIPT-TESTED, SOURCE-CHECKED, READ ONLY, NOT TESTED) backs each claim.
+Before finishing any change, run `python3 scripts/check_repo.py` and `scripts/test-scripts.sh`, and fix what fails. A change to a bundled script needs a test in `tests/`. The release process lives in the internal staging repo. Never call a skill ready from reading it; say which evidence label (RUN, SCRIPT-TESTED, SOURCE-CHECKED, READ ONLY, NOT TESTED) backs each claim.

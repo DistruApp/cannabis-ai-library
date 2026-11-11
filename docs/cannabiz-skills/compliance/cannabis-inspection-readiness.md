@@ -4,7 +4,7 @@ Skill: [`cannabis-inspection-readiness`](../../../skills/cannabiz-skills/complia
 
 ## What it does
 
-Turns "the inspector is coming" into a plan. It covers the operational areas inspectors commonly review (traceability records, inventory, security, waste, packaging and labeling, testing, employee records, transport and SOPs), marks each item Ready, Gap or Unknown, builds the inspection binder index, and prioritizes gaps by risk with an owner and due date. It writes 10 to 20 mock inspection questions for floor staff and managers. It never says the operator will pass and never helps backdate or alter records.
+Turns "the inspector is coming" into a plan. It covers the operational areas inspectors commonly review (traceability records, inventory, security, waste, packaging and labeling, testing, employee records, transport and SOPs), marks each item Ready, Gap or Unknown, builds the inspection binder index, and prioritizes gaps by risk with an owner and due date. It writes 10 to 20 mock inspection questions for floor staff and managers. It never says the operator will pass, never helps backdate or alter records, and never sends anything to a regulator.
 
 ## When to use it
 
@@ -24,4 +24,4 @@ Turns "the inspector is coming" into a plan. It covers the operational areas ins
 
 **Input:** "State inspector is coming Thursday for our renewal. We're a Colorado retail cultivation facility."
 
-**Output:** a readiness summary showing areas in scope, counts of Ready, Gap and Unknown items, and the critical gaps (for example, no recent reconciliation). It follows with the checklist, binder index, gap tracker and mock questions, and marks every requirement it could not cite as needing verification.
+**Output:** first, one question asking for the inspection date, every license at the site, the traceability system, any regulator checklist and the records on hand, because no counts or findings can be reported before it has seen any evidence. Once it has them, a readiness summary showing areas in scope, counts of Ready, Gap and Unknown items built only from what was shared, and the critical gaps (for example, no recent reconciliation). It follows with the checklist, binder index, gap tracker and mock questions, and marks every requirement it could not cite as needing verification.

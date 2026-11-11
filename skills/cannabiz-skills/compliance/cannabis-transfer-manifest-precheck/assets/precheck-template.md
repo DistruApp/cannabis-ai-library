@@ -17,7 +17,7 @@ Rules relied on: ___ | none, so rule-dependent items are marked NEEDS VERIFICATI
 Order join key: ___   Lab values treated as passed (confirmed by ___): ___
 
 ## Lines
-| Result | Package tag | Item | Manifest qty | Order qty | On hand | Lab status | Flags | Fix | Owner |
+| Result | Package tag | Item | Manifest qty + unit | Order qty + unit | On hand + unit | Lab status | Flags | Fix | Owner |
 |---|---|---|---|---|---|---|---|---|---|
 
 ## Fixes grouped by owner

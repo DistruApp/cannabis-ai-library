@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gate 1: repo checks. See RELEASING.md.
+"""Gate 1: repo checks.
 
 Standard library only. Exits 1 if any check fails, 0 otherwise.
 

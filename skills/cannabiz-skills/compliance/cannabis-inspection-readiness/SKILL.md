@@ -33,7 +33,7 @@ Read `references/jurisdiction-gate.md`, then ask in **one** message for anything
 - Traceability system
 - Whether they have the current state regulations or a regulator inspection checklist to share. A regulator-published checklist is the best source and overrides the generic areas.
 
-Look up the state in `references/state-profiles.md`. Use its regulator, rules URL, and any cited rules. If the state is missing or a rule isn't cited, mark state-specific items **NEEDS VERIFICATION** and give the rules URL to check. Never fill a gap with another state's rule or a "common" requirement presented as law.
+Look up the state in `references/state-profiles.md`. Use its regulator, rules URL, and any cited rules. If the state is missing or a rule isn't cited, mark state-specific items **NEEDS VERIFICATION** and give the profile's rules URL to check. If the profile has no rules URL (generic-coverage states) or no entry for the state, name the regulator if the profile lists one and ask the operator for the current rules or the regulator's checklist; don't supply a URL from memory. Never fill a gap with another state's rule or a "common" requirement presented as law.
 
 If the inspection is complaint-driven or follows a notice, say plainly that they should involve their compliance counsel. This skill still helps with preparation.
 
@@ -45,10 +45,10 @@ Ask for (or accept a list of) existing SOPs, logs, licenses, training records, a
 
 Use `references/inspection-areas.md` for the areas and the typical items within each. For each item, record:
 - **Status**: Ready / Gap / Unknown (Unknown is not Ready)
-- **Basis**: [RULE + citation] if cited, otherwise "operational best practice: confirm against your state's rules"
+- **Basis**: [RULE + citation + verified date] only for a profile entry marked V or V\*, or regulation text the operator supplied, that applies to this license type. A cited entry with any other profile label (V (LII), NEEDS VERIFICATION, UNVERIFIED, Vendor-only) keeps that label and says to confirm the current text. Anything else: "operational best practice: confirm against your state's rules"
 - **Evidence**: the document or physical thing that proves it
 
-Only include areas that apply to the license type(s). A distributor without cultivation doesn't need a plant-tagging section, for example.
+Include an area when the operation does that activity, not only when the license letter in `references/inspection-areas.md` matches. A distributor without cultivation doesn't need a plant-tagging section, but a distributor that holds returned, recalled or failed product for destruction does need the waste section. If you're not sure whether they do an activity, ask or keep the area as Unknown.
 
 ### 4. Binder index
 
@@ -61,7 +61,7 @@ Fill `assets/gap-tracker-template.csv`. Prioritize by:
 2. **High**: missing required records or logs, SOPs not matching actual practice, untrained staff on a regulated task.
 3. **Medium**: organization and presentation issues.
 
-Give each gap an owner role and a due date working back from the inspection date. If the date is close, say what can realistically be fixed in time and what should be disclosed honestly rather than patched over. **Never suggest backdating, altering, or fabricating records.** If the user asks for that, decline and explain the risk.
+Give each gap an owner role and a due date working back from the inspection date. If the date is close, say what can realistically be fixed in time and what should be disclosed honestly rather than patched over. **Never suggest backdating, altering, or fabricating records.** If the user asks for that, decline and explain the risk. Missing records stay on the gap list. Any reconstruction uses only genuine evidence (traceability records, video, notes made at the time) and is marked as a late entry with the date it was written and its source. Don't send anything to a regulator or inspector, and don't tell them the operator is ready; recommend compliance review before the operator says anything to the regulator about missing records.
 
 For SOP gaps, list the SOP needed and its purpose. Drafting it belongs to `cannabis-sop-generator-trainer` if that skill is available. Say so instead of drafting full SOPs here.
 
@@ -71,7 +71,7 @@ Write 10–20 questions an inspector is likely to ask *this* operation, drawn fr
 
 ### 7. Output
 
-Lead with a readiness summary: areas in scope, counts of Ready / Gap / Unknown, the Critical gaps, and days until the inspection. Don't predict the result either way: never write "you'll pass" or "you will pass", not even to deny it ("nothing here means you'll pass"). If a caveat helps, say "This plan doesn't predict the inspection result." Then the jurisdiction block, checklist, binder index, gap list, and mock questions. Follow `references/output-conventions.md` and end with the sign-off block.
+Lead with a readiness summary: areas in scope, counts of Ready / Gap / Unknown, the Critical gaps, and days until the inspection. Every count and finding must come from what the operator told you or shared in step 2. With no records shared, every item is Unknown: say so and ask for the records, and never report a Ready or Gap you have no evidence for. Work out the days from a calendar date the operator gave you; if they only gave a weekday ("Thursday"), ask for the date. With no inspection scheduled, say "not scheduled" and ask the operator to agree target dates for the gaps. Don't predict the result either way: never write "you'll pass" or "you will pass", not even to deny it ("nothing here means you'll pass"). If a caveat helps, say "This plan doesn't predict the inspection result." Then the jurisdiction block, checklist, binder index, gap list, and mock questions. Follow `references/output-conventions.md` and end with the sign-off block.
 
 ## Gotchas
 
@@ -86,4 +86,4 @@ Lead with a readiness summary: areas in scope, counts of Ready / Gap / Unknown, 
 
 User: "State inspector is coming Thursday for our renewal. We're a Colorado retail marijuana cultivation facility. What do we need ready?"
 
-Good output opens with: "Readiness for a Colorado retail cultivation renewal inspection in 3 days. 9 areas in scope, 31 items: 12 Ready, 11 Gap, 8 Unknown. Critical: no reconciliation since August (run one today), and 2 employees' badges not confirmed current. State-specific items cite [state-profiles entry] where verified. Others say NEEDS VERIFICATION against the rules at [rules URL]…" It then gives the checklist, binder index, gap tracker, and mock questions, and refers SOP drafting to the SOP skill.
+The user has shared no records and no date, so good output invents no counts, findings or countdown. It asks in one message for: the inspection date (a calendar date, so the countdown isn't guessed from "Thursday"), every license at the premises (for example a co-located MIP), any local permit, the traceability system, whether they have a regulator checklist, and what they have on hand (date of the last Metrc reconciliation, SOP list, waste log, surveillance retention, training and badge records). While waiting it may preview the cultivation areas from `references/inspection-areas.md`, labeled operational best practice, and says that if they can't point to a recent reconciliation, running `cannabis-traceability-reconciliation` comes first. Once they answer, the summary opens with areas in scope and Ready / Gap / Unknown counts built only from what they shared ("Readiness for a Colorado retail cultivation renewal inspection on [date], [N] days out…"), cites Colorado items from `references/state-profiles.md` with their labels, and marks the rest NEEDS VERIFICATION against the rules URL there. Then come the checklist, binder index, gap tracker and mock questions, and SOP drafting goes to the SOP skill.

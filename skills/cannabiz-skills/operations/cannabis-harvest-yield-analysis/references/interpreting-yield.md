@@ -4,7 +4,7 @@ Operational checks only. No outside benchmarks: compare against the operator's o
 
 | Signal | Check first (data/process) | Then (cultivation) |
 |---|---|---|
-| Dry-down much higher than the operator's other batches | Wet weight taken with stems/fan leaves this time but not others; dry weight taken before the cure finished; unit mix-up (lb entered as g) | Harvest timing, environment in dry room |
+| Dry-down much higher than the operator's other batches | Wet weight taken with stems/fan leaves this time but not others; dry weight taken after material was removed (bucked/trimmed dry vs. total dry plant material); unit mix-up (dry weight in lb entered as g) | Harvest timing, environment in dry room |
 | Dry-down much lower | Dry weight taken too early (product still wet); wet weight taken after partial drying | Dry-room humidity/temperature, timing of weigh |
 | Low g per sq ft, normal g per plant | Canopy figure includes aisles or empty benches; plant density differs | Plant spacing, canopy fill |
 | Low g per plant, normal g per sq ft | Plant count includes culled or dead plants | Plant density too high |

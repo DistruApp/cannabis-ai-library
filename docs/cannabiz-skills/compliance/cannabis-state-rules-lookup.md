@@ -4,7 +4,7 @@ Skill: [`cannabis-state-rules-lookup`](../../../skills/cannabiz-skills/complianc
 
 ## What it does
 
-Gives a licensed cannabis operator a cited answer to a state rule question: the rule, the exact text, the source link, the effective date and the date it was checked. If a rule can't be verified from a primary source, it says so plainly and tells the operator where to check. It ships with detailed profiles for CA, CO, MI, MA, NY, IL and OK, plus a table of the traceability system each of 26 states uses. Every entry is labelled with how it was verified: most Michigan and Colorado rules (whose official sites couldn't be checked), Illinois cultivation rules since the May 2026 update, and the systems for PA, CT and DE are flagged for the operator to confirm.
+Gives a licensed cannabis operator a cited answer to a state rule question: the rule, the exact text, the source link, the effective date and the date it was checked. If a rule can't be verified from a primary source, it says so plainly and tells the operator where to check, and it won't recommend changing an SOP on a rule it couldn't confirm. It keeps adult-use and medical rules apart, and it never drafts, files or sends a notice to a regulator or the police. It ships with detailed profiles for CA, CO, MI, MA, NY, IL and OK, plus a table of the traceability system each of 26 states uses. Every entry is labelled with how it was verified: most Michigan and Colorado rules (whose official sites couldn't be checked), Illinois cultivation rules since the May 2026 update, and the systems for PA, CT and DE are flagged for the operator to confirm.
 
 ## When to use it
 
@@ -25,4 +25,4 @@ Gives a licensed cannabis operator a cited answer to a state rule question: the 
 
 **Input:** "We're a California distributor. How often do we have to reconcile Metrc and what happens if we're off?"
 
-**Output:** "At least every 30 calendar days, and a significant discrepancy (5 percent) means an audit and written notice to DCC. Separately, you must report a significant discrepancy to DCC and local law enforcement within 24 hours of finding it." It cites 4 CCR sections 15051, 15034 and 15036 with the source link and date, and flags that the rule does not say whether the 5 percent is per package or on total inventory.
+**Output:** "At least every 30 calendar days, and a significant discrepancy (5 percent) means an audit and written notice to DCC. Separately, you must report a significant discrepancy to DCC and local law enforcement within 24 hours of finding it; the notice to DCC goes on form DCC-LIC-028." It cites 4 CCR sections 15051, 15034 and 15036 with the source link and date, and flags that the rule does not say whether the 5 percent is per package or on total inventory.

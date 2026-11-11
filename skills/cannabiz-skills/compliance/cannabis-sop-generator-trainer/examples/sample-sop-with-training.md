@@ -64,7 +64,7 @@ The person who picks the order is never the person who verifies it or finalizes 
 1. Generate the transfer manifest in METRC using the verified pick.
 2. Confirm every line item, quantity, and weight on the manifest matches the verified pick.
 
-**Warning:** Never let a shipment leave without a manifest that matches what was actually picked. A mismatch here is a licensing violation, not just a paperwork error.
+**Warning:** Never let a shipment leave without a manifest that matches what was actually picked. A mismatch may break the state's transfer rules, not just the paperwork (CONFIRM: the applicable transfer rule with your compliance lead).
 
 **Step 5: Hand off to the carrier or driver**
 1. Confirm the driver has a copy of the manifest (physical or digital, per state requirement).
@@ -109,12 +109,18 @@ The person who picks the order is never the person who verifies it or finalizes 
 ### Quick-reference summary (post near the pick station)
 
 1. Pull the sales order.
-2. Pick each item and record the actual quantity and weight.
-3. Have a second person verify the pick against the order.
+2. Pick each item and record the actual quantity and weight. Don't swap in a different batch or SKU unless the order change is documented first.
+3. Have the Warehouse Lead (never the picker) verify the pick against the order.
 4. Generate the METRC manifest and check it matches the verified pick exactly.
 5. Confirm the driver has the manifest before the truck leaves.
 6. Record delivery confirmation and trigger the invoice.
-7. Never let a shipment leave without a manifest that matches what was picked.
+
+**Stop and hold the shipment if:**
+- any unit count differs from the sales order;
+- any weight differs from the sales order (until the weight threshold is confirmed, any difference at all);
+- the manifest doesn't match the verified pick.
+
+**On a hold:** the Warehouse Lead tells the Compliance/Inventory Manager right away. The shipment doesn't leave until the discrepancy is resolved and written in the discrepancy log. Never let a shipment leave without a manifest that matches what was picked.
 
 ### Comprehension check
 
@@ -128,7 +134,7 @@ The person who picks the order is never the person who verifies it or finalizes 
 
 1. False. A second person verifies the pick (Section 5, segregation of duties; Section 6, step 3).
 2. The verified pick: every package, quantity and weight (Section 6, step 4).
-3. (c). Any mismatch holds the shipment until the Compliance/Inventory Manager resolves it (Section 7).
+3. (c). The weight threshold isn't confirmed yet, so any weight mismatch holds the shipment, and the Warehouse Lead notifies the Compliance/Inventory Manager right away (Section 7). Once a threshold is confirmed, only a weight variance beyond it holds the shipment; any unit-count mismatch always does.
 4. The Compliance/Inventory Manager (Section 5).
 5. So the load is documented while it's on the road and matches what was picked (Section 6, step 5). Accept any answer that says the shipment must travel with a matching manifest.
 
@@ -138,11 +144,13 @@ Pass: questions 1, 2 and 3 all correct, and at least 4 of 5 correct overall. Oth
 
 ### Sign-off / attestation log template
 
-| Employee | Role | Date Trained | Method | Trainer | Score | Result (Pass / Retrain and retest) | Retest Date | Signature |
-|---|---|---|---|---|---|---|---|---|
-| | Warehouse Picker | | Shadow + written check | | | | | |
-| | Warehouse Lead | | Shadow + written check | | | | | |
-| | Compliance/Inventory Manager | | Shadow + written check | | | | | |
+| SOP ID / Version | Employee | Role | Date Trained | Method | Trainer | Score | Result (Pass / Retrain and retest) | Retest Date | Signature |
+|---|---|---|---|---|---|---|---|---|---|
+| WHS-002 / 1.0 | | Warehouse Picker | | Shadow + written check | | | | | |
+| WHS-002 / 1.0 | | Warehouse Lead | | Shadow + written check | | | | | |
+| WHS-002 / 1.0 | | Compliance/Inventory Manager | | Shadow + written check | | | | | |
+
+One row per attempt. A retest gets its own row.
 
 ### Retraining trigger
 

@@ -19,9 +19,17 @@ Data rules (nothing is dropped, merged or invented silently):
   - Zero or negative weights and counts are reported, never divided by.
   - Numbers are parsed strictly (see to_number). NaN, inf and decimal commas ("4,25", "1.234,56")
     are reported with row, column and raw value, flagged BAD_<FIELD> (BAD_WET / BAD_DRY for the
-    weights) and treated as blank. A negative breakdown weight or cycle cost is handled the same way.
+    weights) and treated as blank. So are a value over 1e12, a nonzero value under 1e-6, and a
+    negative breakdown weight or cycle cost. Numbers read with a thousands comma ("25,000") are
+    listed once in input_problems so the number format can be confirmed.
+  - Two columns with the same name (ignoring case, spaces, underscores) stop the run: one column's
+    values would otherwise be lost.
   - Duplicate harvest IDs are kept (not merged), flagged DUPLICATE_ID and reported.
-  - A blank breakdown part shows blank, not 0%.
+  - A blank breakdown part, or one with no column, shows blank, not 0%, and the batch is marked
+    INCOMPLETE_BREAKDOWN, unless the parts recorded already exceed dry weight (PARTS_EXCEED_DRY).
+  - Groups are ranked by dry g per sq ft; with no canopy figures, by g per plant, then g per light
+    (summary "ranking_metric"; null means no ranking was possible and groups keep file order).
+  - Every figure is checked to be finite before any output file is written.
   - Fully blank rows are skipped and counted in input_problems. A file with no batches to analyze
     still writes both outputs (yield_by_batch.csv header only) and says so in input_problems.
   - Text cells written to yield_by_batch.csv that start with = + - @ get a leading apostrophe
@@ -69,6 +77,9 @@ WEIGHT_FIELDS = ["wet_weight", "dry_weight", "flower_a", "flower_b", "trim", "wa
 GRAMS_PER = {"g": 1.0, "gram": 1.0, "grams": 1.0, "kg": 1000.0, "kilogram": 1000.0, "kilograms": 1000.0,
              "lb": 453.592, "lbs": 453.592, "pound": 453.592, "pounds": 453.592,
              "oz": 28.3495, "ounce": 28.3495, "ounces": 28.3495}
+# A nonzero value smaller than this is not a real weight, count or cost. Dividing by it (or by a sum of
+# such values) can overflow to infinity, so it is reported and treated as blank.
+_MIN_ABS = 1e-6
 
 
 def norm_header(h):
@@ -89,7 +100,9 @@ def detect(headers, overrides):
     return found
 
 
-_THOUSANDS_RE = re.compile(r"^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$")
+_THOUSANDS_RE = re.compile(r"^[+-]?[1-9]\d{0,2}(,\d{3})+(\.\d+)?$")
+# No real quantity, weight or cost is this large; bigger values overflow later sums.
+_MAX_ABS = 1e12
 
 
 def to_number(s):
@@ -117,6 +130,8 @@ def to_number(s):
         return None, f"not a number: '{s}'"
     if not math.isfinite(v):
         return None, f"not a finite number: '{s}'"
+    if abs(v) > _MAX_ABS:
+        return None, f"out of range: '{s}'"
     return v, None
 
 
@@ -186,6 +201,16 @@ def main():
         sys.exit(f"Cannot read the harvest file {a.harvests} as a UTF-8 CSV ({e}). Export it as CSV (UTF-8) and rerun.")
     if not headers:
         sys.exit(f"The harvest file {a.harvests} is empty (no header row). Export it again with its column headers.")
+    # Two columns with the same name (ignoring case, spaces, underscores) would silently keep only one value.
+    same_name = {}
+    for col in headers:
+        if norm_header(col):
+            same_name.setdefault(norm_header(col), []).append(col)
+    clashes = [cols for cols in same_name.values() if len(cols) > 1]
+    if clashes:
+        sys.exit("These columns have the same name, so one column's values would be lost: "
+                 + "; ".join(" / ".join(f"'{c}'" for c in cols) for cols in clashes)
+                 + ". Ask the operator which one is right, rename or remove the other, and rerun.")
     m = detect(headers, overrides)
     if a.detect_only:
         print(json.dumps({"mapping": m, "rows": len(rows), "headers": headers}, indent=2, allow_nan=False))
@@ -207,6 +232,8 @@ def main():
 
     problems, out = [], []
     blank_rows = 0
+    comma_cells = []  # numbers read with a comma as a thousands separator
+    partial_breakdown = False  # a row had some breakdown parts while the file lacks a part column
     PARTS = (("flower_a", "flower_a_pct"), ("flower_b", "flower_b_pct"), ("trim", "trim_pct"), ("waste", "waste_pct"))
     RATIOS = (("dry_g_per_plant", "plant_count", "plant count"), ("dry_g_per_sqft", "canopy_sqft", "canopy sq ft"),
               ("dry_g_per_light", "lights", "light count"))
@@ -242,6 +269,10 @@ def main():
             v, prob = to_number(raw) if f in m else (None, None)
             if v is not None and v < 0 and f in ("flower_a", "flower_b", "trim", "waste", "cycle_cost"):
                 v, prob = None, "negative value"
+            if v is not None and 0 < abs(v) < _MIN_ABS:
+                v, prob = None, f"too small to be a real figure (below {_MIN_ABS:g})"
+            if v is not None and "," in raw:
+                comma_cells.append(f"row {i} column '{m[f]}' '{raw}' read as {v:g}")
             if prob:
                 unreadable[f] = raw
                 flags.append({"wet_weight": "BAD_WET", "dry_weight": "BAD_DRY"}.get(f, "BAD_" + f.upper()))
@@ -329,14 +360,20 @@ def main():
             gap = dry - total
             rec["breakdown_total_g"] = r(total, 2)
             rec["unaccounted_g"] = r(gap, 2)
-            blank_parts = [k for k, _ in PARTS if k in m and parts[k] is None]
-            if blank_parts:
+            missing = [k for k, _ in PARTS if parts[k] is None]  # blank, unreadable, or no column in the file
+            blank_parts = [k for k in missing if k in m]
+            partial_breakdown = partial_breakdown or len(missing) > len(blank_parts)
+            if gap <= -0.005:  # the parts recorded already exceed dry weight, whatever the blanks weigh
+                rec["sum_check"] = "PARTS_EXCEED_DRY"
+            elif missing:
                 rec["sum_check"] = "INCOMPLETE_BREAKDOWN"
-                problems.append(f"row {i} ({hid}): breakdown cell(s) blank or unreadable: {', '.join(blank_parts)}. "
-                                f"Shown blank, "
-                                f"not 0%; unaccounted_g ({gap:g} g) includes whatever they weigh.")
             else:
-                rec["sum_check"] = "OK" if abs(gap) < 0.005 else ("UNACCOUNTED" if gap > 0 else "PARTS_EXCEED_DRY")
+                rec["sum_check"] = "OK" if abs(gap) < 0.005 else "UNACCOUNTED"
+            if blank_parts:
+                problems.append(f"row {i} ({hid}): breakdown cell(s) blank or unreadable: {', '.join(blank_parts)}. "
+                                f"Shown blank, not 0%; "
+                                + (f"the parts recorded already exceed dry weight by {-gap:g} g. Check the entries."
+                                   if gap <= -0.005 else f"unaccounted_g ({gap:g} g) includes whatever they weigh."))
             if parts["flower_a"] is not None and parts["flower_b"] is not None:
                 sellable = parts["flower_a"] + parts["flower_b"]
         else:
@@ -344,6 +381,9 @@ def main():
                 rec[col] = ""
             rec["breakdown_total_g"] = rec["unaccounted_g"] = ""
             rec["sum_check"] = "NO_DRY_WEIGHT" if present else "NO_BREAKDOWN"
+            if dry_ok and not present and any(k in m for k, _ in PARTS):
+                problems.append(f"row {i} ({hid}): no breakdown recorded (every breakdown cell is blank or "
+                                f"unreadable), so unaccounted weight can't be checked. Ask for the breakdown.")
         cost = vals["cycle_cost"]
         rec["cost_per_dry_g"] = r(cost / dry if cost is not None and dry_ok else None, 4)
         rec["cost_per_flower_g"] = r(cost / sellable if cost is not None and sellable else None, 4)
@@ -357,6 +397,16 @@ def main():
         rec["_counts"] = {metric: vals[field] for metric, field, _ in RATIOS}
         rec["_raw"] = tuple(sorted((k or "", str(v)) for k, v in row.items()))
         out.append(rec)
+    if partial_breakdown:
+        problems.append("The file has no column for breakdown part(s): "
+                        + ", ".join(k for k, _ in PARTS if k not in m)
+                        + ". Batches with a breakdown are marked INCOMPLETE_BREAKDOWN (unless the parts recorded "
+                          "already exceed dry weight), and unaccounted_g includes whatever those parts weigh.")
+    if comma_cells:
+        problems.append(f"{len(comma_cells)} number(s) were read with the comma as a thousands separator ("
+                        + "; ".join(comma_cells[:3]) + ("; ..." if len(comma_cells) > 3 else "")
+                        + "). If this file uses a comma as the decimal point, these are 1,000 times too large. "
+                          "Confirm the number format with the operator.")
     if blank_rows:
         problems.append(f"Skipped {blank_rows} fully blank row(s).")
     if not out:
@@ -420,20 +470,20 @@ def main():
             res["coverage"][metric] = coverage(xs, metric, field)
         return res
 
+    # Rank by g per sq ft; with no canopy figures at all, by g per plant, then g per light; else no ranking.
+    ranking_metric = next((metric for metric in ("dry_g_per_sqft", "dry_g_per_plant", "dry_g_per_light")
+                           if any(x["_use"][metric] for x in out)), None)
+
     def group(key):
         buckets = {}
         for x in out:
             buckets.setdefault(x[key] or "(blank)", []).append(x)
         res = [dict({key: k}, **agg(xs)) for k, xs in buckets.items()]
-        res.sort(key=lambda z: (z["dry_g_per_sqft"] is None, -(z["dry_g_per_sqft"] or 0)))
+        if ranking_metric:
+            res.sort(key=lambda z: (z[ranking_metric] is None, -(z[ranking_metric] or 0)))
         return res
 
     public = [{k: v for k, v in x.items() if not k.startswith("_")} for x in out]
-    os.makedirs(a.out_dir, exist_ok=True)
-    with open(os.path.join(a.out_dir, "yield_by_batch.csv"), "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=BATCH_FIELDS)
-        w.writeheader()
-        w.writerows([{k: csv_safe(v) for k, v in x.items()} for x in public])
     tw = sum(x["_wet"] for x in out if x["_use"]["wet_g"])
     td = sum(x["_dry"] for x in out if x["_use"]["dry_g"])
     dd_rows = [x for x in out if x["_use"]["dry_down_pct"]]
@@ -445,6 +495,7 @@ def main():
         "overall_dry_down_pct": round((1 - ddry / dw) * 100, 2) if dw else None,
         "totals_coverage": {"total_wet_g": coverage(out, "wet_g"), "total_dry_g": coverage(out, "dry_g"),
                             "overall_dry_down_pct": coverage(out, "dry_down_pct")},
+        "ranking_metric": ranking_metric,
         "by_strain_ranked_by_g_per_sqft": group("strain"),
         "by_room_ranked_by_g_per_sqft": group("room"),
         "anomaly_rule": rule, "anomaly_fences": fences,
@@ -452,9 +503,21 @@ def main():
         "flagged_batches": [{"harvest_id": x["harvest_id"], "flags": x["flags"]} for x in out if x["flags"]],
         "input_problems": problems,
     }
+    # Check every figure is finite before writing anything, so a bad run never leaves partial outputs.
+    try:
+        text = json.dumps(summary, indent=2, allow_nan=False)
+        json.dumps(public, allow_nan=False)
+    except ValueError:
+        sys.exit("A figure came out too large to report (infinite). Check the weights, counts and costs for "
+                 "extreme values; no output files were written.")
+    os.makedirs(a.out_dir, exist_ok=True)
+    with open(os.path.join(a.out_dir, "yield_by_batch.csv"), "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=BATCH_FIELDS)
+        w.writeheader()
+        w.writerows([{k: csv_safe(v) for k, v in x.items()} for x in public])
     with open(os.path.join(a.out_dir, "summary.json"), "w") as f:
-        json.dump(summary, f, indent=2, allow_nan=False)
-    print(json.dumps(summary, indent=2, allow_nan=False))
+        f.write(text)
+    print(text)
 
 
 if __name__ == "__main__":

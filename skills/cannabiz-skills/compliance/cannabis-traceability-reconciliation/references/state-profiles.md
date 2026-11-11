@@ -12,7 +12,7 @@ How to read this file:
 
 A rule listed here is a **pointer, not legal advice**. Always give the citation and tell the operator to confirm the current text, especially before submitting anything.
 
-**Never carry a threshold or deadline across states.** Where a state section says it defines no numeric significant-discrepancy threshold, say so, and don't apply another state's 2% or 5%.
+**Never carry a threshold or deadline across states.** Where a state section says no numeric significant-discrepancy threshold was found, say none was found in the sections and version listed, not that none exists, and don't apply another state's 2% or 5%.
 
 Each pilot state's rules are grouped under the same headings: **Track and trace**, **Reconciliation and discrepancies**, **Notifications**, **Adjustments and corrections**, **Transfers, manifests and testing**, **Records retention**, **Waste and destruction**, **Worker credentials**.
 
@@ -53,7 +53,7 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
 
 #### Transfers, manifests and testing
 - **§15049.2(a), shipping manifest (in T&T, before transfer):** must include the origin, distributor and receiver (name, license number, premises address), "The UID numbers for all items", item name, category and weight or count per tag, estimated departure and arrival, driver's license number, and vehicle make, model and plate. §15049.2(d): "If there are any discrepancies … the licensee shall reject the shipment." §15314(b): the manifest goes to DCC and the receiver before transport. (V (LII))
-- **Testing:** in CA, regulatory testing happens at the distributor (§15304), so **cultivator→distributor transfers of untested product are normal and shouldn't be held.** Before transporting to a retailer, the distributor must confirm (§15307) that the COA matches the batch and is "less than 12 months old", that labels match the COA, and that the T&T weight or count matches. (V (LII))
+- **Testing:** in CA, regulatory testing happens at the distributor (§15304), so **cultivator→distributor transfers of untested product are permitted.** A pre-check tool may still hold them for compliance review; the compliance lead confirms the exception applies. Before transporting to a retailer, the distributor must confirm (§15307) that the COA matches the batch and is "less than 12 months old", that labels match the COA, and that the T&T weight or count matches. (V (LII))
 
 #### Records retention
 - **§15037(a):** "Records must be kept for at least seven years from the date of creation, unless a shorter time is specified." (V (LII))
@@ -80,7 +80,7 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
 
 #### Reconciliation and discrepancies
 - **Rule 3-805(E)(1):** "A Licensee must reconcile all on-premises and in-transit Regulated Marijuana inventories each day in the Inventory Tracking System at the close of business." (The same wording appeared in the Secretary of State's 1 CCR 212-3 text retrieved 2026-11-10, but which version that was wasn't confirmed.) **NEEDS VERIFICATION.**
-- **No significant-discrepancy threshold.** CO rules define no numeric significant-discrepancy threshold (none found in 3-805, 3-905 or 3-920). Don't apply CA's 5% or any other state's threshold.
+- **No significant-discrepancy threshold found.** CO rules define no numeric significant-discrepancy threshold (none found in 3-805, 3-905 or 3-920) (LII copy through 2024-12-04; NEEDS VERIFICATION). Don't apply CA's 5% or any other state's threshold.
 
 #### Notifications
 - **Rule 3-920(B), crime, diversion or ITS compromise: the Division within 14 days:** report to the Division any discovered plan or action to commit "theft, burglary, underage sales, diversion of marijuana or marijuana product, or other crime", or to "compromise the integrity of the Inventory Tracking System", "as soon as possible after the discovery of the action, but not later than 14 days". This "does not alter or eliminate" any duty to report to local law enforcement. **NEEDS VERIFICATION.**
@@ -113,7 +113,7 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
 
 #### Reconciliation and discrepancies
 - No reconciliation frequency was found in R 420 (the statute and bulletins were blocked).
-- **No significant-discrepancy threshold.** MI rules set no numeric significant-discrepancy threshold (none found in R 420). Don't apply CA's 5% or any other state's threshold. Treat an unexplained shortage as possible "loss" and escalate to compliance the same day (R 420.804, below).
+- **No significant-discrepancy threshold found.** MI rules set no numeric significant-discrepancy threshold (none found in R 420). Don't apply CA's 5% or any other state's threshold. Treat an unexplained shortage as possible "loss" and escalate to compliance the same day (R 420.804, below).
 
 #### Notifications
 - **R 420.804(1), theft or loss: the agency and local law enforcement within 24 hours:** "Licensees shall notify the agency and local law enforcement authorities within 24 hours of becoming aware of, or within 24 hours of when the licensee should have been aware of, the theft or loss of any marihuana product or criminal activity at the marihuana business."
@@ -140,7 +140,7 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
 
 ### Massachusetts (MA)
 - **Regulator:** Cannabis Control Commission (CCC). https://masscannabiscontrol.com/ (V)
-- **Rules:** 935 CMR 500 (adult use) and 501 (medical), effective 2026-09-11. https://masscannabiscontrol.com/regulations/ The 935 CMR 500 quotes below are from the CCC's own PDF "935 CMR 500.000 … Effective 09-11-2026" (self-described as an unofficial compilation), https://masscannabiscontrol.com/document/935-cmr-500-000-adult-use-of-marijuana-effective-09-11-26-pdf/, checked 2026-11-11 (V). 935 CMR 501 (medical) was checked on the Cornell LII copy, history to 2024-11-22 (V (LII)).
+- **Rules:** 935 CMR 500 (adult use) and 501 (medical), effective 2026-09-11. https://masscannabiscontrol.com/regulations/ The 935 CMR 500 quotes below are from the CCC's own PDF "935 CMR 500.000 … Effective 09-11-2026" (self-described as an unofficial compilation), https://masscannabiscontrol.com/document/935-cmr-500-000-adult-use-of-marijuana-effective-09-11-26-pdf/, checked 2026-11-11 (V). 935 CMR 501 (medical) has its own CCC PDF, "935 CMR 501.000: Medical Use of Marijuana … Effective 09-11-2026" (also self-described as unofficial), https://masscannabiscontrol.com/document/935-cmr-501-000-medical-use-of-marijuana-effective-09-11-26-pdf/. It now calls medical licensees "Medical Marijuana Establishments" (formerly MTCs). **An item cited only to 935 CMR 500 hasn't been checked against 501; for a medical licensee it's NEEDS VERIFICATION.** The Cornell LII copy of 501 (history to 2024-11-22) is out of date: don't use it.
 - **Traceability:** Metrc (V). https://masscannabiscontrol.com/metrc/
 - **Licensee lookup:** https://masscannabiscontrol.com/licensing-tracker/
 - **Guidance:** CCC "Massachusetts Seed-to-Sale Guidance", May 2021, https://masscannabiscontrol.com/wp-content/uploads/2021/05/20210517_Guidance_Seed-to-Sale.pdf. It's guidance, not regulation, and dated 2021, so check it's still current. Items from it are labelled "Guidance V, 2021".
@@ -154,7 +154,7 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
 - **Any discrepancy is reportable.** There is no % threshold: 500.110(9) lists "Discovery of inventory discrepancies" as a reportable incident, so every discrepancy triggers the 24-hour notice below. Don't apply CA's 5% or any other state's threshold.
 
 #### Notifications
-- **935 CMR 500.110(9), incident reporting: law enforcement and the CCC within 24 hours, then a report within 10 days:** notify "appropriate Law Enforcement Authorities and the Commission … immediately and, in no instance, more than 24 hours following discovery". Triggers include "Discovery of inventory discrepancies", diversion, theft or loss, unauthorized destruction, and loss or alteration of records. **There is no % threshold: any discrepancy counts.** Then, "within ten calendar days", submit an incident report to the Commission. Keep the documentation for at least 1 year. Medical MTCs: 501.110(9) has the same deadlines (V (LII)). (V, CCC PDF effective 09-11-2026.) **Always state both deadlines.**
+- **935 CMR 500.110(9), incident reporting: law enforcement and the CCC within 24 hours, then a report within 10 days:** notify "appropriate Law Enforcement Authorities and the Commission … immediately and, in no instance, more than 24 hours following discovery". Triggers include "Discovery of inventory discrepancies", diversion, theft or loss, unauthorized destruction, and loss or alteration of records. **There is no % threshold: any discrepancy counts.** Then, "within ten calendar days", submit an incident report to the Commission. Keep the documentation for at least 1 year. Medical (Medical Marijuana Establishments): 935 CMR 501.110(9)(a)-(b) has the same 24-hour and "within ten calendar days" deadlines and also lists "Discovery of inventory discrepancies" (V, CCC 501 PDF effective 09-11-2026, checked 2026-11-11). (V, CCC PDF effective 09-11-2026.) **Always state both deadlines.**
 - **935 CMR 500.105(13), transport:** report "any unusual discrepancy in weight, count, or inventory" within 24 hours. (V)
 - **935 CMR 500.160, failed testing:** notify the CCC within 72 h of a non-remediable failed result. (V)
 - Agent registration card changes: see Worker credentials.
@@ -170,7 +170,7 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
 - Waste records 3 years (500.105(12)(d)); manifests at least 1 year (500.105(13)(f)); incident documents at least 1 year or the length of an investigation (500.110(9)); all records 2 years after closure (500.105(9)(g)). (V)
 
 #### Waste and destruction
-- **935 CMR 500.105(12)(c)-(d):** grind and mix until unusable. "A Marijuana Establishment Agent shall witness and document" rendering. Keep an electronic record of date, type, quantity, manner, location, and the agent's name and signature, for at least 3 years. **The 2026-09-11 text requires one agent. Earlier versions required "No fewer than two".** Don't use old SOPs. (V)
+- **Adult use, 935 CMR 500.105(12)(c)-(d):** grind and mix until unusable. "A Marijuana Establishment Agent shall witness and document" rendering. Keep an electronic record of date, type, quantity, manner, location, and the agent's name and signature, for at least 3 years. (V) **Medical, 935 CMR 501.105(12)(d):** "A Medical Marijuana Establishment Agent shall witness and document how the solid waste or organic material containing Marijuana is rendered unusable on-site", with the same electronic record kept "for at least three years". (V, CCC 501 PDF effective 09-11-2026, checked 2026-11-11.) **Both 2026-09-11 texts require one agent. Earlier versions required "No fewer than two"; the Cornell LII copy of 501.105(12)(d), history to 2024-11-22, still says two.** Don't use old SOPs.
 
 #### Worker credentials
 - **935 CMR 500.030(7):** "A Marijuana Establishment Agent shall always carry a Registration Card" while handling or transporting product. Report changes or a lost or stolen card within 5 business days (500.030(6)). (V)
@@ -227,7 +227,7 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
 #### Reconciliation and discrepancies
 - **Dispensaries, 1291.310(e):** "An AIC shall conduct a daily physical count of all inventory". Bulk "must be counted monthly". (V (LII)) 410 ILCS 705/15-75(d): "The agent-in-charge shall conduct daily inventory reconciliation." (UNVERIFIED, FindLaw.)
 - **Cultivation centers, 8 IAC 1300.180(b):** "a physical weekly inventory of cannabis stock" (V (LII), pre-2026-05-01 text; NEEDS VERIFICATION).
-- **No significant-discrepancy threshold.** IL rules define no percentage "significant discrepancy" threshold; they use "imbalance". Don't import another state's 2% or 5%.
+- **No significant-discrepancy threshold found.** IL rules define no percentage "significant discrepancy" threshold; they use "imbalance". Don't import another state's 2% or 5%.
 
 #### Notifications
 - **Dispensaries (IDFPR), 68 Ill. Adm. Code 1291.310** (V (LII), eff. 2024-08-20; checked 2026-11-11):
@@ -268,7 +268,7 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
 
 #### Reconciliation and discrepancies
 - **OAC 442:10-5-6(f)(2), daily reconciliation:** "All commercial licensees must ensure all on-premises and in-transit medical marijuana and medical marijuana product inventories are reconciled each day in the State inventory tracking system at the close of business, if not already done."
-- **No significant-discrepancy threshold.** OK rules define no percentage "significant discrepancy" threshold. Don't import another state's 2% or 5%.
+- **No significant-discrepancy threshold found.** OK rules define no percentage "significant discrepancy" threshold. Don't import another state's 2% or 5%.
 
 #### Notifications
 - **OAC 442:10-5-13, loss and theft: OMMA and law enforcement immediately, no later than 24 hours, by signed statement:** "the commercial licensee shall notify immediately the Authority and law enforcement", by an electronically submitted signed statement. "The notice shall be provided no later than twenty-four hours after discovery of the event."
@@ -300,7 +300,7 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
 | State | Regulator | Traceability system | Status |
 |---|---|---|---|
 | OR | OLCC | Metrc ("CTS") | V |
-| WA | LCB | **CCRS**, a state-built system (not Metrc or BioTrack) | V. Replacement not funded as of 2026-05-06. |
+| WA | LCB | **CCRS**, a state-built system (not Metrc or BioTrack) | V (https://lcb.wa.gov/ccrs, checked 2026-11-11: the LCB says it "transitioned off the former Leaf Data Systems platform" to CCRS, "developed and maintained in-house"). The claim that replacement wasn't funded as of 2026-05-06 has no recorded source: UNVERIFIED. |
 | NV | Cannabis Compliance Board | Metrc | V |
 | AZ | ADHS | No state vendor system. By statute (A.R.S. 36-2854(A)(4)) licensees must maintain their own tracking system. | Partial |
 | AK | AMCO | Metrc | Vendor-only |
@@ -311,7 +311,7 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
 | MN | Office of Cannabis Management | Metrc | V |
 | FL (medical) | DOH OMMU | State STS system; vendor BioTrack | Partial (vendor-only) |
 | VA | Cannabis Control Authority | Metrc (medical program) | V (go-live date UNVERIFIED) |
-| NJ | CRC | Metrc | V (2022 source) |
+| NJ | CRC | Metrc | NEEDS VERIFICATION (system confirmed on a 2022 source) |
 | PA (medical) | DOH Office of Medical Marijuana | Vendor not named; procurement in progress | UNVERIFIED |
 | MD | Maryland Cannabis Administration | Metrc | V |
 | CT | DCP | BioTrack (2021 selection) | Current use UNVERIFIED |

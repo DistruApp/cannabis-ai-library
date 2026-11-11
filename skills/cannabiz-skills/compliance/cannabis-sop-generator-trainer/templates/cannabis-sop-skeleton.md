@@ -9,7 +9,7 @@ A blank, reusable structure. Copy this into your document system and populate on
 **License Type and Number:**
 **Effective Date:**
 **Last Reviewed:**
-**Next Review Date:** (12 months out by default; confirm against your state's actual requirement)
+**Next Review Date:** (12 months out by default, 6 months for a high-risk area such as cash, inventory and transfers, waste, pesticides, extraction or 280E cost classification; confirm against your state's actual requirement)
 **Document Owner (role, not a person):**
 **Version:**
 **Revision History:** (one line per revision: date, reason)

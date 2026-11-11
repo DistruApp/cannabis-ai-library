@@ -485,6 +485,158 @@ class Structure(ReplenishCase):
             self.assertTrue(any("dated after the on-hand count date (2026-09-29)" in w for w in out["warnings"]))
 
 
+SALES_HDR = ["Date", "SKU", "Product Name", "Brand", "Category", "Units Sold", "Net Sales"]
+ONHAND_HDR = ["SKU", "Product Name", "Brand", "Vendor", "Available", "Unit Cost", "Case Pack", "Lead Time Days",
+              "On Order"]
+
+
+def daily_sales(sku, first, last, units=1, month="2026-09"):
+    return [[f"{month}-{d:02d}", sku, sku, "Example Brand", "Retail", str(units), "10.00"]
+            for d in range(first, last + 1)]
+
+
+def stock(sku, available="0", cost="10", pack="1", lead="7", open_po="0", vendor="Example Distro"):
+    return [sku, sku, "Example Brand", vendor, available, cost, pack, lead, open_po]
+
+
+class Gate5Regressions(ReplenishCase):
+    """Findings from the gate 5 review (release/reports/2026-11-11-gate5/)."""
+
+    def plan(self, d, sales_rows, onhand_rows, *params, sales_hdr=SALES_HDR, onhand_hdr=ONHAND_HDR):
+        h.write_csv(d / "sales.csv", sales_hdr, sales_rows)
+        h.write_csv(d / "onhand.csv", onhand_hdr, onhand_rows)
+        return self.run_ok(d / "sales.csv", d / "onhand.csv", d / "out", "--as-of", "2026-09-30", *params)
+
+    def test_r10_lead_time_out_of_range_is_not_ordered(self):
+        for raw in ("9999999999999", "400", "60 weeks"):
+            with self.subTest(raw=raw), h.TempDir() as d:
+                out, skus, po, _ = self.plan(d, daily_sales("EX-A", 3, 30, 2), [stock("EX-A", lead=raw)],
+                                             "--default-lead-time", "7")
+                self.assertIn("BAD_LEAD_TIME", skus["EX-A"]["flags"])
+                self.assertEqual((po, skus["EX-A"]["suggested_order_qty"]), ({}, "0"))
+                self.assertNotIn("EX-A", out["skus_using_default_lead_time"])
+                self.assert_problem(out, "onhand row 2 (EX-A)", f"column 'Lead Time Days' value '{raw}'")
+
+    def test_r10_default_lead_time_over_365_days_is_rejected(self):
+        with h.TempDir() as d:
+            res = self.run_repl(["--sales", POS, "--onhand", ONHAND, "--as-of", "2026-09-30",
+                                 "--default-lead-time", "366", "--out-dir", d / "out"])
+            self.assertEqual(res.returncode, 2)
+            self.assertIn("at most 365 days", res.stderr)
+
+    def test_r2_export_starting_in_window_slow_sku_is_not_new(self):
+        # Export starts 9/3 (= window start). EX-SLOW is established but slow: one unit on 9/28.
+        # Old behaviour: NEW_SKU(3d), 1/3 per day, order 7. Now: 1/28 per day over the window, order 1.
+        with h.TempDir() as d:
+            out, skus, po, _ = self.plan(d, daily_sales("EX-A", 3, 30, 2) + daily_sales("EX-SLOW", 28, 28),
+                                         [stock("EX-A", "100"), stock("EX-SLOW")])
+            slow = skus["EX-SLOW"]
+            self.assertEqual((slow["days_measured"], slow["units_per_day"]), ("28", "0.0357"))
+            self.assertIn("NEW_OR_SLOW(first sale 2026-09-28)", slow["flags"])
+            self.assertNotIn("NEW_SKU", slow["flags"])
+            self.assertEqual(po["EX-SLOW"]["qty"], "1")
+
+    def test_r2_export_starting_after_window_start_measures_covered_days(self):
+        with h.TempDir() as d:
+            out, skus, po, _ = self.plan(d, daily_sales("EX-A", 10, 30, 2) + daily_sales("EX-SLOW", 28, 28),
+                                         [stock("EX-A", "100"), stock("EX-SLOW")])
+            self.assertEqual((skus["EX-A"]["days_measured"], skus["EX-A"]["units_per_day"]), ("21", "2.0"))
+            self.assertEqual(skus["EX-SLOW"]["days_measured"], "21")
+            self.assertTrue(any("export starts 2026-09-10" in w for w in out["warnings"]), out["warnings"])
+
+    def test_r2_new_sku_still_shortened_when_export_has_earlier_history(self):
+        with h.TempDir() as d:
+            sales = daily_sales("EX-A", 1, 31, 2, month="2026-08") + daily_sales("EX-A", 1, 30, 2) \
+                + daily_sales("EX-NEW", 21, 30, 2)
+            out, skus, po, _ = self.plan(d, sales, [stock("EX-A", "100"), stock("EX-NEW")])
+            self.assertIn("NEW_SKU(10d of history)", skus["EX-NEW"]["flags"])
+            self.assertEqual(skus["EX-NEW"]["units_per_day"], "2.0")
+
+    def test_r1_more_than_one_account_stops(self):
+        with h.TempDir() as d:
+            hdr = ["Account"] + SALES_HDR
+            rows = [["Example Cedar"] + r for r in daily_sales("EX-A", 3, 30)] + \
+                   [["Example Harbor"] + r for r in daily_sales("EX-A", 3, 30)]
+            h.write_csv(d / "sales.csv", hdr, rows)
+            h.write_csv(d / "onhand.csv", ONHAND_HDR, [stock("EX-A", "100")])
+            base = ["--sales", d / "sales.csv", "--onhand", d / "onhand.csv", "--as-of", "2026-09-30"]
+            res = self.run_repl(base + ["--out-dir", d / "out"])
+            self.assertEqual(res.returncode, 1)
+            self.assertIn("more than one account or store", res.stderr)
+            self.assertFalse((d / "out").exists())
+            res = self.run_repl(base + ["--detect-only"])
+            self.assertEqual(res.returncode, 0)
+            out = h.strict_json_load(res.stdout, is_text=True)
+            self.assertEqual(out["accounts"]["sales"], ["Example Cedar", "Example Harbor"])
+            self.assertTrue(any("more than one account" in w for w in out["warnings"]))
+
+    def test_r1_single_account_runs(self):
+        with h.TempDir() as d:
+            rows = [["Example Cedar"] + r for r in daily_sales("EX-A", 3, 30)]
+            out, skus, po, _ = self.plan(d, rows, [stock("EX-A")], sales_hdr=["Account"] + SALES_HDR)
+            self.assertEqual(po["EX-A"]["qty"], "21")
+
+    def test_r3_moq_is_not_a_case_pack(self):
+        # 1/day x (7 + 14) - 0 = 21 needed; MOQ 25 must not round it up to a multiple of 25.
+        with h.TempDir() as d:
+            hdr = ONHAND_HDR[:6] + ["MOQ"] + ONHAND_HDR[7:]
+            out, skus, po, _ = self.plan(d, daily_sales("EX-A", 3, 30), [stock("EX-A", pack="25")], onhand_hdr=hdr)
+            self.assertEqual(po["EX-A"]["qty"], "21")
+            self.assertEqual(po["EX-A"]["case_pack"], "")
+            self.assertIn("BELOW_MOQ(25)", skus["EX-A"]["flags"])
+
+    def test_r4_fractional_case_pack_is_not_used(self):
+        with h.TempDir() as d:
+            out, skus, po, _ = self.plan(d, daily_sales("EX-A", 3, 30), [stock("EX-A", pack="2.5")])
+            self.assertIn("BAD_CASE_PACK", skus["EX-A"]["flags"])
+            self.assertEqual((po["EX-A"]["qty"], po["EX-A"]["case_pack"]), ("21", ""))
+
+    def test_r5_unreadable_duplicate_cell_is_not_outvoted(self):
+        with h.TempDir() as d:
+            out, skus, po, _ = self.plan(d, daily_sales("EX-A", 3, 30),
+                                         [stock("EX-A", cost="4,25", pack="NaN"), stock("EX-A", cost="6", pack="24")])
+            self.assertIn("BAD_UNIT_COST", skus["EX-A"]["flags"])
+            self.assertIn("BAD_CASE_PACK", skus["EX-A"]["flags"])
+            self.assertEqual((po["EX-A"]["qty"], po["EX-A"]["unit_cost"], po["EX-A"]["line_cost"]), ("21", "", ""))
+
+    def test_r6_inventory_only_sku_with_unreadable_on_hand_is_listed(self):
+        with h.TempDir() as d:
+            out, skus, po, _ = self.plan(d, daily_sales("EX-A", 3, 30), [stock("EX-A", "100"), stock("EX-X", "inf")])
+            self.assertIn("EX-X", skus)
+            self.assertEqual(skus["EX-X"]["flags"], "NO_ONHAND_RECORD")
+
+    def test_r7_short_export_is_not_dead_stock(self):
+        with h.TempDir() as d:
+            out, skus, po, _ = self.plan(d, daily_sales("EX-A", 24, 30), [stock("EX-A", "100"), stock("EX-Z", "10")])
+            self.assertEqual(skus["EX-Z"]["flags"], "NO_SALES_SEEN(export covers 7d)")
+            self.assertEqual((out["flag_counts"]["DEAD"], out["dead_stock_cost_value"]), (0, 0))
+
+    def test_r8_dead_stock_with_unknown_cost_is_listed_not_zero(self):
+        with h.TempDir() as d:
+            sales = daily_sales("EX-A", 1, 31, month="2026-08") + daily_sales("EX-A", 1, 30)
+            out, skus, po, _ = self.plan(d, sales, [stock("EX-A", "100"), stock("EX-Z", "10", cost=""),
+                                                    stock("EX-Y", "5", cost="4")])
+            self.assertIn("DEAD", skus["EX-Z"]["flags"])
+            self.assertEqual(out["dead_stock_cost_value"], 20.0)
+            self.assertEqual(out["dead_stock_missing_cost"], [{"sku": "EX-Z", "on_hand": 10.0}])
+
+    def test_r11_blank_open_po_is_an_assumption(self):
+        with h.TempDir() as d:
+            out, skus, po, _ = self.plan(d, daily_sales("EX-A", 3, 30), [stock("EX-A", open_po="")])
+            self.assertTrue(any(x.startswith("open PO = 0 where the open PO cell is blank (1 SKU(s): EX-A)")
+                                for x in out["assumptions"]), out["assumptions"])
+        with h.TempDir() as d:
+            out, skus, po, _ = self.plan(d, daily_sales("EX-A", 3, 30), [stock("EX-A")[:-1]],
+                                         onhand_hdr=ONHAND_HDR[:-1])
+            self.assertTrue(any("no open PO column" in x for x in out["assumptions"]), out["assumptions"])
+
+    def test_r13_day_month_ambiguous_dates_are_warned(self):
+        with h.TempDir() as d:
+            rows = [[f"09/{n:02d}/2026"] + r[1:] for n, r in zip(range(3, 31), daily_sales("EX-A", 3, 30))]
+            out, skus, po, _ = self.plan(d, rows, [stock("EX-A")])
+            self.assertTrue(any("read as month/day (US)" in w for w in out["warnings"]), out["warnings"])
+
+
 class FormulaInjection(ReplenishCase):
     def assert_neutralised(self, out_dir, cell):
         h.assert_no_live_formulas(self, out_dir)

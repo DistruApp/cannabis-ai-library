@@ -10,7 +10,7 @@ What belongs in each bucket, and the questions to ask when a value is missing. N
 | Packaging & labeling | Retail box, jar, child-resistant packaging, labels, inserts, shrink | Were extra labels printed and scrapped? |
 | Processing consumables | Solvents, ethanol, filtration media, CO2, nitrogen | Charged per batch or allocated? |
 | Direct labor | Extraction, post-processing, filling, packaging, QC hours | Loaded rate (wages + payroll taxes + benefits)? Hours from timesheets or estimate? |
-| Overhead | Facility rent, utilities, equipment depreciation, indirect staff, insurance | Allocation method used in the books: per batch, per labor hour, per machine hour, or % of materials |
+| Overhead | Facility rent, utilities, equipment depreciation, indirect staff, insurance | Allocation method used in the books: per batch, per labor hour, or % of materials. If the books use another base (e.g. machine hours), ask for the overhead $ charged to this batch and use it as per batch |
 | Testing | Required compliance testing, R&D/potency checks, retests after failures | Lab invoice for this batch? Any retest? |
 
 ## Questions that usually explain a cost jump

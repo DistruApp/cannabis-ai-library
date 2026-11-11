@@ -1,6 +1,6 @@
 # Release report: v<version> (<date>)
 
-Commit: `<sha>`. Prepared by: <name>. Process: [RELEASING.md](../RELEASING.md).
+Commit: `<sha>`. Prepared by: <name>. Process: `RELEASING.md` in the internal staging repo.
 
 ## Decision
 

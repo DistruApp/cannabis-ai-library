@@ -4,7 +4,7 @@ Skill: [`cannabis-replenishment-planner`](../../../skills/cannabiz-skills/operat
 
 ## What it does
 
-Answers "what do I order this week?" A bundled script calculates units sold per day, days of supply, sell-through, reorder points and order quantities rounded to case packs, then groups the suggested order into a draft PO by vendor with total cost. It flags SKUs that sold out (where demand is understated), dead stock tying up cash, new SKUs and missing lead times. It never guesses a vendor from the brand, and when the on-hand file has duplicate or unreadable rows it flags them and holds the order rather than picking a value. It never sends orders to vendors. Built for dispensary buyers and for brands or distributors planning their retail accounts.
+Answers "what do I order this week?" A bundled script calculates units sold per day, days of supply, sell-through, reorder points and order quantities rounded to case packs, then groups the suggested order into a draft PO by vendor with total cost. It flags SKUs with zero on hand (where demand may be understated), dead stock tying up cash, new SKUs and missing lead times. A minimum order quantity is checked separately from the case pack and never raises the order on its own. It never guesses a vendor from the brand, and when the on-hand file has duplicate or unreadable rows it flags them and holds the order rather than picking a value. It never sends orders to vendors. Built for dispensary buyers and for brands or distributors planning their retail accounts.
 
 ## When to use it
 
@@ -12,17 +12,17 @@ Answers "what do I order this week?" A bundled script calculates units sold per 
 - "Which SKUs are about to stock out?"
 - "What's sitting dead on the shelf?"
 - Building a PO draft from a POS export such as Dutchie, Flowhub or Treez
-- A brand or distributor planning replenishment from a retailer's sell-through data
+- A brand or distributor planning replenishment from a retailer's sell-through data, one account per run
 
 ## How to use it
 
 - **Inputs:** a sales export by SKU (date, product, units, revenue), current on-hand by SKU and the date it was counted, vendor lead times, and safety stock days. Optional: open POs, unit cost and case pack sizes.
 - **Tools / connectors:** none. Works from uploaded files and needs an assistant that can run Python for the bundled calculator.
 - **Works in:** Claude or any LLM with code execution.
-- **Safeguards:** every default the user did not set (sales window, days of cover, dead stock threshold) is listed as an assumption to confirm. It doesn't use invented industry targets.
+- **Safeguards:** every default the user did not set (sales window, days of cover, dead stock threshold, a blank open PO read as zero) is listed as an assumption to confirm. It doesn't use invented industry targets. Files that mix several accounts or stores are stopped, not added together.
 
 ## Example
 
 **Input:** two months of POS sales, today's on-hand and lead times, with 3 days of safety stock.
 
-**Output:** 3 SKUs to reorder for 4,620 dollars across 3 vendors. A sold-out live resin cart is flagged because its order is probably low. 350 dollars at cost is tied up in pre-rolls that have not sold since 8/20, 41 days before the 9/30 on-hand date. One SKU has no lead time or vendor, so it is not ordered yet. The PO draft by vendor follows.
+**Output:** 3 SKUs to reorder for 4,620 dollars across 3 vendors. A live resin cart with zero on hand is flagged because its order is low if it was out of stock for part of the window. 350 dollars at cost is tied up in pre-rolls that have not sold since 8/20, 41 days before the 9/30 on-hand date. One SKU has no lead time or vendor, so it is not ordered yet. The PO draft by vendor follows.

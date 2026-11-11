@@ -7,7 +7,7 @@ Shared by every skill in the library. Outputs are written for people running a c
 | Label | Meaning | Example |
 |---|---|---|
 | **[DATA]** | Computed from or read in the operator's files | "Package 1A40…0042 is 3.5 g short in Metrc vs. the count sheet [DATA]" |
-| **[RULE]** | From a cited primary source (citation + verified date) | "[RULE: 4 CCR §15xxx, verified 2026-10-16]" |
+| **[RULE]** | From a cited primary source (citation + verified date) | "[RULE: 4 CCR §15036(a)(1), verified 2026-11-11]" |
 | **[ASSUMPTION]** | A value the skill had to assume. The operator must confirm it. | "Labor rate $22/hr [ASSUMPTION — confirm]" |
 | **NEEDS VERIFICATION** | Rule-dependent item with no verified source | "Waste hold period — NEEDS VERIFICATION with your state's rules" |
 

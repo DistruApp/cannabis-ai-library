@@ -18,7 +18,7 @@ Usage:
                        stopping the script, so both files' mappings can be confirmed in one step.
   --default-lead-time  used ONLY for SKUs whose lead time cell is truly blank; those SKUs are
                        flagged DEFAULT_LEAD_TIME(Nd). "7 days" / "2 weeks" are parsed; anything else
-                       unreadable is flagged BAD_LEAD_TIME and not ordered.
+                       unreadable, or over 365 days, is flagged BAD_LEAD_TIME and not ordered.
   --vendor-from-brand  the operator confirmed brand = vendor: a blank vendor is filled from brand and
                        flagged VENDOR_FROM_BRAND. Without it a blank vendor is flagged NO_VENDOR and the
                        line is kept off the vendor PO draft (listed under lines_needing_vendor).
@@ -33,8 +33,15 @@ Data rules (nothing is dropped, merged or invented silently):
   - Negative sales units are returns (RETURNS_IN_WINDOW). If a SKU's net units in the window are
     negative, velocity is set to 0 and the SKU is flagged NEGATIVE_NET_SALES.
   - Negative on-hand (NEGATIVE_ONHAND) or negative open PO (BAD_OPEN_PO) holds the SKU: no order.
-  - Non-numeric open PO (BAD_OPEN_PO) holds the SKU; non-numeric case pack (BAD_CASE_PACK) leaves the
-    quantity unrounded; non-numeric unit cost (BAD_UNIT_COST) leaves cost blank. All are reported.
+  - Non-numeric open PO (BAD_OPEN_PO) holds the SKU; a case pack that is not a whole number above 0
+    (BAD_CASE_PACK) leaves the quantity unrounded; non-numeric unit cost (BAD_UNIT_COST) leaves cost
+    blank. One unreadable cell among duplicate rows is never outvoted by a readable one. All are reported.
+  - A blank open PO cell, or no open PO column, counts as 0 and is listed in "assumptions".
+  - Minimum order qty (MOQ) is not a case pack: a quantity below it is flagged BELOW_MOQ, not raised.
+  - An account/store column with more than one value stops the run: plan one account per run.
+  - A first sale inside the window is NEW_SKU (velocity over days since that sale) only when the export
+    reaches back before the window; otherwise NEW_OR_SLOW, measured over the whole window. No sale in an
+    export shorter than --dead-days is NO_SALES_SEEN, not DEAD.
   - SKUs are matched ignoring case and repeated spaces ("e-case" in sales = "E-CASE " on hand). The
     outputs show the on-hand spelling; a SKU written more than one way is flagged SKU_VARIANTS and
     every spelling is listed in input_problems.
@@ -61,6 +68,13 @@ import sys
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 
+# A column naming the retail account or store. One run plans one account: summing two stores' sales and
+# stock under one SKU lets one store's surplus hide the other's stockout, so more than one value stops the run.
+ACCOUNT_ALIASES = ["account", "account name", "retail account", "retailer", "store", "store name", "dispensary",
+                   "dispensary name", "shop"]
+# Longest lead time accepted from a cell or --default-lead-time. Not a planning target: anything longer is far
+# more likely a typo or a pasted ID than a vendor lead time, so it is reported instead of ordered against.
+MAX_LEAD_DAYS = 365
 SALES_ALIASES = {
     "date": ["date", "sale date", "order date", "transaction date", "sold date", "invoice date", "completed date"],
     "sku": ["sku", "product code", "item code", "product id", "sku id"],
@@ -69,6 +83,7 @@ SALES_ALIASES = {
     "category": ["category", "product category", "item category", "type"],
     "units": ["units", "qty", "quantity", "units sold", "qty sold", "quantity sold"],
     "revenue": ["revenue", "net sales", "sales", "total", "net revenue", "gross sales", "line total", "amount"],
+    "account": ACCOUNT_ALIASES,
 }
 ONHAND_ALIASES = {
     "sku": ["sku", "product code", "item code", "product id", "sku id"],
@@ -78,9 +93,11 @@ ONHAND_ALIASES = {
     "on_hand": ["on hand", "on_hand", "onhand", "qty on hand", "quantity on hand", "available", "current quantity",
                 "inventory", "available qty"],
     "unit_cost": ["unit cost", "cost", "cost per unit", "wholesale cost", "cogs/unit"],
-    "case_pack": ["case pack", "case size", "pack size", "moq", "min order qty", "order multiple"],
+    "case_pack": ["case pack", "case size", "pack size", "order multiple"],
+    "min_order_qty": ["moq", "min order qty", "minimum order qty", "minimum order quantity", "min order"],
     "lead_time_days": ["lead time", "lead time days", "lead_time_days", "lead days"],
     "open_po_qty": ["open po", "open po qty", "on order", "incoming", "qty on order"],
+    "account": ACCOUNT_ALIASES,
 }
 REPL_FIELDS = ["sku", "product", "brand", "category", "vendor", "units_sold_window", "days_measured", "units_per_day",
                "revenue_window", "on_hand", "open_po_qty", "sell_through_pct", "days_of_supply", "lead_time_days",
@@ -156,7 +173,9 @@ def sku_key(s):
     return " ".join(s.split()).casefold()
 
 
-_THOUSANDS_RE = re.compile(r"^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$")
+_THOUSANDS_RE = re.compile(r"^[+-]?[1-9]\d{0,2}(,\d{3})+(\.\d+)?$")
+# No real quantity, weight or cost is this large; bigger values overflow later sums.
+_MAX_ABS = 1e12
 
 
 def to_number(s):
@@ -184,6 +203,8 @@ def to_number(s):
         return None, f"not a number: '{s}'"
     if not math.isfinite(v):
         return None, f"not a finite number: '{s}'"
+    if abs(v) > _MAX_ABS:
+        return None, f"out of range: '{s}'"
     return v, None
 
 
@@ -219,6 +240,14 @@ def cli_number(minimum, whole=False):
     return parse
 
 
+def lead_flag(s):
+    """argparse type for --default-lead-time: days greater than 0 and at most MAX_LEAD_DAYS."""
+    v = cli_number("pos")(s)
+    if v > MAX_LEAD_DAYS:
+        raise argparse.ArgumentTypeError(f"must be at most {MAX_LEAD_DAYS} days (got '{s}')")
+    return v
+
+
 AS_OF_HELP = "The date of the on-hand count (YYYY-MM-DD). The sales window ends on this date."
 
 
@@ -230,15 +259,24 @@ class Parser(argparse.ArgumentParser):
 
 
 def parse_lead(s):
-    """Lead time in days. Accepts 7, 7d, 7 days, 2 wk, 2 weeks. None if blank, "BAD" if unreadable."""
+    """Lead time in days. Accepts 7, 7d, 7 days, 2 wk, 2 weeks.
+
+    Returns (days, problem): (None, None) if blank; (None, reason) if unreadable or outside
+    0..MAX_LEAD_DAYS. The number goes through to_number, so its limits apply here too.
+    """
     s = (s or "").strip().lower()
     if s == "":
-        return None
+        return None, None
     mt = re.fullmatch(r"(\d+(?:\.\d+)?)\s*(d|day|days|w|wk|wks|week|weeks)?\.?", s)
     if not mt:
-        return "BAD"
-    n = float(mt.group(1))
-    return n * 7 if (mt.group(2) or "").startswith("w") else n
+        return None, "not days or weeks"
+    n, prob = to_number(mt.group(1))
+    if prob:
+        return None, prob
+    days = n * 7 if (mt.group(2) or "").startswith("w") else n
+    if days > MAX_LEAD_DAYS:
+        return None, f"{days:g} days is over {MAX_LEAD_DAYS} days"
+    return days, None
 
 
 def parse_date(s):
@@ -255,6 +293,24 @@ def get(r, m, field):
     return (r.get(m[field], "") or "").strip() if field in m else ""
 
 
+def accounts(rows, m):
+    """Distinct non-blank values of the account/store column, if the file has one."""
+    return sorted({get(r, m, "account") for r in rows} - {""}) if "account" in m else []
+
+
+_SLASH_DATE = re.compile(r"^(\d{1,2})/(\d{1,2})/")
+
+
+def us_ambiguous_dates(values):
+    """Slash dates that would be a different date read as day/month (e.g. 03/09/2026)."""
+    out = []
+    for v in values:
+        mt = _SLASH_DATE.match(v)
+        if mt and mt.group(1) != mt.group(2) and int(mt.group(1)) <= 12 and int(mt.group(2)) <= 12:
+            out.append(v)
+    return out
+
+
 def main():
     ap = Parser()
     ap.add_argument("--sales", required=True)
@@ -264,7 +320,7 @@ def main():
     ap.add_argument("--map-onhand", nargs="*")
     ap.add_argument("--window-days", type=cli_number("pos", whole=True), default=None)
     ap.add_argument("--as-of", required=True, metavar="YYYY-MM-DD", help=AS_OF_HELP)
-    ap.add_argument("--default-lead-time", type=cli_number("pos"), default=None)
+    ap.add_argument("--default-lead-time", type=lead_flag, default=None)
     ap.add_argument("--safety-days", type=cli_number(0), default=None)
     ap.add_argument("--cover-days", type=cli_number(0), default=None,
                     help="Days of demand to cover after the order arrives (order-up-to horizon)")
@@ -291,13 +347,29 @@ def main():
         else:
             dates.append(d)
 
+    early_warnings = []
+    ambiguous = us_ambiguous_dates(get(r, sm, "date") for r in srows)
+    if ambiguous:
+        early_warnings.append(f"{len(ambiguous)} sales date(s) such as '{ambiguous[0]}' were read as month/day (US). "
+                              f"Confirm the export uses US dates; if it is day/month, the dates are wrong.")
+    s_acc, o_acc = accounts(srows, sm), accounts(orows, om)
+    account_problem = None
+    if len(s_acc) > 1 or len(o_acc) > 1 or (s_acc and o_acc and s_acc != o_acc):
+        account_problem = (f"The files cover more than one account or store (sales: {s_acc or 'no column'}; "
+                           f"on-hand: {o_acc or 'no column'}). Each account's sales and stock must be planned "
+                           f"separately: filter both exports to one account and run once per account.")
+
     if a.detect_only:
         print(json.dumps({"sales_mapping": sm_raw, "onhand_mapping": om_raw, "sales_rows": len(srows),
                           "onhand_rows": len(orows),
                           "sales_date_range": [str(min(dates)), str(max(dates))] if dates else None,
-                          "missing_required_columns": {"sales": s_missing, "onhand": o_missing}},
+                          "missing_required_columns": {"sales": s_missing, "onhand": o_missing},
+                          "accounts": {"sales": s_acc, "onhand": o_acc},
+                          "warnings": early_warnings + ([account_problem] if account_problem else [])},
                          indent=2, allow_nan=False))
         return
+    if account_problem:
+        sys.exit(account_problem)
     if not dates:
         sys.exit(f"[sales] No sales rows with a readable date in {a.sales} ({len(srows)} data row(s)). "
                  f"Check the export has sales rows and a date column (pass --map-sales date=<Column>).")
@@ -321,7 +393,17 @@ def main():
         sys.exit(f"Bad --as-of '{a.as_of}'. {AS_OF_HELP}")
     start = as_of - timedelta(days=window - 1)
     recent_start = as_of - timedelta(days=6)
-    warnings = []
+    warnings = early_warnings
+    # What the export can show. A first sale inside the window only means "new" if the export reaches back
+    # before the window and the SKU sold nothing there; otherwise it may be a slow seller (NEW_OR_SLOW).
+    export_start = min((d for d in dates if d <= as_of), default=None)
+    obs_start = max(start, export_start) if export_start else start
+    covered_days = (as_of - export_start).days + 1 if export_start else 0
+    has_history_before_window = export_start is not None and export_start < start
+    if export_start and export_start > start:
+        warnings.append(f"The sales export starts {export_start}, after the {window}-day window start ({start}). "
+                        f"Velocity is measured over the {(as_of - obs_start).days + 1} days the export covers. "
+                        f"Check the export covers the full window.")
     last_sale = max(dates)
     if (as_of - last_sale).days > 1:
         warnings.append(f"Last sale is {last_sale}, {(as_of - last_sale).days} days before the on-hand count date. "
@@ -407,6 +489,9 @@ def main():
                             + ". Matched as one SKU (case and spacing ignored), flagged SKU_VARIANTS. "
                               "Fix the exports so the SKU is written the same way everywhere.")
     onhand = {}
+    unreadable_onhand = set()
+    blank_open_po = []
+
     def nonneg_number(raw):
         v, prob = to_number(raw)
         if v is not None and v < 0:
@@ -414,11 +499,20 @@ def main():
         return v, prob
 
     def lead(raw):
-        v = parse_lead(raw)
-        return (None, "not days or weeks") if v == "BAD" else (v, None)
+        return parse_lead(raw)
 
-    ATTRS = (("unit_cost", "unit cost", nonneg_number), ("case_pack", "case pack", nonneg_number),
-             ("lead_time_days", "lead time", lead), ("vendor", "vendor", None))
+    def whole_pack(raw):
+        """Case pack / MOQ: a whole number of units, greater than 0."""
+        v, prob = nonneg_number(raw)
+        if prob or v is None:
+            return v, prob
+        if v <= 0 or not v.is_integer():
+            return None, "not a whole number of units greater than 0"
+        return v, None
+
+    ATTRS = (("unit_cost", "unit cost", nonneg_number), ("case_pack", "case pack", whole_pack),
+             ("min_order_qty", "minimum order qty", whole_pack), ("lead_time_days", "lead time", lead),
+             ("vendor", "vendor", None))
     for key, rws in by_sku.items():
         sku = display[key]
         rec = {"rows": [i for i, _ in rws], "on_hand": 0.0, "open_po": 0.0, "flags": [], "hold": False,
@@ -453,35 +547,35 @@ def main():
                 rec["hold"] = True
             elif po is not None:
                 rec["open_po"] += po
+            elif "open_po_qty" in om and sku not in blank_open_po:
+                blank_open_po.append(sku)
         if good_rows == 0:
-            continue  # single unreadable row: SKU shows as NO_ONHAND_RECORD, as reported above
+            unreadable_onhand.add(key)  # still listed, as NO_ONHAND_RECORD; the cells are in input_problems
+            continue
         if len(rws) > 1:
             problems.append(f"onhand: SKU {sku} is on rows {', '.join(map(str, rec['rows']))}; on-hand "
                             f"({rec['on_hand']:g}) and open PO ({rec['open_po']:g}) are the sums of those rows")
         for field, label, parse in ATTRS:
             vals = []  # (row, raw text, parsed)
+            bad = False  # an unreadable cell is never silently outvoted by a readable one on another row
             for i, r in rws:
                 raw = get(r, om, field)
                 if raw == "":
                     continue
                 v, prob = parse(raw) if parse else (raw, None)
                 if prob:
-                    tag = {"unit_cost": "BAD_UNIT_COST", "case_pack": "BAD_CASE_PACK",
+                    tag = {"unit_cost": "BAD_UNIT_COST", "case_pack": "BAD_CASE_PACK", "min_order_qty": "BAD_MOQ",
                            "lead_time_days": "BAD_LEAD_TIME"}[field]
-                    rec["flags"].append(tag)
+                    if tag not in rec["flags"]:
+                        rec["flags"].append(tag)
                     effect = {"unit_cost": "order cost left blank",
                               "case_pack": "suggested quantity is NOT rounded to a case pack",
+                              "min_order_qty": "the minimum order is not checked",
                               "lead_time_days": "no default used and no order suggested until a lead time in days "
                                                 "is given"}[field]
                     problems.append(f"onhand row {i} ({sku}): column '{om[field]}' value '{raw}' is not readable "
                                     f"({prob}); {effect}")
-                    if field == "lead_time_days":
-                        rec["lead_status"] = "bad"
-                    continue
-                if field == "case_pack" and v <= 0:
-                    rec["flags"].append("BAD_CASE_PACK")
-                    problems.append(f"onhand row {i} ({sku}): case pack '{raw}' is not a positive number; suggested "
-                                    f"quantity is NOT rounded to a case pack")
+                    bad = True
                     continue
                 if field == "lead_time_days" and not re.fullmatch(r"\d+(\.\d+)?", raw):
                     problems.append(f"onhand row {i} ({sku}): lead time '{raw}' read as {v:g} days")
@@ -496,12 +590,14 @@ def main():
                 rec[field] = None
                 if field == "lead_time_days":
                     rec["lead_status"] = "conflict"
+            elif bad:
+                rec[field] = None
+                if field == "lead_time_days":
+                    rec["lead_status"] = "bad"
             else:
                 rec[field] = vals[0][2] if vals else None
-                if field == "lead_time_days" and vals and rec["lead_status"] != "bad":
+                if field == "lead_time_days" and vals:
                     rec["lead_status"] = "ok"
-        if rec["lead_status"] == "bad":
-            rec["lead_time_days"] = None  # an unreadable cell is never silently outvoted by another row
         rec["vendor"] = rec["vendor"] or ""
         onhand[key] = rec
 
@@ -509,16 +605,26 @@ def main():
     out, po_lines, needs_vendor = [], [], []
     missing_lead, default_lead, held = [], [], []
     out_keys = []
-    for key in sorted(set(sales) | set(onhand), key=lambda k: (display[k], k)):
+    if "open_po_qty" not in om:
+        assumptions.append("open PO = 0 for every SKU: the on-hand file has no open PO column (not "
+                           "operator-provided; confirm nothing is already on order)")
+    elif blank_open_po:
+        assumptions.append(f"open PO = 0 where the open PO cell is blank ({len(blank_open_po)} SKU(s): "
+                           f"{', '.join(blank_open_po[:10])}{' and more' if len(blank_open_po) > 10 else ''}); "
+                           f"confirm a blank means nothing on order")
+    for key in sorted(set(sales) | set(onhand) | unreadable_onhand, key=lambda k: (display[k], k)):
         sku = display[key]
         s = sales.get(key)
         o = onhand.get(key)
         flags = ["SKU_VARIANTS"] if key in variants else []
         units = s["units"] if s else 0.0
-        days = window
-        if s and s["first"] is not None and s["first"] > start:
-            days = (as_of - s["first"]).days + 1
-            flags.append(f"NEW_SKU({days}d of history)")
+        days = (as_of - obs_start).days + 1
+        if s and s["first"] is not None and s["first"] > obs_start:
+            if has_history_before_window:
+                days = (as_of - s["first"]).days + 1
+                flags.append(f"NEW_SKU({days}d of history)")
+            else:  # the export starts inside the window: a late first sale may just be a slow seller
+                flags.append(f"NEW_OR_SLOW(first sale {s['first']})")
         rate = units / days if days > 0 else 0.0
         if units < 0:  # returns exceed sales in the window: never a negative velocity
             rate = 0.0
@@ -570,7 +676,10 @@ def main():
                 flags.append("STOCKOUT(demand understated)")
             elif oh <= 0 and rate > 0:
                 flags.append("STOCKOUT")
-            if oh > 0 and (not s or s["last"] is None or (as_of - s["last"]).days >= dead_days):
+            no_sale_seen = not s or s["last"] is None
+            if oh > 0 and no_sale_seen and covered_days < dead_days:
+                flags.append(f"NO_SALES_SEEN(export covers {covered_days}d)")  # too short to call it dead
+            elif oh > 0 and (no_sale_seen or (as_of - s["last"]).days >= dead_days):
                 flags.append(f"DEAD(no sales {dead_days}d+)")
             elif rate > 0 and oh / rate > slow_dos:
                 flags.append("SLOW")
@@ -590,9 +699,12 @@ def main():
                     need = max(0.0, target - oh - open_po)
                     qty = math.ceil(need - 1e-9)
                     cp = o["case_pack"]
-                    if cp and cp > 0:
-                        qty = int(math.ceil(qty / cp) * cp)
+                    if cp:  # whole number > 0 (whole_pack)
+                        qty = -(-qty // int(cp)) * int(cp)
                         row["case_pack"] = cp
+                    moq = o["min_order_qty"]
+                    if moq and 0 < qty < moq:  # not raised: buying up to the minimum is the buyer's call
+                        flags.append(f"BELOW_MOQ({moq:g})")
                     if qty > 0:
                         row["suggested_order_qty"] = qty
                         flags.append("REORDER")
@@ -653,8 +765,9 @@ def main():
     def count(flag):
         return sum(1 for r in out if any(f.split("(")[0] == flag for f in r["flags"].split(";")))
 
-    inv_value_dead = round(sum((r["on_hand"] or 0) * (onhand[k]["unit_cost"] or 0)
-                               for r, k in zip(out, out_keys) if "DEAD" in r["flags"] and k in onhand), 2)
+    dead = [(r, onhand[k]) for r, k in zip(out, out_keys) if "DEAD" in r["flags"] and k in onhand]
+    inv_value_dead = round(sum(r["on_hand"] * o["unit_cost"] for r, o in dead if o["unit_cost"] is not None), 2)
+    dead_missing_cost = [{"sku": r["sku"], "on_hand": r["on_hand"]} for r, o in dead if o["unit_cost"] is None]
     summary = {
         "warnings": warnings,
         "sales_file": a.sales, "onhand_file": a.onhand,
@@ -668,10 +781,12 @@ def main():
                                               "NO_ONHAND_RECORD", "RETURNS_IN_WINDOW", "DEFAULT_LEAD_TIME",
                                               "BAD_LEAD_TIME", "NO_VENDOR", "VENDOR_FROM_BRAND", "CONFLICTING_ROWS",
                                               "BAD_OPEN_PO", "BAD_CASE_PACK", "BAD_UNIT_COST", "BAD_ONHAND_ROW",
-                                              "NEGATIVE_ONHAND", "NEGATIVE_NET_SALES", "SKU_VARIANTS")},
+                                              "NEGATIVE_ONHAND", "NEGATIVE_NET_SALES", "SKU_VARIANTS",
+                                              "NEW_OR_SLOW", "NO_SALES_SEEN", "BAD_MOQ", "BELOW_MOQ")},
         "po_draft_by_vendor": dict(sorted(by_vendor.items())),
         "po_draft_total_cost": round(sum(v["cost"] for v in by_vendor.values()), 2),
         "dead_stock_cost_value": inv_value_dead,
+        "dead_stock_missing_cost": dead_missing_cost,
         "skus_missing_lead_time": missing_lead,
         "skus_using_default_lead_time": default_lead,
         "skus_held_for_review": held,

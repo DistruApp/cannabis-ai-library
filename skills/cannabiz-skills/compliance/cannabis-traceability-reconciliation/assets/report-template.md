@@ -1,7 +1,7 @@
 # Inventory Reconciliation — [Licensee / Location] — as of [date time]
 
 ## Bottom line
-[2–4 sentences: packages compared, how many need action, net and gross variance (g and units), top patterns, single most urgent item.]
+[2–4 sentences: packages listed and quantity-compared, how many need action, net variance and both gross figures with their labels (g and units), top patterns, single most urgent item.]
 
 ## Jurisdiction
 State: ___   License type(s): ___   Activity: inventory reconciliation

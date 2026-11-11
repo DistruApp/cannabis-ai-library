@@ -27,5 +27,3 @@ Before you open a pull request, run the free checks that CI runs on every change
 python3 scripts/check_repo.py
 scripts/test-scripts.sh
 ```
-
-Releases follow [RELEASING.md](./RELEASING.md).

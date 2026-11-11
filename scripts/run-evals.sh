@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Gate 4: run the behaviour and trigger evals with `claude plugin eval`. See RELEASING.md
-# and plugin-evals/README.md.
+# Gate 4: run the behaviour and trigger evals with `claude plugin eval`. See
+# plugin-evals/README.md.
 #
 #   scripts/run-evals.sh            full release run: 3 passes, 3 runs per behaviour case
 #   scripts/run-evals.sh smoke      one run per behaviour case (cheap check while editing)

@@ -25,7 +25,7 @@ Rules relied on: [citation + URL + verified date] | none — see NEEDS VERIFICAT
 
 ## Hard rules
 
-- Never state a deadline, threshold, reason code, hold period, or reporting obligation unless it's cited from a primary source or the operator's own documents.
+- Never state a deadline, threshold, reason code, hold period, or reporting obligation unless it's cited from a primary source read in this session, from `state-profiles.md` with its verification label (V (LII) is a secondary source and must be labelled so), or from the operator's own documents.
 - Never carry a rule from one state into another, even when both use Metrc.
 - A rule summarized from memory is an assumption and gets labeled that way.
 - Recommend compliance or legal review for anything that would be submitted to a regulator or the traceability system.

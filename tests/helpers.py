@@ -1,4 +1,4 @@
-"""Shared helpers for the script tests (Gate 2 in RELEASING.md).
+"""Shared helpers for the script tests (Gate 2).
 
 Standard library only. Run everything with:  scripts/test-scripts.sh
 """
@@ -37,6 +37,9 @@ BAD_NUMBERS = {
     "spaced": "1 5",
     "text": "ten",
     "underscore": "1_000",
+    "huge": "1e308",
+    "huge_plain": "9999999999999",
+    "leading_zero_group": "0,125",
 }
 
 FORMULA_CELLS = ['=HYPERLINK("http://example.com","x")', "+cmd|' /C calc'!A0", "@SUM(1+1)"]

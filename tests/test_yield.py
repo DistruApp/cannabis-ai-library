@@ -69,7 +69,7 @@ class YieldCase(unittest.TestCase):
 class KnownAnswers(YieldCase):
     def test_every_eval_with_files_is_covered(self):
         evals = json.loads((h.skill_dir(NAME) / "evals" / "evals.json").read_text())["evals"]
-        self.assertEqual({e["id"] for e in evals if e["files"]}, {1, 2, 4, 5})
+        self.assertEqual({e["id"] for e in evals if e["files"]}, {1, 2, 4, 5, 6})
 
     def test_eval1_q3_rooms_ranked_by_g_per_sqft(self):
         with h.TempDir() as d:
@@ -117,6 +117,22 @@ class KnownAnswers(YieldCase):
                 {"harvest_id": "BD-F1-1004", "flags": "UNACCOUNTED:200.0g;"}])
             self.assertEqual(out["anomaly_fences"]["dry_g_per_sqft"], [19.1262, 33.3363])
             self.assertIn("1.5*IQR", out["anomaly_rule"])
+
+    def test_eval6_calendar_q3_without_the_october_batch(self):
+        # Gate 5 F01: the fixture holds 12 Jul - 4 Oct. If the operator wants calendar Q3 only, the
+        # script run on the other 7 rows gives these figures (eval 6's alternative answer).
+        with h.TempDir() as d:
+            header, rows = self.q3_rows()
+            date = header.index("Harvest Date")
+            self.assertEqual([r[0] for r in rows if not "2026-07-01" <= r[date] <= "2026-09-30"], ["BD-F1-1004"])
+            h.write_csv(d / "h.csv", header, [r for r in rows if r[0] != "BD-F1-1004"])
+            out, batches = self.run_ok(d / "h.csv", d / "out")
+            self.assertEqual((out["batches"], out["total_dry_g"], out["total_dry_lb"], out["overall_dry_down_pct"]),
+                             (7, 76208.2, 168.01, 78.32))
+            self.assertEqual([(g["room"], g["dry_g_per_sqft"]) for g in out["by_room_ranked_by_g_per_sqft"]],
+                             [("Flower 1", 28.57), ("Flower 2", 25.48), ("Flower 3", 24.29), ("Flower 4", 15.25)])
+            self.assertEqual(sorted(k for k, b in batches.items() if b["sum_check"] != "OK"),
+                             ["GEL-F3-0920", "GMO-F2-0913", "PAP-F4-0927"])
 
     def test_eval2_no_unit_column_requires_weight_unit(self):
         with h.TempDir() as d:
@@ -255,10 +271,29 @@ class BadNumbers(YieldCase):
                           "left blank", out["input_problems"])
 
     def test_us_thousands_separator_is_read(self):
+        # Gate 5 F05: still read as 62,000, but listed once so the number format gets confirmed
+        # (in a decimal-comma file '62,000' would mean 62).
         with h.TempDir() as d:
             out, batches = self.run_ok(h.mutate_csv(Q3, d / "h.csv", 0, "Wet Weight", "62,000"), d / "out")
             self.assertEqual(batches["BD-F1-0712"]["wet_g"], "62000.0")
-            self.assertEqual(out["input_problems"], [])
+            self.assertEqual(out["input_problems"], [
+                "1 number(s) were read with the comma as a thousands separator (row 2 column 'Wet Weight' "
+                "'62,000' read as 62000). If this file uses a comma as the decimal point, these are 1,000 times "
+                "too large. Confirm the number format with the operator."])
+
+    def test_tiny_values_never_overflow_or_leave_partial_outputs(self):
+        # Gate 5 F03: 1e12 kg over a 1e-300 sq ft canopy, or a 1e12 cost over 1e-300 g, overflowed to
+        # infinity: a traceback with a half-written summary.json, or 'inf' in yield_by_batch.csv.
+        cases = {"Canopy Sq Ft": "Batch,Wet,Dry,Canopy Sq Ft,Unit\nH1,1e12,1e12,1e-300,kg\nH2,5000,1000,10,g\n",
+                 "Dry": "Batch,Wet,Dry,Cost,Unit\nH1,5000,1e-300,1e12,g\nH2,5000,1000,10,g\n",
+                 "A Flower": "Batch,Wet,Dry,A Flower,Smalls,Cost,Unit\nH1,1e12,1e12,1e-300,0,1e12,kg\n"}
+        for column, text in cases.items():
+            with self.subTest(column=column), h.TempDir() as d:
+                (d / "h.csv").write_text(text)
+                out, batches = self.run_ok(d / "h.csv", d / "out")
+                self.assertTrue(any(p.startswith(f"row 2 (H1): column '{column}' value '1e-300': too small")
+                                    for p in out["input_problems"]), out["input_problems"])
+                self.assertNotIn("inf", " ".join(h.csv_cells(d / "out" / "yield_by_batch.csv")).lower())
 
 
 class Structure(YieldCase):
@@ -343,6 +378,50 @@ class Structure(YieldCase):
             out, batches = self.run_ok(h.mutate_csv(Q3, d / "h.csv", 0, "Unit", ""), d / "out")
             self.assertEqual(out["batches"], 7)
             self.assertTrue(any(p.startswith("row 2 (BD-F1-0712): unit cell is blank") for p in out["input_problems"]))
+
+    def test_duplicate_column_names_stop_the_run(self):
+        # Gate 5 F02: 'Dry,Dry' kept only the second value (2,000 g, 60% dry-down) with no warning.
+        for header in ("Batch,Wet,Dry,Dry,Unit", "Batch,Wet,Dry Weight,dry_weight,Unit"):
+            for extra in ([], ["--detect-only"]):
+                with self.subTest(header=header, extra=extra), h.TempDir() as d:
+                    (d / "h.csv").write_text(header + "\nH1,5000,1000,2000,g\n")
+                    res = self.run_yield(["--harvests", d / "h.csv", "--out-dir", d / "out"] + extra)
+                    self.assertEqual(res.returncode, 1)
+                    self.assertIn("same name", res.stderr)
+                    self.assertFalse((d / "out").exists())
+
+    def test_breakdown_completeness_and_excess(self):
+        # Gate 5 F04: a missing part column passed as OK, an all-blank breakdown was not reported, and
+        # parts already over dry weight were hidden behind INCOMPLETE_BREAKDOWN.
+        with h.TempDir() as d:
+            (d / "h.csv").write_text("Batch,Wet,Dry,A Flower,Smalls,Trim,Unit\nH1,5000,1000,1000,0,0,g\n"
+                                     "H2,5000,1000,,,,g\nH3,5000,1000,800,300,,g\nH4,5000,1000,500,100,,g\n")
+            out, b = self.run_ok(d / "h.csv", d / "out")
+            self.assertEqual([b[k]["sum_check"] for k in ("H1", "H2", "H3", "H4")],
+                             ["INCOMPLETE_BREAKDOWN", "NO_BREAKDOWN", "PARTS_EXCEED_DRY", "INCOMPLETE_BREAKDOWN"])
+            self.assertEqual((b["H3"]["unaccounted_g"], b["H4"]["unaccounted_g"]), ("-100.0", "400.0"))
+            self.assertIn("PARTS_EXCEED_DRY:-100.0g;", b["H3"]["flags"])
+            probs = out["input_problems"]
+            self.assertIn("row 3 (H2): no breakdown recorded (every breakdown cell is blank or unreadable), so "
+                          "unaccounted weight can't be checked. Ask for the breakdown.", probs)
+            self.assertIn("row 4 (H3): breakdown cell(s) blank or unreadable: trim. Shown blank, not 0%; the parts "
+                          "recorded already exceed dry weight by 100 g. Check the entries.", probs)
+            self.assertTrue(any(p.startswith("The file has no column for breakdown part(s): waste.") for p in probs))
+
+    def test_ranking_falls_back_when_canopy_is_missing(self):
+        # Gate 5 F06: with no canopy column, groups kept file order instead of ranking per plant.
+        with h.TempDir() as d:
+            (d / "h.csv").write_text("Batch,Room,Wet,Dry,Plants,Unit\nH1,A,5000,1000,10,g\nH2,B,5000,1000,5,g\n")
+            out, _ = self.run_ok(d / "h.csv", d / "out")
+            self.assertEqual(out["ranking_metric"], "dry_g_per_plant")
+            self.assertEqual([g["room"] for g in out["by_room_ranked_by_g_per_sqft"]], ["B", "A"])
+            (d / "n.csv").write_text("Batch,Room,Wet,Dry,Unit\nH1,A,5000,900,g\nH2,B,5000,1000,g\n")
+            out, _ = self.run_ok(d / "n.csv", d / "out2")
+            self.assertIsNone(out["ranking_metric"])
+            self.assertEqual([g["room"] for g in out["by_room_ranked_by_g_per_sqft"]], ["A", "B"])
+        with h.TempDir() as d:
+            out, _ = self.run_ok(Q3, d)
+            self.assertEqual(out["ranking_metric"], "dry_g_per_sqft")
 
     def test_unknown_weight_unit_flag_exits_with_message(self):
         with h.TempDir() as d:

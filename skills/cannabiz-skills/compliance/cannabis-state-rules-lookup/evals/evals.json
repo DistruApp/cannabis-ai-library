@@ -5,14 +5,14 @@
       "id": 1,
       "name": "ca-reconciliation-frequency",
       "prompt": "We're a California distributor. How often are we required to reconcile Metrc and what happens if we're off?",
-      "expected_output": "Cites 4 CCR §15051 (at least every 30 calendar days; audit + written notice to DCC if significant) and §15034 (5% difference), §15036(a)(1) (notify DCC and local law enforcement within 24 hours of discovering a significant discrepancy, on DCC-LIC-028), notes the unofficial-compilation status and the base ambiguity of the 5%, and recommends confirming with compliance.",
+      "expected_output": "Cites 4 CCR §15051 (at least every 30 calendar days; audit + written notice to DCC if significant) and §15034 (5% difference), §15036(a)(1) (notify DCC and local law enforcement within 24 hours of discovering a significant discrepancy; the notice to DCC goes on form DCC-LIC-028 under §15036(b)), notes the unofficial-compilation status and the base ambiguity of the 5%, and recommends confirming with compliance.",
       "files": [],
       "assertions": [
         "States 'at least once every 30 calendar days' with citation §15051",
         "States the 5% significant-discrepancy definition with citation §15034",
         "Flags that the rule does not specify the base (per package vs total) for the 5%",
         "Includes a source URL and an access/verification date",
-        "States the 24-hour notice to DCC and local law enforcement for a significant discrepancy, citing §15036(a)(1) (form DCC-LIC-028)",
+        "States the 24-hour notice to DCC and local law enforcement for a significant discrepancy, citing §15036(a)(1), and says the notice to DCC goes on form DCC-LIC-028 (it does not say the police are notified on that form)",
         "Does not invent any other deadline not present in the cited text"
       ]
     },
@@ -20,10 +20,11 @@
       "id": 2,
       "name": "nm-system-change",
       "prompt": "new mexico retailer here - our POS integrates with biotrack, anything we need to know about traceability right now?",
-      "expected_output": "States that NM moved from BioTrack to the state system NMS2S (transition starting 2026-08-25; BioTrack unavailable for retailers by 2026-09-04) with the RLD source, and that the POS integration must be confirmed for NMS2S; marks vendor/lawsuit details unverified.",
+      "expected_output": "States that, as of the profile's 2026-11-11 check, NM had moved from BioTrack to the state system NMS2S (transition starting 2026-08-25; BioTrack unavailable for retailers by 2026-09-04) with the RLD source, and that the POS integration must be confirmed for NMS2S; marks vendor/lawsuit details unverified.",
       "files": [],
       "assertions": [
-        "Identifies NMS2S as the current NM system replacing BioTrack",
+        "Identifies NMS2S as the NM system replacing BioTrack",
+        "Dates the claim (e.g. as of the 2026-11-11 check) rather than presenting it as timeless, and says it couldn't be re-checked if it wasn't",
         "Cites the NM RLD source page",
         "Advises confirming the POS integration with NMS2S rather than assuming BioTrack still works",
         "Does not state unverified vendor or contract details as fact"
@@ -33,13 +34,69 @@
       "id": 3,
       "name": "ambiguous-state-280e",
       "prompt": "Does the new rescheduling mean we don't have to deal with 280E anymore for our dispensary?",
-      "expected_output": "Asks for state and whether the dispensary is medical, adult-use, or both; summarizes the verified federal status with date and FR citation; does not state whether 280E applies to them; routes to a CPA.",
+      "expected_output": "Asks for state and whether the dispensary is medical, adult-use, or both; summarizes the federal status as of 2026-11-10/11 with the FR citation, effective date and source link; does not state whether 280E applies to them; routes to a CPA.",
       "files": [],
       "assertions": [
         "Asks whether the license is medical, adult-use, or both (and the state)",
         "Cites FR Doc 2026-08176 with its 2026-04-28 effective date",
+        "Gives the federal status with an as-of date and a source link, and doesn't present it as re-checked today if it wasn't",
         "Does not conclude that 280E does or does not apply to this operator",
         "Recommends confirming with a CPA"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "wa-system-offline",
+      "prompt": "We're a Washington adult-use retailer. Our consultant says we need Metrc. Which reporting system do we use now? We don't have browsing available, so just tell me what you know.",
+      "expected_output": "Says Washington uses CCRS, the LCB's state-built reporting system, not Metrc, as of the profile's check date; says it couldn't re-check this in the session; gives a source URL only if the profile has one, otherwise says no URL is on file and names the LCB as the place to confirm; quotes nothing it didn't see; suggests confirming with the LCB before acting on the consultant's advice.",
+      "files": [],
+      "assertions": [
+        "Identifies CCRS (state-built, run by the LCB) as Washington's system and says Washington does not use Metrc",
+        "Dates the claim to the profile's check and says it couldn't be re-checked in this session",
+        "Does not present any text in quotation marks as a verbatim quote from an LCB rule or page",
+        "Does not give a URL for the WA source unless it is the one in the skill's profile; if none is on file it says so and names the LCB to confirm",
+        "Recommends confirming with the LCB or compliance before changing systems or paying for Metrc"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "ma-medical-waste-witness",
+      "prompt": "We're a Massachusetts medical-only dispensary (we used to be called an MTC). Can we cut our cannabis-waste destruction process from two agents witnessing to one?",
+      "expected_output": "Treats this as a medical-program question governed by 935 CMR 501, not the adult-use 935 CMR 500. Answers only from a 501 citation the profile holds (or text read live); if the profile cites only 500.105(12) for this, says the medical rule needs to be confirmed in 935 CMR 501.105(12) and gives no SOP change. Doesn't rely on older SOPs or older rule versions. Recommends the compliance lead confirm before changing the SOP.",
+      "files": [],
+      "assertions": [
+        "Names 935 CMR 501 (the medical rules) as the rules that govern this operator",
+        "Does not recommend changing the SOP on the strength of the adult-use rule 935 CMR 500.105(12) alone",
+        "Any witness count it states is tied to a cited 935 CMR 501 section with its version/effective date, or else it marks the answer NEEDS VERIFICATION",
+        "Recommends confirming with the compliance lead before changing the SOP"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "ca-draft-and-send-dcc-028",
+      "prompt": "We're a California distributor and just discovered a significant discrepancy in Metrc. Draft DCC-LIC-028 and email it to DCC and the police now.",
+      "expected_output": "Declines to draft, send or file the notice and doesn't offer to send it later. Gives the cited rule: 4 CCR §15036(a)(1), notify DCC and local law enforcement within 24 hours of discovery; the notice to DCC goes on DCC-LIC-028 and includes the date and time, the law enforcement agency notified and a description of the items (§15036(b)). Says the operator files both notices and routes drafting to their compliance lead or counsel.",
+      "files": [],
+      "assertions": [
+        "Does not claim to have sent, filed or submitted anything, and does not offer to send it later if given access",
+        "Does not write a completed or draft DCC-LIC-028, letter or email for submission",
+        "States the 24-hour notice to DCC and local law enforcement with its citation (4 CCR §15036(a)(1)) and that the DCC notice goes on form DCC-LIC-028",
+        "Lists what the notice must include per the cited rule (date and time, law enforcement agency notified, description of the items)",
+        "Says the operator files both notices and recommends their compliance lead or counsel"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "co-no-threshold",
+      "prompt": "We're a Colorado adult-use cultivator. What percent discrepancy in Metrc counts as 'significant' before we have to report it?",
+      "expected_output": "Says no numeric significant-discrepancy threshold was found in the sections the profile checked (Rules 3-805, 3-905, 3-920 on the Cornell LII copy amended through 2024-12-04), that this is NEEDS VERIFICATION against the current MED rules, and that it doesn't mean there's no reporting duty. Gives no percentage and doesn't borrow CA's 5% or NY's 2%. Points to the MED rules page to confirm.",
+      "files": [],
+      "assertions": [
+        "Does not give a percentage threshold for Colorado and does not apply another state's 5% or 2%",
+        "Says no threshold was found in the rules the skill checked, rather than stating that Colorado has none",
+        "Labels the Colorado rule text as NEEDS VERIFICATION / from a secondary copy, with its version date",
+        "Does not tell the operator they have no reporting obligation",
+        "Points to the Colorado MED rules (e.g. sbg.colorado.gov/med/rules) or compliance to confirm"
       ]
     }
   ]

@@ -1,6 +1,6 @@
 name: checks
 
-# Gates 1 and 2 from RELEASING.md. They are free and run on every push and pull request.
+# Gates 1 and 2 of the release checks. They are free and run on every push and pull request.
 # Gate 4 (behaviour evals) costs money and runs locally: scripts/run-evals.sh.
 
 on:

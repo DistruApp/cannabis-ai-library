@@ -9,4 +9,4 @@ timeout_seconds: 180
 allowed_tools: ["Read", "Glob", "Grep", "Skill"]
 ---
 
-Which pre-roll SKUs should we reorder for the dispensary this week?
+Write an SOP for weighing and recording wet harvest weight

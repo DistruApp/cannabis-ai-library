@@ -9,4 +9,4 @@ timeout_seconds: 180
 allowed_tools: ["Read", "Glob", "Grep", "Skill"]
 ---
 
-Plan our flip schedule for the next 6 months across 4 flower rooms
+What's the extraction yield and cost per gram on our last live resin run?

@@ -4,7 +4,7 @@ Skill: [`cannabis-batch-cogs`](../../../skills/cannabiz-skills/operations/cannab
 
 ## What it does
 
-Tells a manufacturer what a batch or SKU really costs. A bundled script adds up every input (flower, biomass, distillate, terpenes, hardware, packaging, labels), labor, overhead and lab testing, then shows the line by line cost, cost per finished unit, the cost of yield shortfalls, and a sensitivity table on the top three cost drivers. It refuses to fill in missing rates silently, and it stops to ask "price per what unit?" when a weight or volume input has no price unit. Every assumed value is listed for the user to confirm, and any line built on an assumed value (such as overhead set as a % of materials) is marked as an assumption too.
+Tells a manufacturer what a batch or SKU really costs. A bundled script adds up every input (flower, biomass, distillate, terpenes, hardware, packaging, labels), labor, overhead and lab testing, then shows the line by line cost, cost per finished unit, the cost of yield shortfalls, and a sensitivity table on the top three cost drivers. It refuses to fill in missing rates silently, and it stops to ask "price per what unit?" when a weight or volume input has no price unit. An assumed value must be a number the user chooses: it is listed for them to confirm, and any line built on it (such as overhead set as a % of materials) is marked as an assumption too. It also stops when two BOM columns could both be the price, and it never writes its report over the BOM file.
 
 ## When to use it
 
@@ -18,7 +18,7 @@ Tells a manufacturer what a batch or SKU really costs. A bundled script adds up 
 - **Inputs:** the bill of materials with quantities and input costs, expected and actual units produced, labor hours and rate, the overhead method or rate, and testing cost per batch.
 - **Tools / connectors:** none. Works from uploaded files and needs an assistant that can run Python for the bundled calculator.
 - **Works in:** Claude or any LLM with code execution.
-- **Limits:** this is operational COGS. 280E tax treatment and inventory capitalization need a CPA.
+- **Limits:** this is operational COGS. 280E tax treatment and inventory capitalization need a CPA. A line weighed in one kind of unit and priced in another (for example oil in mL priced per gram) has to be restated in one kind in the BOM; the calculator does not apply a density.
 
 ## Example
 

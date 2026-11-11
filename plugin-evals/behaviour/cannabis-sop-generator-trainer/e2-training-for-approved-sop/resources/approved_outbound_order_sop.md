@@ -58,7 +58,7 @@ The person who picks the order is never the person who verifies it or finalizes 
 1. Generate the transfer manifest in METRC using the verified pick.
 2. Confirm every line item, quantity, and weight on the manifest matches the verified pick.
 
-**Warning:** Never let a shipment leave without a manifest that matches what was actually picked. A mismatch here is a licensing violation, not just a paperwork error.
+**Warning:** Never let a shipment leave without a manifest that matches what was actually picked. A mismatch may break the state's transfer rules, not just the paperwork (CONFIRM: the applicable transfer rule with your compliance lead).
 
 **Step 5: Hand off to the carrier or driver**
 1. Confirm the driver has a copy of the manifest (physical or digital, per state requirement).

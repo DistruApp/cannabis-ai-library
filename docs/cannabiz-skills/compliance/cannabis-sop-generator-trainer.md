@@ -26,4 +26,4 @@ Turns a described cannabis business process into a draft Standard Operating Proc
 
 **Input:** outbound wholesale order fulfillment and Metrc manifest verification at a fictional licensed distributor.
 
-**Output:** a complete SOP with three separate roles for picking, verifying and finalizing the manifest, zero tolerance on unit count, and a 6 month review cycle because it is a high risk area. It is followed by a training packet with a 7 step quick reference, a 5 question comprehension check with its answer key and pass rule, and a sign-off log for each role.
+**Output:** a complete SOP with three separate roles for picking, verifying and finalizing the manifest, zero tolerance on unit count, and a 6 month review cycle because it is a high risk area. It is followed by a training packet with a 6 step quick reference that keeps the hold and escalation rules, a 5 question comprehension check with its answer key and pass rule, and a sign-off log, tied to the SOP ID and version, for each role.

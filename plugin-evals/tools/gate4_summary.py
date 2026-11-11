@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply the Gate 4 pass marks (RELEASING.md) to `claude plugin eval --json` results.
+"""Apply the Gate 4 pass marks to `claude plugin eval --json` results.
 
     python3 plugin-evals/tools/gate4_summary.py plugin-evals/results/release-*/ *.json
 

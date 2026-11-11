@@ -19,10 +19,10 @@ Turns two inventory lists that don't agree into a report an inventory or complia
 - **Inputs:** the traceability package export and the count or ERP export, both as CSV, with the time each one was pulled. Also the state and license type.
 - **Tools / connectors:** none. Works from uploaded files and needs an assistant that can run Python for the bundled calculator.
 - **Works in:** Claude or any LLM with code execution.
-- **Safeguards:** shows the column mapping for confirmation before calculating, never fills a blank unit or drops a duplicate row without saying so, never invents state adjustment reasons or deadlines, and never suggests adjusting just to make the numbers match.
+- **Safeguards:** shows the column mapping for confirmation before calculating, never fills a blank unit or drops a duplicate row without saying so, never sums identical duplicate rows, never guesses an ambiguous number such as "1,234", never treats a small unit-conversion gap as a match, never invents state adjustment reasons or deadlines, and never suggests adjusting just to make the numbers match.
 
 ## Example
 
 **Input:** a Metrc export of 10 packages and a September 30 count sheet from a Michigan grower and processor.
 
-**Output:** 12 packages compared, 3 matching. Net weight variance of minus 23.8 g, both short packages bulk flower in storage, so moisture loss is the probable cause and they should be re-weighed. Gummies counted 12 units over the system, flagged high priority. One rosin package noted as a likely typo on the count sheet, kept open until someone reads the physical label. The report includes a jurisdiction block, a variance table, draft actions and a sign-off line.
+**Output:** 12 packages listed, 7 with comparable quantities, 3 of them matching. Net weight variance of minus 23.8 g from two bulk flower packages, which should be re-weighed (moisture loss is one hypothesis to check against their weigh history). Live resin carts 2 units short. Gummies counted 12 units over the system, flagged high priority. One rosin package noted as a likely typo on the count sheet, kept open until someone reads the physical label. The report includes a jurisdiction block, a variance table, draft actions and a sign-off line.

@@ -33,10 +33,10 @@ Gives a production manager or controller a defensible cost per unit for one batc
 **Batch parameters**, all needed, asked for in **one** message:
 - Finished units produced (actual) and, if known, expected units
 - Direct labor hours and loaded hourly rate
-- Overhead method, **one** of: $ per batch, $ per labor hour, or % of materials. Ask how they normally allocate. Never pick a method for them. Pass a percentage as a whole number: `--overhead-pct-materials 12` means 12%. If the operator says "0.12" or "12 points", confirm they mean 12%.
+- Overhead method, **one** of: $ per batch, $ per labor hour, or % of materials. Ask how they normally allocate. Never pick a method for them. Pass a percentage as a whole number: `--overhead-pct-materials 12` means 12%. If the operator says "0.12" or "12 points", confirm they mean 12%. If their books use another base (e.g. machine hours), ask for the overhead dollars they charge to this batch and pass that as `--overhead-per-batch`. Don't convert it to labor hours yourself.
 - Testing cost charged to this batch (lab fees, retests)
 
-If the operator says a cost really is zero, pass `0`. If they want to proceed without a number, pass it with `--assume key=value` (for a BOM line: `cost:<component>=12` or `cost_uom:<component>=lb`). It's then tagged **[ASSUMPTION]** everywhere and listed at the top of the report. Never estimate a market price for an input (e.g. "distillate usually costs…").
+If the operator says a cost really is zero, pass `0`. If they want to proceed before they have the real figure, they choose a placeholder number and you pass it with `--assume key=value` (for a BOM line: `cost:<component>=12` or `cost_uom:<component>=lb`). It's then tagged **[ASSUMPTION]** everywhere and listed at the top of the report. The number must come from the operator: "use whatever", "your best guess" or "a typical price" is not a number, and an [ASSUMPTION] tag never makes a number you picked acceptable. Never estimate a market price for an input (e.g. "distillate usually costs…").
 
 Where inputs come from: ERP item costs and production records, purchase invoices, payroll, lab invoices. Input lot numbers and harvest names in the component name make the report traceable. Keep them.
 
@@ -44,7 +44,7 @@ Where inputs come from: ERP item costs and production records, purchase invoices
 
 `python3 <skill-dir>/scripts/cogs.py --bom <file> --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces, and don't compare the files by hand either (no list of rows that differ, match, are missing or would pass).
 
-Show the mapping in one line. Fix missing or AMBIGUOUS columns with `--map field=Column` (fields: component, qty, uom, unit_cost, cost_uom). For Excel files, export to CSV first.
+Show the mapping in one line. Fix missing or AMBIGUOUS columns with `--map field=Column` (fields: component, qty, uom, unit_cost, cost_uom). AMBIGUOUS also covers two headers that read the same (e.g. `Unit Cost` and `unit_cost`): ask the operator which column holds the figure; don't pick one. Two columns with exactly the same name stop the script; ask the operator to rename or delete one. For Excel files, export to CSV first.
 
 ### 3. Run
 
@@ -61,6 +61,7 @@ Always run the script, even when you can already see the problem in the file: it
 - `input_problems` also appears on OK runs. It lists things that did not block the run but the operator should see: fully blank rows that were skipped, count lines with a blank price unit that were read as price per each, and an `--overhead-pct-materials` value between 0 and 1 (read as that many percent, so 0.12 means 0.12%, not 12%). Put each one under Data gaps in the report, and confirm the overhead percentage with the operator before reporting.
 - Numeric flags and `--assume` values must be numbers; flags can't be negative and `--assume` values must be greater than 0. A bad value stops the script with a message. Pass a confirmed zero as the flag itself.
 - `--expected-units` must be greater than 0. Leave it out if there is no expected count.
+- The script won't write its outputs over the BOM file. If it says `--out-dir` would overwrite the BOM, choose another folder.
 
 ### 4. Interpret
 
@@ -77,7 +78,7 @@ Fill `assets/report-template.md` and follow `references/output-conventions.md`. 
 
 **Bad values and blanks.** Quote the raw cell (`'50,5'`, `NaN`, a blank price unit) with its row and column and ask for the right figure. Don't offer readings ("$4.25 or $425?"), don't work out what a reading would cost, and don't fill it from another line.
 
-**Missing inputs.** Ask for them; don't give a partial total or cost per unit you worked out yourself, not even a materials subtotal. If the operator says "use whatever" without a number, ask for a number they choose; you never pick one.
+**Missing inputs.** Ask for them; don't give a partial total or cost per unit you worked out yourself, not even a materials subtotal. If the operator says "use whatever" without a number, ask for the real figure or a placeholder number they choose; you never pick one, not even as a labelled assumption.
 
 **You never update or send anything.** Not the ERP standard cost, not an email to the team, and not later "if you give me access". Say the user does it, and give a draft message they can send.
 
@@ -87,7 +88,7 @@ Fill `assets/report-template.md` and follow `references/output-conventions.md`. 
 
 ## Gotchas
 
-- **Price unit ≠ quantity unit.** Biomass weighed in kg but bought at $/lb, or distillate in g at $/kg, is the most common 1,000× or 2.2× error. Always fill the `cost_uom` column. The script converts within weight, volume, or count, and blocks mixed kinds (e.g. mL of oil priced per g) until the operator gives a density or conversion. A blank price unit on a weight or volume line blocks the run. On a count line it is read as price per each and listed in `input_problems`, so check nothing is priced per case.
+- **Price unit ≠ quantity unit.** Biomass weighed in kg but bought at $/lb, or distillate in g at $/kg, is the most common 1,000× or 2.2× error. Always fill the `cost_uom` column. The script converts within weight, volume, or count, and blocks mixed kinds (e.g. mL of oil priced per g). It takes no density or pack size, so ask the operator to restate that line in the BOM in one kind (e.g. the oil quantity in g as weighed, or the price per mL) and rerun. Don't convert it yourself, even when they give you a density. A blank price unit on a weight or volume line blocks the run. On a count line it is read as price per each and listed in `input_problems`, so check nothing is priced per case.
 - **Assumptions carry through.** When overhead is a % of materials and a material cost or price unit is assumed, the overhead line is tagged ASSUMPTION too. The same applies to overhead per labor hour when labor hours are assumed.
 - **Input costs should carry their own history.** Biomass from the operator's own harvest has a cost from cultivation. Ask whether they want the transfer cost they use internally, or the cultivation cost per gram (the `cannabis-harvest-yield-analysis` output). Don't mix the two across batches.
 - **Recipe vs. actual.** A recipe BOM understates cost when there's fill loss or rework. Label which one was used.

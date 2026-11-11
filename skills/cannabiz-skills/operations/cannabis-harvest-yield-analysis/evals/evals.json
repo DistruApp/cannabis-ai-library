@@ -4,8 +4,8 @@
     {
       "id": 1,
       "name": "q3-rooms-and-cost",
-      "prompt": "Q3 harvests attached (harvests_2026_q3.csv). Which rooms are pulling their weight and what's our cost per gram? Our internal goal is 25 g/sq ft dry. Note one batch was logged in pounds.",
-      "expected_output": "Report ranking rooms by dry g/sq ft from the script (Flower 1 28.34, Flower 2 25.48, Flower 3 24.29, Flower 4 15.25), compared against the operator's own 25 g/sq ft goal; cost per dry gram per batch (Papaya ~$2.70 highest); unaccounted weight on 4 batches (GMO-F2-0913 400 g, GEL-F3-0920 125 g, PAP-F4-0927 200 g, BD-F1-1004 200 g); anomaly rule stated; strain/room confound noted; no outside industry benchmarks.",
+      "prompt": "Our harvests from July through early October are attached (harvests_2026_q3.csv). Which rooms are pulling their weight and what's our cost per gram? Our internal goal is 25 g/sq ft dry. Note one batch was logged in pounds.",
+      "expected_output": "Report covering all 8 batches (12 Jul to 4 Oct, as the operator asked) ranking rooms by dry g/sq ft from the script (Flower 1 28.34, Flower 2 25.48, Flower 3 24.29, Flower 4 15.25), compared against the operator's own 25 g/sq ft goal; cost per dry gram per batch (Papaya ~$2.70 highest); unaccounted weight on 4 batches (GMO-F2-0913 400 g, GEL-F3-0920 125 g, PAP-F4-0927 200 g, BD-F1-1004 200 g); anomaly rule stated; strain/room confound noted; no outside industry benchmarks.",
       "files": ["evals/files/harvests_2026_q3.csv"],
       "assertions": [
         "Ranks Flower 1 first at about 28.3 g/sq ft and Flower 4 last at about 15.3 g/sq ft",
@@ -25,7 +25,7 @@
       "files": ["evals/files/harvest_log_no_units.csv"],
       "assertions": [
         "Asks for (or explicitly confirms) the weight unit instead of assuming grams or pounds",
-        "Says per-sq-ft comparison is not possible without canopy data and uses per-plant only",
+        "Says per-sq-ft comparison is not possible without canopy data, so only a per-plant comparison can be made",
         "Caveats that 3 batches is too few for anomaly flags or a confident recommendation",
         "Notes strain and room are confounded",
         "Does not cite outside yield benchmarks"
@@ -63,7 +63,7 @@
       "id": 5,
       "name": "regression-unreadable-and-negative-numbers",
       "prompt": "Example Gardens harvest log for Rooms 3 and 4 attached (harvests_regression_bad_numbers.csv). Which room does better per sq ft, and what's our dry-down?",
-      "expected_output": "Runs without --weight-unit (the file has a unit column); summary.json is valid JSON with no NaN or Infinity. input_problems lists, with row, column and raw value: EX-R3-0908 wet weight 'NaN', EX-R3-0915 dry weight 'inf', EX-R4-0902 dry weight '4,25' (ambiguous comma), EX-R4-0909 trim '-150' (negative) and cycle cost '1.234,56' (ambiguous comma), and EX-R4-0916 plant count '-40'. Each is treated as blank and the batch is left out of the figures that need it: total dry 19,800 g on 4 of 6 batches; overall dry-down 78.02% on 3 of 6. Room 4 is 22.25 g/sq ft on 2 of 3 batches and Room 3 is 21.8 g/sq ft on 2 of 3; Room 3 dry-down 78.0% covers only 1 of 3 batches. EX-R3-0901's wet weight '25,000' is read as 25,000 g. EX-R4-0909's trim shows blank (INCOMPLETE_BREAKDOWN, 750 g unaccounted) and its cost per gram is blank. The pre-fix script reported total dry weight as Infinity (invalid JSON) and read EX-R4-0902's '4,25' lb as 425 lb.",
+      "expected_output": "Runs without --weight-unit (the file has a unit column); summary.json is valid JSON with no NaN or Infinity. input_problems lists, with row, column and raw value: EX-R3-0908 wet weight 'NaN', EX-R3-0915 dry weight 'inf', EX-R4-0902 dry weight '4,25' (ambiguous comma), EX-R4-0909 trim '-150' (negative) and cycle cost '1.234,56' (ambiguous comma), and EX-R4-0916 plant count '-40'. Each is treated as blank and the batch is left out of the figures that need it: total dry 19,800 g on 4 of 6 batches; overall dry-down 78.02% on 3 of 6. Room 4 is 22.25 g/sq ft on 2 of 3 batches and Room 3 is 21.8 g/sq ft on 2 of 3; Room 3 dry-down 78.0% covers only 1 of 3 batches. EX-R3-0901's wet weight '25,000' is read as 25,000 g, and input_problems asks to confirm the file uses the comma as a thousands separator. EX-R4-0909's trim shows blank (INCOMPLETE_BREAKDOWN, 750 g unaccounted) and its cost per gram is blank. The pre-fix script reported total dry weight as Infinity (invalid JSON) and read EX-R4-0902's '4,25' lb as 425 lb.",
       "files": ["evals/files/harvests_regression_bad_numbers.csv"],
       "assertions": [
         "Reports each unreadable or negative value (NaN, inf, 4,25, -150, 1.234,56, -40) as a data problem with its batch and column, and asks for the right figure",
@@ -71,6 +71,20 @@
         "Reports Room 4 at about 22.3 g/sq ft and Room 3 at about 21.8 g/sq ft, each on 2 of 3 batches",
         "Reports total dry weight of about 19,800 g on 4 of 6 batches, and overall dry-down of about 78.0% on 3 of 6",
         "Shows EX-R4-0909's trim as blank or missing, not 0% or -150",
+        "Does not cite outside yield benchmarks"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "period-check-october-row-in-q3-file",
+      "prompt": "Q3 harvests attached (harvests_2026_q3.csv). What was our total dry output for Q3, and which room did best per sq ft?",
+      "expected_output": "Checks the harvest dates against Q3 (1 Jul to 30 Sep) and points out that BD-F1-1004 was harvested 2026-10-04, outside Q3. Does not call the 8-batch figures (197.5 lb / 89,584.2 g dry; Flower 1 28.34 g/sq ft) Q3 output. Asks whether to include the October batch; if it shows figures meanwhile, labels them as the 8 batches from 12 Jul to 4 Oct. If it reports calendar Q3, the figures come from a script run on a copy without that row, and it says so: 7 batches, 76,208.2 g / 168.01 lb dry; Flower 1 28.57, Flower 2 25.48, Flower 3 24.29, Flower 4 15.25 g/sq ft. No other row is dropped or edited.",
+      "files": ["evals/files/harvests_2026_q3.csv"],
+      "assertions": [
+        "Points out that BD-F1-1004 (harvested 2026-10-04) falls outside Q3",
+        "Does not present the 8-batch total (about 197.5 lb or 89,584 g dry) or Flower 1's 28.34 g/sq ft as Q3 figures",
+        "Asks whether to include the October batch, or reports Q3 figures only from a script run without it (about 168.0 lb dry; Flower 1 about 28.6 g/sq ft) and says it left that batch out",
+        "Does not drop or change any other row",
         "Does not cite outside yield benchmarks"
       ]
     }

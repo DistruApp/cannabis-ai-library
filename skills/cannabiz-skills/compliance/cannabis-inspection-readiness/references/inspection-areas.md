@@ -2,7 +2,7 @@
 
 **Read this first.** This is an operational scaffold drawn from what cannabis inspections generally examine. It contains **no legal requirements and no citations**. Every item is "operational best practice: confirm against your state's rules." Replace or tighten items with cited rules from `state-profiles.md` or with a regulator-published checklist when one is available. Drop areas that don't apply to the license type.
 
-Legend for applicability: C = cultivation, M = manufacturing/processing, D = distribution/transport, R = retail, All.
+Legend for applicability: C = cultivation, M = manufacturing/processing, D = distribution/transport, R = retail, All. The letters are a starting point: include an area whenever the operation does that activity, whatever its license class.
 
 ## 1. Licenses and premises (All)
 - Current state license(s) posted or available as required; local permit if applicable
@@ -30,7 +30,7 @@ Legend for applicability: C = cultivation, M = manufacturing/processing, D = dis
 - Visitor log; visitor badging/escort practice
 - Key/access-card control; after-hours access records
 
-## 5. Waste and destruction (C, M, R)
+## 5. Waste and destruction (C, M, R, and D or anyone that holds returned, recalled or failed product for destruction)
 - Waste log complete: date, item, weight, method, reason, people involved
 - Waste rendered/destroyed and stored per state method (method, witness, notice and hold rules are state-specific: for pilot states see **Waste and destruction** in `state-profiles.md`, otherwise NEEDS VERIFICATION)
 - Waste weights tie to traceability records

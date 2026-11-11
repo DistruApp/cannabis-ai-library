@@ -4,7 +4,7 @@ type: llm
 
 Judge only the assistant's final reply.
 
-Context, the expected behaviour: Retail-appropriate areas (ID verification, purchase limits, retail floor, traceability, security, testing/COA, labeling, people, SOPs, returns); jurisdiction block for CA; mock-inspection questions aimed at budtenders and managers; status Unknown rather than Ready for items without evidence; asks for or suggests uploading current docs; no invented CA limits or retention periods unless cited.
+Context, the expected behaviour: Retail-appropriate areas (ID verification, purchase limits, retail floor, traceability, security, testing/COA, labeling, people, SOPs, returns); jurisdiction block for CA; mock-inspection questions aimed at budtenders and managers; days until inspection shown as not scheduled, with gap due dates left for the operator to agree; status Unknown rather than Ready for items without evidence; asks for or suggests uploading current docs; no invented CA limits or retention periods unless cited.
 
 PASS only if ALL of these hold:
 - Includes retail-specific areas such as ID/age verification and purchase limits

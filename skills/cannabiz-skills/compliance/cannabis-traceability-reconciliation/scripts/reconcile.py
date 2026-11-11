@@ -23,9 +23,11 @@ Outputs (in --out-dir, default ./recon_out):
 
 The script never drops, merges, or fills in a record without saying so. Anything it
 can't resolve gets an explicit status and an entry in input_problems. A tag that Excel
-turned into scientific notation ("1.23457E+23") is never matched or totalled: status
-TAG_SCIENTIFIC_NOTATION. Text cells that a spreadsheet would run as a formula are written
-with a leading apostrophe.
+turned into scientific notation ("1.23457E+23", "1.23457E23") is never matched or totalled:
+status TAG_SCIENTIFIC_NOTATION. Identical duplicate rows are never summed (a possible
+copy-paste duplicate): status DUPLICATE_CONFLICT. There is no automatic rounding allowance:
+any nonzero difference is a variance unless it is within the operator's own --tolerance-*.
+Text cells that a spreadsheet would run as a formula are written with a leading apostrophe.
 """
 import argparse
 import csv
@@ -53,13 +55,16 @@ GRAMS_PER = {"g": 1.0, "gram": 1.0, "grams": 1.0, "kg": 1000.0, "kilogram": 1000
              "lb": 453.592, "lbs": 453.592, "pound": 453.592, "pounds": 453.592,
              "oz": 28.3495, "ounce": 28.3495, "ounces": 28.3495}
 EACH = {"each", "ea", "unit", "units", "count", "ct", "pcs", "pc", "piece", "pieces"}
-GRAMS_PER_LB = 453.592
-# Unit-conversion rounding rule. When the two sides record a package in different weight
-# units (for example 1 lb in the system and 453.6 g on the count sheet), a difference of up
-# to 0.05 g per pound of package weight (minimum 0.05 g) is treated as rounding and the row
-# is a MATCH with a note. 0.05 g is half of the last digit when grams are written to one
-# decimal place; it scales per pound because a rounded per-pound factor compounds.
-ROUNDING_G_PER_LB = 0.05
+# Converted rows with a difference at or below this get a note that scale resolution or a
+# rounded factor could explain it. The note never changes the status: only the operator's
+# own --tolerance-g can do that.
+SMALL_CONVERTED_DIFF_G = 0.05
+# Output precision. Every comparison, total and threshold uses the unrounded values.
+DP = 6
+
+
+def r6(x):
+    return round(x, DP) + 0.0
 
 
 def norm_header(h):
@@ -118,11 +123,14 @@ def read_csv_rows(path, label):
     if not rows:
         sys.exit(f"[{label}] {path} has a header row but no data rows. Check that the right file "
                  "was exported.")
-    named = [h.strip() for h in headers if h and h.strip()]
-    dupes = sorted({h for h in named if named.count(h) > 1})
+    by_norm = defaultdict(list)
+    for h in headers:
+        if h and h.strip():
+            by_norm[norm_header(h)].append(h.strip())
+    dupes = sorted(v for v in by_norm.values() if len(v) > 1)
     if dupes:
-        sys.exit(f"[{label}] {path} has more than one column named {dupes}. Rename or remove the "
-                 "extra column and rerun.")
+        sys.exit(f"[{label}] {path} has more than one column named {dupes} (names are compared "
+                 "ignoring case, spaces and underscores). Rename or remove the extra column and rerun.")
     return headers, rows
 
 
@@ -143,7 +151,9 @@ def load(path, overrides, label):
     return rows, m
 
 
-_THOUSANDS_RE = re.compile(r"^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$")
+_THOUSANDS_RE = re.compile(r"^[+-]?[1-9]\d{0,2}(,\d{3})+(\.\d+)?$")
+# No real quantity, weight or cost is this large; bigger values overflow later sums.
+_MAX_ABS = 1e12
 
 
 def to_number(s):
@@ -171,6 +181,8 @@ def to_number(s):
         return None, f"not a number: '{s}'"
     if not math.isfinite(v):
         return None, f"not a finite number: '{s}'"
+    if abs(v) > _MAX_ABS:
+        return None, f"out of range: '{s}'"
     return v, None
 
 
@@ -193,7 +205,7 @@ def csv_safe(v):
 
 # A numeric tag that Excel turned into scientific notation ("1.23457E+23"). The real digits
 # are gone, so the tag can't be matched, and two packages can collapse to the same value.
-_SCI_TAG_RE = re.compile(r"^\d+(\.\d+)?[eE][+-]\d+$")
+_SCI_TAG_RE = re.compile(r"^\d+(\.\d+)?[eE][+-]?\d+$")
 
 
 def is_sci_tag(raw):
@@ -202,15 +214,26 @@ def is_sci_tag(raw):
 
 def tolerance_arg(raw):
     """argparse type for --tolerance-*: the same strict parse as quantities, 0 or more."""
-    v, problem = to_number(raw)
-    if problem or v is None or v < 0:
+    v, problem = parse_qty(raw)
+    if problem or v is None:
         raise argparse.ArgumentTypeError(
             f"'{raw}' is not a usable tolerance: give a plain number of 0 or more, such as 0.5")
     return v
 
 
+# One comma group and no decimal point: "1,234" is 1234 in US format but 1.234 in European
+# format. Held, not guessed. "1,234.5" and "1,234,567" can only be US thousands.
+_ONE_COMMA_GROUP_RE = re.compile(r"^[+-]?\d{1,3},\d{3}$")
+
+
 def parse_qty(raw):
-    """to_number plus the rule that a quantity or weight can't be negative."""
+    """to_number plus the quantity rules: no negative, no currency symbol, no '1,234' guess."""
+    s = (raw or "").strip()
+    if "$" in s:
+        return None, f"currency symbol in a quantity: '{s}'"
+    if _ONE_COMMA_GROUP_RE.match(s):
+        return None, (f"ambiguous comma in '{s}' (US thousands {s.replace(',', '')} or European decimal "
+                      f"{s.replace(',', '.')}); remove the separator in the file and rerun")
     v, problem = to_number(raw)
     if v is not None and v < 0:
         return None, f"negative quantity '{(raw or '').strip()}'"
@@ -257,45 +280,49 @@ def merge_duplicates(tag, recs, label, problems):
     """Combine rows that share a tag, or mark the tag DUPLICATE_CONFLICT. Never drops a row silently."""
     first = recs[0]
     merged = {"tag": tag, "item": first["item"], "location": first["location"], "conflict": False,
-              "qty_problem": None}
+              "qty_problem": None, "rows": [r["row"] for r in recs],
+              "defaulted": sum(r["defaulted"] for r in recs)}
     n, desc = len(recs), describe_rows(recs)
     identical = len({(r["qty"], r["uom"].lower()) for r in recs}) < n
-    copy_paste = " Some rows are identical, so this may be a copy-paste duplicate: check the file." if identical else ""
     if any(r["qty"] is None for r in recs):
         reason = "a quantity is blank or not a valid number"
+    elif identical:
+        # Summing a double entry would hide a shortage (50 + 50 "matches" 100 when 50 is on hand).
+        reason = ("some rows are identical, so this may be a copy-paste duplicate rather than separate "
+                  "counts: confirm with the counter, correct the file and rerun")
     else:
         units = {r["uom"].lower() for r in recs}
         if len(units) == 1:
             total = sum(r["qty"] for r in recs)
             merged.update(qty=total, uom=first["uom"])
-            merged["note"] = f"{n} rows with this tag summed ({desc}){'.' + copy_paste if copy_paste else ''}"
+            merged["note"] = f"{n} rows with this tag summed ({desc})"
             problems.append(f"{label}: duplicate tag {tag}: {n} rows summed to {fmt_num(total)} "
-                            f"{first['uom'] or '(blank unit)'} ({desc}).{copy_paste}")
+                            f"{first['uom'] or '(blank unit)'} ({desc}).")
             return merged
         kinds = {unit_kind(r["uom"])[0] for r in recs}
         if len(kinds) == 1 and kinds <= {"weight", "each"}:
             base = "g" if "weight" in kinds else "each"
             total = sum(r["qty"] * unit_kind(r["uom"])[1] for r in recs)
             merged.update(qty=total, uom=base)
-            merged["note"] = f"{n} rows with this tag summed (converted to {base}) ({desc}){'.' + copy_paste if copy_paste else ''}"
+            merged["note"] = f"{n} rows with this tag summed (converted to {base}) ({desc})"
             problems.append(f"{label}: duplicate tag {tag}: {n} rows summed (converted to {base}) "
-                            f"to {fmt_num(round(total, 4))} {base} ({desc}).{copy_paste}")
+                            f"to {fmt_num(round(total, 4))} {base} ({desc}).")
             return merged
         reason = "the units can't be converted to one another (weight vs. each, or a blank or unknown unit)"
     merged.update(qty=None, uom="", conflict=True)
     merged["note"] = f"duplicate rows not summed because {reason} ({desc})"
     problems.append(f"{label}: duplicate tag {tag}: {n} rows NOT summed because {reason} ({desc}). "
-                    f"Status DUPLICATE_CONFLICT; quantities not compared.{copy_paste}")
+                    "Status DUPLICATE_CONFLICT; quantities not compared.")
     return merged
 
 
-def index(rows, m, label, problems, sci_rows):
+def index(rows, m, label, problems, sci_rows, default_unit):
     groups = defaultdict(list)
     for i, r in enumerate(rows, start=2):
         raw_tag = r.get(m["package_id"]) or ""
         tag = norm_tag(raw_tag)
         if not tag:
-            problems.append(f"{label} row {i}: blank package tag")
+            problems.append(f"{label} row {i}, column '{m['package_id']}': blank package tag; row not used")
             continue
         raw_qty = r.get(m["quantity"]) or ""
         if is_sci_tag(raw_tag):
@@ -304,19 +331,22 @@ def index(rows, m, label, problems, sci_rows):
                             "row not matched or totalled (status TAG_SCIENTIFIC_NOTATION)")
             qty, qty_problem = parse_qty(raw_qty)
             sci_rows.append({"label": label, "row": i, "tag": raw_tag.strip(),
-                             "qty": qty, "uom": (r.get(m["uom"]) or "").strip() if ok(m, "uom") else "",
+                             "qty": qty, "qty_problem": qty_problem, "uom": (r.get(m["uom"]) or "").strip() if ok(m, "uom") else "",
                              "item": r.get(m["item"], "") if ok(m, "item") else "",
                              "location": r.get(m["location"], "") if ok(m, "location") else ""})
             continue
         qty, qty_problem = parse_qty(raw_qty)
-        uom = r.get(m["uom"], "") if ok(m, "uom") else ""
+        uom = ((r.get(m["uom"]) or "") if ok(m, "uom") else "").strip()
+        # An operator-stated default unit fills a blank cell before any rows are combined.
+        defaulted = not uom and bool(default_unit)
+        uom = uom or default_unit
         if qty_problem:
             qty_problem = f"row {i}, column '{m['quantity']}', value '{raw_qty.strip()}': {qty_problem}"
             problems.append(f"{label} {qty_problem} ({tag}); quantity not compared or totalled")
         elif qty is None:
             problems.append(f"{label} row {i} ({tag}), column '{m['quantity']}': blank quantity")
-        groups[tag].append({"row": i, "qty": qty, "raw_qty": raw_qty, "uom": (uom or "").strip(),
-                            "qty_problem": qty_problem,
+        groups[tag].append({"row": i, "qty": qty, "raw_qty": raw_qty, "uom": uom,
+                            "qty_problem": qty_problem, "defaulted": int(defaulted),
                             "item": r.get(m["item"], "") if ok(m, "item") else "",
                             "location": r.get(m["location"], "") if ok(m, "location") else ""})
     idx = {}
@@ -325,9 +355,13 @@ def index(rows, m, label, problems, sci_rows):
             r = recs[0]
             idx[tag] = {"tag": tag, "qty": r["qty"], "uom": r["uom"], "item": r["item"],
                         "location": r["location"], "conflict": False, "qty_problem": r["qty_problem"],
+                        "rows": [r["row"]], "defaulted": r["defaulted"],
                         "note": f"invalid quantity ({r['qty_problem']})" if r["qty_problem"] else ""}
         else:
             idx[tag] = merge_duplicates(tag, recs, label, problems)
+    if not idx and not any(b["label"] == label for b in sci_rows):
+        sys.exit(f"[{label}] no row has a package tag in column '{m['package_id']}'. Check the file "
+                 "and the column mapping, then rerun.")
     return idx
 
 
@@ -369,11 +403,12 @@ def main():
                    f"(--default-{label}-unit)")
             problems.append(f"{label} file: no unit column found; {how}")
     sci_rows = []
-    S = index(srows, sm, "system", problems, sci_rows)
-    C = index(crows, cm, "count", problems, sci_rows)
+    S = index(srows, sm, "system", problems, sci_rows, a.default_system_unit)
+    C = index(crows, cm, "count", problems, sci_rows, a.default_count_unit)
     out = []
     compared_base = {}
-    defaults_used = Counter()
+    defaults_used = {label: n for label, n in (("system", sum(r["defaulted"] for r in S.values())),
+                                               ("count", sum(r["defaulted"] for r in C.values()))) if n}
 
     only_s = sorted(set(S) - set(C))
     only_c = sorted(set(C) - set(S))
@@ -399,12 +434,18 @@ def main():
                "system_uom": s["uom"] if s else "",
                "count_qty": c["qty"] if c and c["qty"] is not None else "",
                "count_uom": c["uom"] if c else "",
-               "difference": "", "difference_unit": "", "pct_of_system": "", "status": "", "notes": ""}
+               "difference": "", "difference_unit": "", "pct_of_system": "", "status": "", "notes": "",
+               "_diff": None, "_pct": None}
         notes = []
-        if s and s["note"]:
-            notes.append("system: " + s["note"])
-        if c and c["note"]:
-            notes.append("count: " + c["note"])
+        for side, rec, default in (("system", s, a.default_system_unit), ("count", c, a.default_count_unit)):
+            if rec and rec["note"]:
+                notes.append(f"{side}: {rec['note']}")
+            if rec and rec["defaulted"]:
+                notes.append(f"{side} unit blank on {rec['defaulted']} row(s); used --default-{side}-unit "
+                             f"{default} as stated by the operator")
+        for side, rec in (("system", s), ("count", c)):
+            if rec and not (s and c) and not rec["uom"] and not rec["conflict"]:
+                notes.append(f"unit is blank in the {side} file")
         if s and not c:
             row["status"] = "IN_SYSTEM_NOT_COUNTED"
             if near_s.get(tag):
@@ -420,26 +461,18 @@ def main():
         elif s["qty"] is None or c["qty"] is None:
             row["status"] = "BAD_QUANTITY"
         else:
-            su, cu, missing = s["uom"], c["uom"], []
-            for side, val, default in (("system", su, a.default_system_unit),
-                                       ("count", cu, a.default_count_unit)):
-                if not val:
-                    if default:
-                        notes.append(f"{side} unit blank; used --default-{side}-unit {default} "
-                                     "as stated by the operator")
-                        defaults_used[side] += 1
-                    else:
-                        missing.append(side)
-            su, cu = su or a.default_system_unit, cu or a.default_count_unit
-            row["system_uom"], row["count_uom"] = su, cu
+            su, cu = s["uom"], c["uom"]
+            missing = [side for side, val in (("system", su), ("count", cu)) if not val]
             if missing:
                 row["status"] = "MISSING_UNIT"
                 sides = " and ".join(missing)
                 notes.append(f"unit is blank in the {sides} file; quantities not compared")
                 # One problem per package when a unit cell is blank; a missing column is reported once above.
-                if any(has_unit_col[x] for x in missing):
+                where = [f"{x} row(s) {', '.join(map(str, rec['rows']))}, column '{mp['uom']}'"
+                         for x, rec, mp in (("system", s, sm), ("count", c, cm)) if x in missing and has_unit_col[x]]
+                if where:
                     problems.append(f"{tag}: unit is blank in the {sides} file; quantities not compared "
-                                    "(status MISSING_UNIT)")
+                                    f"(status MISSING_UNIT; {'; '.join(where)})")
             else:
                 ks, fs = unit_kind(su)
                 kc, fc = unit_kind(cu)
@@ -455,19 +488,21 @@ def main():
                     tol = a.tolerance_g if ks == "weight" else a.tolerance_each
                     base = s["qty"] * fs
                     converted = fs != fc
-                    allowance = ROUNDING_G_PER_LB * max(1.0, abs(base) / GRAMS_PER_LB)
-                    row["difference"] = round(diff, 4)
+                    # Display is rounded; status, totals and thresholds use the unrounded values.
+                    row["_diff"] = diff
+                    row["_pct"] = 100.0 * diff / base if base else None
+                    row["difference"] = r6(diff)
                     row["difference_unit"] = unit
-                    row["pct_of_system"] = round(100.0 * diff / base, 3) + 0.0 if base else ""
+                    row["pct_of_system"] = round(row["_pct"], 3) + 0.0 if base else ""
                     compared_base[tag] = (unit, base)
                     if converted:
                         notes.append(f"units converted: count '{cu}' and system '{su}' both expressed in {unit}")
+                        if unit == "g" and 1e-9 <= abs(diff) <= SMALL_CONVERTED_DIFF_G:
+                            notes.append(f"small difference ({fmt_num(r6(diff))} g) after converting units: scale "
+                                         "resolution or a rounded conversion factor could explain it, but it stays "
+                                         "a variance unless the operator sets --tolerance-g")
                     if abs(diff) < 1e-9:
                         row["status"] = "MATCH"
-                    elif unit == "g" and converted and abs(diff) <= allowance + 1e-9:
-                        row["status"] = "MATCH"
-                        notes.append(f"within unit-conversion rounding ({fmt_num(round(diff, 4))} g; "
-                                     f"allowance {fmt_num(round(allowance, 4))} g)")
                     elif abs(diff) <= tol + 1e-9:
                         row["status"] = "WITHIN_TOLERANCE"
                     else:
@@ -489,26 +524,20 @@ def main():
                     "status": "TAG_SCIENTIFIC_NOTATION",
                     "notes": (f"{side} row {b['row']}: tag '{b['tag']}' is in scientific notation, so the "
                               "real tag is lost; not matched or totalled. Re-export with the tag column "
-                              "formatted as text.")})
-
-    try:
-        os.makedirs(a.out_dir, exist_ok=True)
-        fields = list(out[0].keys()) if out else ["package_id"]
-        with open(os.path.join(a.out_dir, "reconciliation.csv"), "w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=fields)
-            w.writeheader()
-            w.writerows([{k: csv_safe(v) for k, v in r.items()} for r in out])
-    except OSError as e:
-        sys.exit(f"Cannot write to --out-dir {a.out_dir}: {e}")
+                              "formatted as text."
+                              + (f" The quantity is also invalid ({b['qty_problem']})." if b["qty_problem"] else "")),
+                    "_diff": None, "_pct": None})
 
     by_status = Counter(r["status"] for r in out)
     net = defaultdict(float)
     gross = defaultdict(float)
+    gross_all = defaultdict(float)
     for r in out:
-        if r["difference"] != "":
-            net[r["difference_unit"]] += r["difference"]
+        if r["_diff"] is not None:
+            net[r["difference_unit"]] += r["_diff"]
+            gross_all[r["difference_unit"]] += abs(r["_diff"])
             if r["status"] in ("OVER_IN_COUNT", "SHORT_IN_COUNT"):
-                gross[r["difference_unit"]] += abs(r["difference"])
+                gross[r["difference_unit"]] += abs(r["_diff"])
     # Totals by unit. The total percentage uses the same quantity-compared set as the net difference.
     compared_total = defaultdict(float)
     for unit, base in compared_base.values():
@@ -526,12 +555,13 @@ def main():
         "packages_compared": len(out),
         "packages_quantity_compared": len(compared_base),
         "by_status": dict(by_status),
-        "net_difference": {k: round(v, 4) for k, v in net.items()},
-        "gross_variance_outside_tolerance": {k: round(v, 4) for k, v in gross.items()},
-        "system_total_compared": {k: round(v, 4) for k, v in compared_total.items()},
-        "system_total_all_packages": {k: round(v, 4) for k, v in all_total.items()},
+        "net_difference": {k: r6(v) for k, v in net.items()},
+        "gross_variance_all_compared": {k: r6(v) for k, v in gross_all.items()},
+        "gross_variance_outside_tolerance": {k: r6(v) for k, v in gross.items()},
+        "system_total_compared": {k: r6(v) for k, v in compared_total.items()},
+        "system_total_all_packages": {k: r6(v) for k, v in all_total.items()},
         "net_difference_pct_of_compared_total": pct_total,
-        "packages_over_5pct_abs": sum(1 for r in out if r["pct_of_system"] != "" and abs(r["pct_of_system"]) >= 5),
+        "packages_over_5pct_abs": sum(1 for r in out if r["_pct"] is not None and abs(r["_pct"]) >= 5),
         "note_pct": ("net_difference and net_difference_pct_of_compared_total cover quantity-compared packages "
                      "only (on both lists, numeric quantities, convertible units); system_total_compared is "
                      "their system quantity. Packages in only one file and DUPLICATE_CONFLICT, MISSING_UNIT, "
@@ -539,17 +569,33 @@ def main():
                      "total-inventory reading must list them separately. system_total_all_packages is every "
                      "system package with a recognized unit, for context. Do not interpret against any state "
                      "threshold without the jurisdiction gate."),
-        "rounding_rule": (f"Rows whose weight units were converted (e.g. lb vs g) are MATCH when the difference "
-                          f"is at most {ROUNDING_G_PER_LB} g per pound of package weight (minimum "
-                          f"{ROUNDING_G_PER_LB} g); the note says so and the difference is still shown."),
+        "rounding_rule": ("No automatic rounding allowance: any nonzero difference, including after a unit "
+                          "conversion, is a variance unless it is within the operator's own --tolerance-g / "
+                          "--tolerance-each. Displayed numbers are rounded; statuses, totals and "
+                          "packages_over_5pct_abs use unrounded values. gross_variance_all_compared covers every "
+                          "quantity-compared package; gross_variance_outside_tolerance only SHORT/OVER rows."),
         "tolerance": {"g": a.tolerance_g, "each": a.tolerance_each},
         "default_units": {"system": a.default_system_unit or None, "count": a.default_count_unit or None,
                           "rows_using_default": dict(defaults_used)},
         "input_problems": problems,
     }
-    with open(os.path.join(a.out_dir, "summary.json"), "w") as f:
-        json.dump(summary, f, indent=2, allow_nan=False)
-    print(json.dumps(summary, indent=2))
+    # Build and validate both outputs before writing either, so a bad value never leaves half a result.
+    try:
+        summary_text = json.dumps(summary, indent=2, allow_nan=False)
+    except ValueError as e:
+        sys.exit(f"Result contains a non-finite number ({e}); nothing was written. Check the input values.")
+    fields = [k for k in out[0] if not k.startswith("_")] if out else ["package_id"]
+    try:
+        os.makedirs(a.out_dir, exist_ok=True)
+        with open(os.path.join(a.out_dir, "reconciliation.csv"), "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+            w.writeheader()
+            w.writerows([{k: csv_safe(r[k]) for k in fields} for r in out])
+        with open(os.path.join(a.out_dir, "summary.json"), "w") as f:
+            f.write(summary_text + "\n")
+    except OSError as e:
+        sys.exit(f"Cannot write to --out-dir {a.out_dir}: {e}")
+    print(summary_text)
 
 
 if __name__ == "__main__":

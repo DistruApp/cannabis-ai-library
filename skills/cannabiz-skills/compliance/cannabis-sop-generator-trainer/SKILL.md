@@ -73,7 +73,9 @@ a step that wasn't described or confirmed.
 Follow the structure in `templates/cannabis-sop-skeleton.md`:
 
 1. Header block (title, ID, license type/number, dates, owner by role,
-   version, revision history)
+   version, revision history). Set the next review date now with the Phase 3
+   cycle (6 months for a high-risk area, 12 otherwise, or the operator's own
+   cycle), so the approved SOP and its training packet carry the same date.
 2. Purpose and scope, including what's explicitly out of scope
 3. Regulatory references (state statute/rule/license condition, track-and-
    trace system if relevant). Flag missing citations rather than inventing
@@ -96,19 +98,25 @@ Follow the structure in `templates/cannabis-sop-skeleton.md`:
     review)
 
 Present the full draft and stop. Do not proceed to Phase 2 until the operator
-has reviewed it, since the training materials in Phase 2 are built to match
-whatever the approved SOP actually says.
+confirms this version is approved by the role named under Approvals (for
+example the compliance lead). "I've reviewed it" or "looks fine" is not
+approval; ask who approved it. The training materials in Phase 2 are built to
+match whatever the approved SOP actually says.
 
 ============================================================
 PHASE 2: GENERATE THE TRAINING PACKET
 ============================================================
 
-Once the SOP is approved (or approved with edits), build:
+Once the operator confirms this version of the SOP is approved (or approved
+with edits, and the edits are applied), build:
 
 - **Quick-reference summary**: a one-page, plain-language version of the
   step-by-step procedure for posting near the workstation or pulling up
   mid-shift. Steps, expected results, and warnings only, no header block or
-  regulatory citations.
+  regulatory citations. Shorten wording, never controls: carry over every
+  warning, hold or stop condition, escalation step and role restriction in
+  the SOP, including the ones in the Controls and Variance section, not
+  just the numbered steps.
 - **Comprehension check**: 5 to 10 questions tied directly to the SOP's
   critical steps, warnings, and quality checks, not generic questions about
   the topic. Mix formats based on what the step requires someone to know or
@@ -123,7 +131,8 @@ Once the SOP is approved (or approved with edits), build:
   correct. On a fail, the trainer reviews the missed steps with the employee,
   who retakes the check before doing the task unsupervised. Record each
   attempt.
-- **Sign-off / attestation log template**: employee name, role, date trained,
+- **Sign-off / attestation log template**: the SOP ID and approved version
+  the employee was trained on, employee name, role, date trained,
   training method, trainer/supervisor name, comprehension check score and
   result (Pass, or Retrain and retest with the retest date), and a signature
   line.
@@ -147,7 +156,7 @@ one.
 |---|---|
 | "Write an SOP for [process]" | Full workflow starting at Phase 0 |
 | "Turn this into an SOP" (pasted process notes) | Skips most of Phase 0, drafts directly from what's given, asks only for genuine gaps |
-| "Generate training for this SOP" (existing SOP pasted or referenced) | Runs Phase 2 directly against the supplied SOP |
+| "Generate training for this SOP" (existing SOP pasted or referenced) | Confirms the supplied version is approved, then runs Phase 2 against it. If it isn't approved yet, offers to review it instead |
 | "Is this SOP missing anything?" | Reviews a pasted SOP against the skeleton structure and flags missing sections |
 | "When should this SOP be reviewed again?" | Runs Phase 3 logic against the SOP's stated risk area |
 
@@ -165,5 +174,5 @@ one.
 - A template that hasn't been adapted to the operator's actual state, license
   type, and equipment is close to as risky as having no SOP. Don't let a
   generic answer stand in for operator-specific detail.
-- Don't generate the training packet in Phase 2 before the SOP itself has
-  been reviewed.
+- Don't generate the training packet in Phase 2 before the operator confirms
+  that version of the SOP is approved.

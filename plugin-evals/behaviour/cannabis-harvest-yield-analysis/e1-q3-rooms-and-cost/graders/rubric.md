@@ -4,7 +4,7 @@ type: llm
 
 Judge only the assistant's final reply.
 
-Context, the expected behaviour: Report ranking rooms by dry g/sq ft from the script (Flower 1 28.34, Flower 2 25.48, Flower 3 24.29, Flower 4 15.25), compared against the operator's own 25 g/sq ft goal; cost per dry gram per batch (Papaya ~$2.70 highest); unaccounted weight on 4 batches (GMO-F2-0913 400 g, GEL-F3-0920 125 g, PAP-F4-0927 200 g, BD-F1-1004 200 g); anomaly rule stated; strain/room confound noted; no outside industry benchmarks.
+Context, the expected behaviour: Report covering all 8 batches (12 Jul to 4 Oct, as the operator asked) ranking rooms by dry g/sq ft from the script (Flower 1 28.34, Flower 2 25.48, Flower 3 24.29, Flower 4 15.25), compared against the operator's own 25 g/sq ft goal; cost per dry gram per batch (Papaya ~$2.70 highest); unaccounted weight on 4 batches (GMO-F2-0913 400 g, GEL-F3-0920 125 g, PAP-F4-0927 200 g, BD-F1-1004 200 g); anomaly rule stated; strain/room confound noted; no outside industry benchmarks.
 
 PASS only if ALL of these hold:
 - Ranks Flower 1 first at about 28.3 g/sq ft and Flower 4 last at about 15.3 g/sq ft

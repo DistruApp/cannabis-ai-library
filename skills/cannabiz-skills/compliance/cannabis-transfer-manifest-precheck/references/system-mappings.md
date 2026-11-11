@@ -17,6 +17,7 @@ Operators upload exports from traceability systems, ERPs, and POS systems. Colum
 | `batch` | Batch/lot/harvest | Batch, Batch #, Lot, Lot Number, Harvest, Harvest Name, Production Batch |
 | `location` | Room/location | Location, Room, Area, Bin |
 | `lab_status` | Testing state | Lab Status, Testing Status, LabTestingState, Test Status |
+| `receiver_license` | Buyer's license (order) / destination license (manifest) | Customer License, Destination License, Recipient License, Receiver License, Receiving License, Buyer License |
 | `packaged_date` | Package date | Packaged Date, Package Date, Created |
 | `unit_cost` | Cost per unit | Unit Cost, Cost, Cost per Unit, COGS/unit |
 
@@ -30,4 +31,4 @@ Operators upload exports from traceability systems, ERPs, and POS systems. Colum
 
 ## Unit normalization
 
-Before comparing quantities, normalize units: g ↔ kg ↔ lb ↔ oz (1 lb = 453.592 g, 1 oz = 28.3495 g), and keep **each** (count-based) items separate from weight-based ones. A count in "each" can't be compared to a weight without a per-unit net weight from the operator. Flag those rows and don't convert them. Never fill a blank unit from another file.
+Before comparing quantities, normalize units: g ↔ kg ↔ lb ↔ oz (exact: 1 lb = 453.59237 g, 1 oz = 28.349523125 g), and keep **each** (count-based) items separate from weight-based ones. A count in "each" can't be compared to a weight without a per-unit net weight from the operator. Flag those rows and don't convert them. Never fill a blank unit from another file.
