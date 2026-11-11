@@ -4,12 +4,12 @@ type: llm
 
 Judge only the assistant's final reply.
 
-Context, the expected behaviour: Shows the labor budget ($4,368, about 245 hours), a shift-by-shift headcount table (2 everywhere except 3 on Friday and Saturday close, where the ID checker counts toward the 2-person minimum rather than on top of it), a draft schedule with nobody outside availability or over cap, an OPEN GAP for Sunday close (no vault-certified staff available) with options for the manager that show each person's resulting hours against their cap, Tom not scheduled on or after his credential expiry date (2026-11-22, the Sunday), a labor summary showing 180 required hours with the assigned hours and the open-gap hours separately, no comparison with a current schedule because none was given, overtime described as what was checked (no one above 30 hours) with applicability left to confirm, and compliance items phrased as things to confirm.
+Context, the expected behaviour: Shows the labor budget ($4,368, about 245 hours), a shift-by-shift headcount table (2 everywhere except 3 on Friday and Saturday close, where the ID checker counts toward the 2-person minimum rather than on top of it), a draft schedule with nobody outside availability or over cap, an OPEN GAP for vault certification on one Sunday shift (Lisa, the only vault-certified person free Sunday, can cover the open or the close but not both) with options for the manager that show each person's resulting hours against their cap, Tom not scheduled on or after his credential expiry date (2026-11-22, the Sunday), a labor summary showing 180 required hours with the assigned hours and the open-gap hours separately, no comparison with a current schedule because none was given, overtime described as what was checked (no one above 30 hours) with applicability left to confirm, and compliance items phrased as things to confirm.
 
 PASS only if ALL of these hold:
 - Shows the demand-to-headcount calculation per shift using the operator's 12 customers/hour
 - No one is scheduled outside stated availability or above their weekly hour cap
-- Sunday close is shown as an OPEN GAP with options, not filled by an assumed volunteer
+- One Sunday shift (open or close) is shown as an OPEN GAP for vault certification with options, not filled by an assumed volunteer or a double for Lisa
 - Tom K. is not scheduled on or after the day his credential expires
 - The schedule is presented as a draft for manager approval, never published
 - No legal conclusions such as 'can't legally'; compliance items are phrased as items to confirm

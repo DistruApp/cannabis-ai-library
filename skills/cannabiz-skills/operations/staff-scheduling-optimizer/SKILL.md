@@ -10,7 +10,8 @@ description: >-
   logic. Use when building or checking a weekly staff schedule, asking whether
   a shift or day is overstaffed or understaffed, comparing labor cost to a
   target percentage, working out how many budtenders, trimmers or packagers a
-  shift or harvest needs, checking overtime risk, or processing a time-off,
+  shift or harvest needs (including "how many people do we need on this
+  shift?" or sizing a production or packaging crew), checking overtime risk, or processing a time-off,
   call-out or swap request, including "who can cover this shift?". Not for payroll, hiring, HR policy or legal
   advice on labor law.
 license: MIT
@@ -246,4 +247,4 @@ data.
 - Never silently drop a stated hard constraint to make a schedule "work."
   Never schedule anyone outside their availability or over their hour cap to
   close a gap; show the gap.
-- Never publish, post or send the schedule. Present it as a draft.
+- Never publish, post or send the schedule. Present it as a draft. Don't write "published", "posted" or "sent" in the reply, not even to deny it; say "This is a draft for manager approval."

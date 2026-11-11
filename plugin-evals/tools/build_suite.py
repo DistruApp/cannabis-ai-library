@@ -320,7 +320,7 @@ EVAL_GRADERS = {
     (SCH, 1): [has("budget-4368", r"4,?368"), has("open-gap", r"OPEN GAP", "i"),
                has("draft", r"draft", "i"), has("tom", r"Tom"),
                lacks("no-legal-conclusion", r"can(?:no|')t legally|illegal", "i")],
-    (SCH, 2): [has("asks-service-rate", r"per hour|an hour|/hour|/hr", "i")],
+    (SCH, 2): [has("asks-service-rate", r"(?:per|an|a|each|peak) hour|/hour|/hr|hourly", "i")],
     (SCH, 3): [has("open-gap", r"OPEN GAP", "i"), has("jen", r"Jen"), has("cap-34", r"\b34\b")],
 
     (EXP, 1): [lacks("no-dollar-values", r"\$\s?\d"),

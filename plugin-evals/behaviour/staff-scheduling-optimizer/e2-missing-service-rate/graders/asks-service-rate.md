@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: 'per hour|an hour|/hour|/hr'
+pattern: '(?:per|an|a|each|peak) hour|/hour|/hr|hourly'
 flags: i
 ---
