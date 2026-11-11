@@ -22,7 +22,10 @@ Outputs (in --out-dir, default ./recon_out):
   summary.json        counts and totals by status, for the report
 
 The script never drops, merges, or fills in a record without saying so. Anything it
-can't resolve gets an explicit status and an entry in input_problems.
+can't resolve gets an explicit status and an entry in input_problems. A tag that Excel
+turned into scientific notation ("1.23457E+23") is never matched or totalled: status
+TAG_SCIENTIFIC_NOTATION. Text cells that a spreadsheet would run as a formula are written
+with a leading apostrophe.
 """
 import argparse
 import csv
@@ -85,20 +88,53 @@ def detect(headers, overrides):
     return found
 
 
-def parse_overrides(pairs):
+def parse_overrides(pairs, label):
     out = {}
     for p in pairs or []:
         if "=" not in p:
             sys.exit(f"Bad mapping '{p}'. Use field=Column Name")
         k, v = p.split("=", 1)
-        out[k.strip()] = v.strip()
+        k = k.strip()
+        if k not in ALIASES:
+            sys.exit(f"Bad mapping '{p}' for --map-{label}: unknown field '{k}'. "
+                     f"Fields: {', '.join(ALIASES)}")
+        out[k] = v.strip()
     return out
 
 
+def read_csv_rows(path, label):
+    """Read a CSV into (headers, rows). An unreadable file is a clean exit, never a traceback."""
+    try:
+        with open(path, newline="", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            headers = list(reader.fieldnames or [])
+            rows = list(reader)
+    except UnicodeDecodeError:
+        sys.exit(f"[{label}] {path} is not UTF-8 text. Save it as 'CSV UTF-8' and rerun.")
+    except (OSError, csv.Error) as e:
+        sys.exit(f"[{label}] Cannot read {path}: {e}")
+    if not any(h and h.strip() for h in headers):
+        sys.exit(f"[{label}] {path} is empty (no header row).")
+    if not rows:
+        sys.exit(f"[{label}] {path} has a header row but no data rows. Check that the right file "
+                 "was exported.")
+    named = [h.strip() for h in headers if h and h.strip()]
+    dupes = sorted({h for h in named if named.count(h) > 1})
+    if dupes:
+        sys.exit(f"[{label}] {path} has more than one column named {dupes}. Rename or remove the "
+                 "extra column and rerun.")
+    return headers, rows
+
+
 def load(path, overrides, label):
-    with open(path, newline="", encoding="utf-8-sig") as f:
-        rows = list(csv.DictReader(f))
-        headers = rows[0].keys() if rows else []
+    headers, rows = read_csv_rows(path, label)
+    by_norm = {norm_header(h): h for h in headers}
+    for field, col in overrides.items():
+        if col not in headers:
+            if norm_header(col) not in by_norm:
+                sys.exit(f"[{label}] --map-{label} {field}={col}: there is no column named '{col}'. "
+                         f"Headers: {headers}")
+            overrides[field] = by_norm[norm_header(col)]
     m = detect(headers, overrides)
     for req in ("package_id", "quantity"):
         if req not in m or m[req].startswith("AMBIGUOUS:"):
@@ -136,6 +172,41 @@ def to_number(s):
     if not math.isfinite(v):
         return None, f"not a finite number: '{s}'"
     return v, None
+
+
+_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_safe(v):
+    """Stop a spreadsheet from running a cell as a formula.
+
+    Text that starts with = + - @ or a tab/return gets a leading
+    apostrophe. Real numbers (including negatives like -5.69) are left alone.
+    """
+    if isinstance(v, str) and v.startswith(_FORMULA_START):
+        try:
+            float(v)
+        except ValueError:
+            return "'" + v
+    return v
+
+
+# A numeric tag that Excel turned into scientific notation ("1.23457E+23"). The real digits
+# are gone, so the tag can't be matched, and two packages can collapse to the same value.
+_SCI_TAG_RE = re.compile(r"^\d+(\.\d+)?[eE][+-]\d+$")
+
+
+def is_sci_tag(raw):
+    return bool(_SCI_TAG_RE.match(re.sub(r"\s", "", raw or "")))
+
+
+def tolerance_arg(raw):
+    """argparse type for --tolerance-*: the same strict parse as quantities, 0 or more."""
+    v, problem = to_number(raw)
+    if problem or v is None or v < 0:
+        raise argparse.ArgumentTypeError(
+            f"'{raw}' is not a usable tolerance: give a plain number of 0 or more, such as 0.5")
+    return v
 
 
 def parse_qty(raw):
@@ -218,14 +289,25 @@ def merge_duplicates(tag, recs, label, problems):
     return merged
 
 
-def index(rows, m, label, problems):
+def index(rows, m, label, problems, sci_rows):
     groups = defaultdict(list)
     for i, r in enumerate(rows, start=2):
-        tag = norm_tag(r.get(m["package_id"]))
+        raw_tag = r.get(m["package_id"]) or ""
+        tag = norm_tag(raw_tag)
         if not tag:
             problems.append(f"{label} row {i}: blank package tag")
             continue
         raw_qty = r.get(m["quantity"]) or ""
+        if is_sci_tag(raw_tag):
+            problems.append(f"{label} row {i}, column '{m['package_id']}', value '{raw_tag.strip()}': "
+                            "package tag is in scientific notation (Excel dropped the real digits); "
+                            "row not matched or totalled (status TAG_SCIENTIFIC_NOTATION)")
+            qty, qty_problem = parse_qty(raw_qty)
+            sci_rows.append({"label": label, "row": i, "tag": raw_tag.strip(),
+                             "qty": qty, "uom": (r.get(m["uom"]) or "").strip() if ok(m, "uom") else "",
+                             "item": r.get(m["item"], "") if ok(m, "item") else "",
+                             "location": r.get(m["location"], "") if ok(m, "location") else ""})
+            continue
         qty, qty_problem = parse_qty(raw_qty)
         uom = r.get(m["uom"], "") if ok(m, "uom") else ""
         if qty_problem:
@@ -256,9 +338,9 @@ def main():
     ap.add_argument("--out-dir", default="recon_out")
     ap.add_argument("--map-system", nargs="*")
     ap.add_argument("--map-count", nargs="*")
-    ap.add_argument("--tolerance-g", type=float, default=0.0,
+    ap.add_argument("--tolerance-g", type=tolerance_arg, default=0.0,
                     help="Ignore weight differences at or below this many grams (operator's own threshold)")
-    ap.add_argument("--tolerance-each", type=float, default=0.0)
+    ap.add_argument("--tolerance-each", type=tolerance_arg, default=0.0)
     ap.add_argument("--default-count-unit", default="",
                     help="Unit for count rows whose unit is blank. Only when the operator states it.")
     ap.add_argument("--default-system-unit", default="",
@@ -266,16 +348,13 @@ def main():
     ap.add_argument("--detect-only", action="store_true")
     a = ap.parse_args()
 
-    for flag, val in (("--tolerance-g", a.tolerance_g), ("--tolerance-each", a.tolerance_each)):
-        if not math.isfinite(val) or val < 0:
-            sys.exit(f"{flag} must be a finite number of 0 or more (got {val}).")
     for flag, val in (("--default-count-unit", a.default_count_unit),
                       ("--default-system-unit", a.default_system_unit)):
         if val and unit_kind(val)[0] == "unknown":
             sys.exit(f"{flag} '{val}' is not a recognized unit (use g, lb, oz, kg, mg, or each).")
 
-    srows, sm = load(a.system, parse_overrides(a.map_system), "system")
-    crows, cm = load(a.count, parse_overrides(a.map_count), "count")
+    srows, sm = load(a.system, parse_overrides(a.map_system, "system"), "system")
+    crows, cm = load(a.count, parse_overrides(a.map_count, "count"), "count")
     if a.detect_only:
         print(json.dumps({"system_mapping": sm, "count_mapping": cm,
                           "system_rows": len(srows), "count_rows": len(crows)}, indent=2))
@@ -289,8 +368,9 @@ def main():
                    "every package on both lists gets MISSING_UNIT unless the operator states the unit "
                    f"(--default-{label}-unit)")
             problems.append(f"{label} file: no unit column found; {how}")
-    S = index(srows, sm, "system", problems)
-    C = index(crows, cm, "count", problems)
+    sci_rows = []
+    S = index(srows, sm, "system", problems, sci_rows)
+    C = index(crows, cm, "count", problems, sci_rows)
     out = []
     compared_base = {}
     defaults_used = Counter()
@@ -395,12 +475,31 @@ def main():
         row["notes"] = " | ".join(notes)
         out.append(row)
 
-    os.makedirs(a.out_dir, exist_ok=True)
-    fields = list(out[0].keys()) if out else ["package_id"]
-    with open(os.path.join(a.out_dir, "reconciliation.csv"), "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fields)
-        w.writeheader()
-        w.writerows(out)
+    # Rows whose tag Excel turned into scientific notation: listed, never matched or totalled.
+    for b in sci_rows:
+        side = b["label"]
+        out.append({"package_id": b["tag"], "item": b["item"],
+                    "location_system": b["location"] if side == "system" else "",
+                    "location_count": b["location"] if side == "count" else "",
+                    "system_qty": b["qty"] if side == "system" and b["qty"] is not None else "",
+                    "system_uom": b["uom"] if side == "system" else "",
+                    "count_qty": b["qty"] if side == "count" and b["qty"] is not None else "",
+                    "count_uom": b["uom"] if side == "count" else "",
+                    "difference": "", "difference_unit": "", "pct_of_system": "",
+                    "status": "TAG_SCIENTIFIC_NOTATION",
+                    "notes": (f"{side} row {b['row']}: tag '{b['tag']}' is in scientific notation, so the "
+                              "real tag is lost; not matched or totalled. Re-export with the tag column "
+                              "formatted as text.")})
+
+    try:
+        os.makedirs(a.out_dir, exist_ok=True)
+        fields = list(out[0].keys()) if out else ["package_id"]
+        with open(os.path.join(a.out_dir, "reconciliation.csv"), "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=fields)
+            w.writeheader()
+            w.writerows([{k: csv_safe(v) for k, v in r.items()} for r in out])
+    except OSError as e:
+        sys.exit(f"Cannot write to --out-dir {a.out_dir}: {e}")
 
     by_status = Counter(r["status"] for r in out)
     net = defaultdict(float)
@@ -436,7 +535,7 @@ def main():
         "note_pct": ("net_difference and net_difference_pct_of_compared_total cover quantity-compared packages "
                      "only (on both lists, numeric quantities, convertible units); system_total_compared is "
                      "their system quantity. Packages in only one file and DUPLICATE_CONFLICT, MISSING_UNIT, "
-                     "UNKNOWN_UOM, UOM_MISMATCH, BAD_QUANTITY and INVALID_NUMBER rows are not in the net, so a "
+                     "UNKNOWN_UOM, UOM_MISMATCH, BAD_QUANTITY, INVALID_NUMBER and TAG_SCIENTIFIC_NOTATION rows are not in the net, so a "
                      "total-inventory reading must list them separately. system_total_all_packages is every "
                      "system package with a recognized unit, for context. Do not interpret against any state "
                      "threshold without the jurisdiction gate."),

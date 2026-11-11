@@ -1,0 +1,12 @@
+[
+  {"query": "Which of our products expire in the next 90 days and which customers usually buy them? We use Distru.", "should_trigger": true},
+  {"query": "build me a distru dashboard of expiring stock and past buyers so I can push it before it dates out", "should_trigger": true},
+  {"query": "I need to move dated inventory fast. Pull the lots expiring by March from Distru and show who ordered them last year.", "should_trigger": true},
+  {"query": "Customize our expiring-inventory dashboard to only show the Oakland location", "should_trigger": true},
+  {"query": "Draft promo emails to past buyers of the gummies that expire next month, from our Distru data", "should_trigger": true},
+  {"query": "Reconcile our Metrc packages against the physical count", "should_trigger": false},
+  {"query": "What should I reorder this week? POS export attached", "should_trigger": false},
+  {"query": "What's California's rule on destroying expired cannabis products?", "should_trigger": false},
+  {"query": "Write a cold email to a new dispensary prospect introducing our brand", "should_trigger": false},
+  {"query": "Calculate the cost per unit for our last gummy batch", "should_trigger": false}
+]

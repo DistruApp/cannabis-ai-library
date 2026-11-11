@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: cannabis-transfer-manifest-precheck--s4-script-unavailable
+context:
+  scaffold_script: setup.sh

@@ -1,0 +1,360 @@
+Date,SKU,Product Name,Brand,Category,Units Sold,Net Sales
+2026-08-02,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-02,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-02,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-02,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-02,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-02,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-02,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-03,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-03,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-03,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-03,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-03,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-03,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-04,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-04,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-04,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-04,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-04,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-04,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-04,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-05,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-05,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-05,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-05,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-05,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-05,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-06,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-06,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-06,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-06,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-06,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-06,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-06,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-07,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-07,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-07,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-07,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-07,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-07,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-08,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-08,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-08,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-08,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-08,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-08,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-08,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-09,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-09,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-09,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-09,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-09,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-09,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-10,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-10,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-10,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-10,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-10,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-10,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-10,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-11,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-11,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-11,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-11,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-11,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-11,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-12,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-12,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-12,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-12,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-12,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-12,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-12,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-13,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-13,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-13,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-13,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-13,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-13,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-14,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-14,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-14,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-14,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-14,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-14,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-14,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-15,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-15,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-15,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-15,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-15,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-15,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-16,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-16,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-16,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-16,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-16,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-16,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-16,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-17,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-17,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-17,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-17,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-17,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-17,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-18,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-18,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-18,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-18,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-18,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-18,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-18,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-19,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-19,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-19,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-19,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-19,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-19,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-20,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-20,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-20,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-20,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-20,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-20,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-20,NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Pre-Roll,1,25.00
+2026-08-21,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-21,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-21,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-21,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-21,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-22,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-22,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-22,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-22,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-22,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-22,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-23,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-23,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-23,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-23,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-23,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-24,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-24,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-24,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-24,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-24,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-24,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-25,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-25,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-25,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-25,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-25,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-26,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-26,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-26,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-26,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-26,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-26,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-27,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-27,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-27,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-27,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-27,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-28,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-28,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-28,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-28,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-28,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-28,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-29,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-29,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-29,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-29,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-29,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-30,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-30,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-30,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-30,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-30,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-08-30,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-08-31,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-08-31,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-08-31,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-08-31,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-08-31,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-01,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-01,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,40,1600.00
+2026-09-01,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-01,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-01,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-02,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-02,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-02,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-02,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-02,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-02,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-03,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-03,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-03,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-03,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-03,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-04,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-04,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-04,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-04,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-04,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-04,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-05,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-05,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-05,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-05,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-05,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-06,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-06,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-06,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-06,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-06,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-06,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-07,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-07,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-07,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-07,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-07,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-08,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-08,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-08,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-08,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-08,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-08,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-09,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-09,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-09,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-09,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-09,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-10,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-10,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-10,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-10,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-10,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-10,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-11,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-11,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-11,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-11,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-11,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-12,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-12,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-12,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-12,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-12,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-12,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-13,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-13,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-13,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-13,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-13,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-14,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-14,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-14,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-14,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-14,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-14,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-15,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-15,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-15,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-15,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-15,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-16,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-16,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-16,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-16,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-16,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-16,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-17,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-17,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-17,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-17,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-17,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-18,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-18,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-18,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-18,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-18,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-18,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-19,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-19,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-19,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-19,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-19,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-20,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-20,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-20,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-20,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-20,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-20,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-20,NB-SM-14,Smalls 14g - Runtz,Example North Farms,Flower,2,120.00
+2026-09-21,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-21,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-21,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-21,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-21,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-21,NB-SM-14,Smalls 14g - Runtz,Example North Farms,Flower,2,120.00
+2026-09-22,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-22,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-22,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-22,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-22,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-22,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-22,NB-SM-14,Smalls 14g - Runtz,Example North Farms,Flower,2,120.00
+2026-09-23,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-23,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-23,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-23,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-23,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-23,NB-SM-14,Smalls 14g - Runtz,Example North Farms,Flower,2,120.00
+2026-09-24,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-24,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-24,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-24,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-24,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-24,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-24,NB-SM-14,Smalls 14g - Runtz,Example North Farms,Flower,2,120.00
+2026-09-25,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-25,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-25,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-25,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-25,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-25,NB-SM-14,Smalls 14g - Runtz,Example North Farms,Flower,2,120.00
+2026-09-26,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-26,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-26,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-26,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-26,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-26,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-26,NB-SM-14,Smalls 14g - Runtz,Example North Farms,Flower,2,120.00
+2026-09-27,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-27,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-27,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-27,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-27,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-27,NB-SM-14,Smalls 14g - Runtz,Example North Farms,Flower,2,120.00
+2026-09-28,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-28,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-28,CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Vape,4,180.00
+2026-09-28,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-28,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-28,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-28,NB-SM-14,Smalls 14g - Runtz,Example North Farms,Flower,2,120.00
+2026-09-29,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-29,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-29,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-29,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-29,NB-SM-14,Smalls 14g - Runtz,Example North Farms,Flower,2,120.00
+2026-09-30,SP-BD-35,Blue Dream 3.5g,Example Pines,Flower,6,210.00
+2026-09-30,SP-GMO-35,GMO Cookies 3.5g,Example Pines,Flower,2,80.00
+2026-09-30,CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Vape,2,60.00
+2026-09-30,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,3,60.00
+2026-09-30,GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,Edible,2,44.00
+2026-09-30,NB-SM-14,Smalls 14g - Runtz,Example North Farms,Flower,2,120.00
+2026-09-15,GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Edible,-2,-40.00

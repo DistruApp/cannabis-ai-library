@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: staff-scheduling-optimizer--e1-weekly-schedule-with-gap
+context:
+  scaffold_script: setup.sh

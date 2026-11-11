@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: cannabis-harvest-yield-analysis--e2-best-strain-no-canopy
+context:
+  scaffold_script: setup.sh

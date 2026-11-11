@@ -4,7 +4,7 @@ Skill: [`cannabis-state-rules-lookup`](../../../skills/cannabiz-skills/complianc
 
 ## What it does
 
-Gives a licensed cannabis operator a cited answer to a state rule question: the rule, the exact text, the source link, the effective date and the date it was checked. If a rule can't be verified from a primary source, it says so plainly and tells the operator where to check. It ships with detailed profiles for CA, CO, MI, MA, NY, IL and OK, plus a table of the traceability system each of 26 states uses. Every entry is labelled verified or unverified: most Michigan rules, Colorado's rule quotes since the November 2026 rule update, and the systems for PA, CT and DE are flagged for the operator to confirm.
+Gives a licensed cannabis operator a cited answer to a state rule question: the rule, the exact text, the source link, the effective date and the date it was checked. If a rule can't be verified from a primary source, it says so plainly and tells the operator where to check. It ships with detailed profiles for CA, CO, MI, MA, NY, IL and OK, plus a table of the traceability system each of 26 states uses. Every entry is labelled with how it was verified: most Michigan and Colorado rules (whose official sites couldn't be checked), Illinois cultivation rules since the May 2026 update, and the systems for PA, CT and DE are flagged for the operator to confirm.
 
 ## When to use it
 
@@ -19,7 +19,7 @@ Gives a licensed cannabis operator a cited answer to a state rule question: the 
 - **Inputs:** the question, the state, the license type, and whether the license is medical, adult use or both. It asks for anything missing in one question.
 - **Tools / connectors:** none required. Web access makes it better, since it can check live regulator pages when the built-in profile is out of date.
 - **Works in:** Claude or any LLM.
-- **Limits:** not legal or tax advice. Questions about 280E are sent to a CPA.
+- **Limits:** not legal or tax advice. Questions about 280E are sent to a CPA or counsel.
 
 ## Example
 

@@ -28,7 +28,7 @@ Gives a buyer a reorder list they can defend: what to buy, how much, from whom, 
 Required:
 - **Sales export** by SKU with a date per row (POS for a dispensary; account sell-through for a distributor/brand). At least 4 weeks of history is ideal.
 - **Current on-hand by SKU**, as of the end of the sales period. Say if the as-of dates don't line up.
-- **The date of the on-hand count.** It is passed as `--as-of` and the sales window ends on it. If the user hasn't given it, ask. Don't take it from the last sale date in the export.
+- **The date of the on-hand count.** It is passed as `--as-of` and the sales window ends on it. If the user hasn't said when on-hand was counted, run the step 2 command without `--as-of`: the script stops and says it needs the count date. Report that as the reason, and ask for the date in your one combined question (along with any mapping questions you can see from the file headers). Don't take the date from the last sale in the export or from a file name (that may be the export date, not the count date).
 
 Planning parameters. Ask for them in **one** combined question. Use the operator's values and never invent "industry standard" targets:
 
@@ -47,9 +47,9 @@ Optional per-SKU columns: unit cost (needed for PO dollars and dead-stock value)
 
 ### 2. Mapping
 
-Run `python3 <skill-dir>/scripts/replenish.py --sales <file> --onhand <file> --as-of <on-hand count date> --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces.
+Run `python3 <skill-dir>/scripts/replenish.py --sales <file> --onhand <file> --as-of <on-hand count date> --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces, and don't compare the files by hand either (no list of rows that differ, match, are missing or would pass).
 
-Show the detected mapping in one line per file. If a column is missing or `AMBIGUOUS` (e.g. both "On Hand" and "Available"), ask which one and pass `--map-sales field=Column` / `--map-onhand field=Column`. Alias hints are in `references/system-mappings.md`. If the export has product names but no SKU, map `sku=Product` and warn that name changes will split history.
+Show the detected mapping in one line per file. `missing_required_columns` lists any required column it couldn't find. If a column is missing or `AMBIGUOUS` (e.g. both "On Hand" and "Available"), ask which one and pass `--map-sales field=Column` / `--map-onhand field=Column`. Alias hints are in `references/system-mappings.md`. If the export has product names but no SKU, map `sku=Product` and warn that name changes will split history.
 
 ### 3. Run
 
@@ -64,7 +64,8 @@ The script never silently drops, merges or fills in on-hand data:
 - **Lead time text:** "7 days" and "2 weeks" are read as 7 and 14 days (and noted). Anything else, such as "7-10 days", is flagged `BAD_LEAD_TIME` and gets no order. The default lead time is never used in its place.
 - **Unreadable numbers:** NaN, inf and decimal commas such as `4,25` or `1.234,56` are never guessed. Each is listed in `input_problems` with its row, column and raw value; an unreadable sales units cell leaves that sales row out. US thousands separators such as `1,200` are read normally. A non-numeric or negative open PO (`BAD_OPEN_PO`) holds the SKU because it might already be on order. A non-numeric or zero case pack (`BAD_CASE_PACK`) leaves the quantity unrounded. A non-numeric or negative unit cost (`BAD_UNIT_COST`) leaves the cost blank.
 - **Negative numbers:** negative on-hand (`NEGATIVE_ONHAND`) holds the SKU with no order until the count is corrected. Negative sales units are returns (`RETURNS_IN_WINDOW`); if returns exceed sales for a SKU in the window, its velocity is 0 and it is flagged `NEGATIVE_NET_SALES`.
-- `skus_held_for_review` lists every SKU that got no order because of a data problem. Put them in the report so they aren't forgotten.
+- **SKU spelling:** SKUs are matched ignoring case and spacing, so `e-case` in sales and `E-CASE ` on hand are one SKU, not a fake `DEAD` plus a fake `NO_ONHAND_RECORD`. The SKU is flagged `SKU_VARIANTS` and every spelling is in `input_problems`. Mention it so the exports get fixed.
+- `skus_held_for_review` lists SKUs held for a negative on-hand, an unreadable or negative open PO, an unreadable on-hand row among duplicate rows, or conflicting duplicate rows. It is not every SKU without an order because of a data problem: a SKU whose only on-hand cell is unreadable shows `NO_ONHAND_RECORD`, and a blank or unreadable lead time is in `skus_missing_lead_time`. Put all of them in the report so they aren't forgotten.
 
 ### 4. Sanity-check before recommending
 
@@ -78,6 +79,19 @@ Look at `replenishment.csv` for these and adjust **the recommendation, not the m
 ### 5. Report
 
 Fill `assets/plan-template.md`, then `assets/po-draft-template.md` grouped by vendor with line and total cost. Lead with the bottom line: number of SKUs to reorder, total PO dollars, stockouts, and the dollar value tied up in dead stock. Follow `references/output-conventions.md` for labels.
+
+## Before you reply
+
+**Bad values and blanks.** Quote the raw cell (`'1,5'`, `NaN`, `inf`, `-3`) with its SKU and column, say what the script did with it, and ask for the right figure. Don't offer readings ("1.5 or 15?"), don't work out what a reading would give (days of supply, a line cost, a PO total), and don't fill it from another file.
+
+**You never send.** Not by email, not in a vendor portal, and not later "if you give me the addresses or access". Say the buyer sends the PO, and mark it a draft.
+
+**Your final reply must contain:**
+- The on-hand count date you ran with and where it came from (the user). If they didn't give one, the question, and no order quantities.
+- The PO draft by vendor with line and total cost, marked DRAFT, not sent; lines with no cost shown as such, not left out of the count.
+- Every SKU with no order because of a data problem (`skus_held_for_review`, `NO_ONHAND_RECORD`, `skus_missing_lead_time`, `lines_needing_vendor`) and what's needed for each.
+- Every `input_problems` line, with its SKU, column and raw value, including sales-file cells that only affect revenue.
+- Every entry in `assumptions`, labelled as yours to confirm.
 
 ## Gotchas
 

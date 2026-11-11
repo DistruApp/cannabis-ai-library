@@ -1,6 +1,12 @@
 ---
 name: distru-expiring-inventory
-description: "Build, review or customize a connected Distru expiring-inventory dashboard (stock about to expire → the customers who already buy it → a reviewed promo email drafted by the AI agent), in Claude (artifacts, Claude Code) or Codex / ChatGPT (Sites, Codex app, Codex CLI). Use when asked to find expiring stock, move dated inventory, see past buyers of a product, or draft a promo email to them from Distru data."
+description: "Build, review or customize a connected Distru expiring-inventory dashboard (stock about to expire → the customers who already buy it → a reviewed promo email drafted by the AI agent), in Claude (artifacts, Claude Code) or Codex / ChatGPT (Sites, Codex app, Codex CLI). Use when asked to find expiring stock, move dated inventory, see past buyers of a product, or draft a promo email to them from Distru data, or to draft a promo email for expiring lots to a named buyer from the user's own terms."
+license: MIT
+metadata:
+  version: "0.3.1"
+  category: distru-connected
+  risk-level: medium
+  requires: Distru MCP connector
 ---
 
 # Distru Expiring Inventory
@@ -45,6 +51,13 @@ the bracketed parts with the user's own company, product and expiry month.
 
 ## Rules for both agents
 
+- **No Distru connection, no numbers.** If no Distru tools are available in this
+  session, stop and say so, and tell the user how to connect Distru. Do not build
+  a dashboard, estimate quantities or value, or switch to a pasted file or CSV
+  on your own. Stop means stop: say how to connect, and don't offer a pasted-list
+  or CSV route or describe the dashboard you would build. If the user pastes a
+  buyer list or gives a named buyer and their terms and asks only for an email
+  draft, draft it with [placeholders] for anything Distru would normally supply.
 - **Company first.** Resolve the connected company, its timezone and the current
   tool schemas. Never pick a company from an input ID or a browser tab.
 - **Defaults** unless the user says otherwise: expiry from today through six

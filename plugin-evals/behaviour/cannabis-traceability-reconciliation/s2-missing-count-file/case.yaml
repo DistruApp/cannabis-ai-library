@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: cannabis-traceability-reconciliation--s2-missing-count-file
+context:
+  scaffold_script: setup.sh

@@ -20,7 +20,7 @@
     {
       "id": 2,
       "name": "promo-spike-and-new-sku",
-      "prompt": "we ran a labor day sale 9/1 on GMO Cookies, pull 35 days of sales so that's included. also the Runtz smalls just launched. same files. 7 day lead time if missing, no safety stock.",
+      "prompt": "we ran a labor day sale 9/1 on GMO Cookies, pull 35 days of sales so that's included. also the Runtz smalls just launched. same files, on-hand counted 9/30. 7 day lead time if missing, no safety stock.",
       "expected_output": "Runs with --as-of 2026-09-30 (same on-hand file as before, counted 9/30) and --window-days 35 so 9/1 is included, recognizes the GMO Cookies velocity is inflated by the 40-unit promo day and either reruns excluding it or explains the effect; treats NB-SM-14 velocity as provisional (NEW_SKU, 11 days); uses safety_days=0 as operator-provided, not as an assumption. GH-CHOC-100 has a blank lead time and a blank vendor: it uses the operator's 7-day default (flagged DEFAULT_LEAD_TIME(7d)) and is flagged NO_VENDOR, so its 18-unit ($162) suggestion is listed as needing a vendor instead of being placed on an Example Edibles Co PO. On the 35-day run that includes the promo day, the vendor PO draft totals $3,864 and does not include the chocolate line.",
       "files": ["evals/files/pos_sales_2026-08-02_to_2026-09-30.csv", "evals/files/onhand_2026-09-30.csv"],
       "assertions": [

@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: cannabis-traceability-reconciliation--e1-clean-mi-month-end
+context:
+  scaffold_script: setup.sh

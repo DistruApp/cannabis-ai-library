@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: cannabis-inspection-readiness--e1-co-cultivation-mip-with-doc-list
+context:
+  scaffold_script: setup.sh

@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: cannabis-replenishment-planner--e4-regression-duplicate-rows-lead-time-text-vendor
+context:
+  scaffold_script: setup.sh

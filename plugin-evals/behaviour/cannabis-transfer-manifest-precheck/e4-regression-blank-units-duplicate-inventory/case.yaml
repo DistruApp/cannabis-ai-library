@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: cannabis-transfer-manifest-precheck--e4-regression-blank-units-duplicate-inventory
+context:
+  scaffold_script: setup.sh

@@ -42,7 +42,7 @@ Where inputs come from: ERP item costs and production records, purchase invoices
 
 ### 2. Mapping
 
-`python3 <skill-dir>/scripts/cogs.py --bom <file> --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces.
+`python3 <skill-dir>/scripts/cogs.py --bom <file> --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces, and don't compare the files by hand either (no list of rows that differ, match, are missing or would pass).
 
 Show the mapping in one line. Fix missing or AMBIGUOUS columns with `--map field=Column` (fields: component, qty, uom, unit_cost, cost_uom). For Excel files, export to CSV first.
 
@@ -54,7 +54,7 @@ python3 <skill-dir>/scripts/cogs.py --bom <file> --batch-name <name> --units-pro
   --testing-cost T [--assume key=value ...] --out-dir <dir>
 ```
 
-Exit code 2 with `"status": "BLOCKED"` lists exactly what's missing or malformed. Take that list back to the operator. Don't fill it in yourself. Report the script's numbers as-is.
+Always run the script, even when you can already see the problem in the file: it lists every problem, not just the first. Exit code 2 with `"status": "BLOCKED"` lists exactly what's missing or malformed. Take that list back to the operator. Don't fill it in yourself. Report the script's numbers as-is.
 
 - `cost_uom:<component>` in `missing_inputs` means a weight or volume line has a price but no price unit. Ask "price per what unit?" (per g, per lb, per kg). Never guess it from the quantity unit.
 - Unreadable numbers block the run: NaN, inf, a decimal comma such as `4,25` or `1.234,56`, and negative quantities or costs. Each is listed in `input_problems` with its row, column and raw value. Ask the operator for the right figure; never reinterpret it yourself (`4,25` could be 4.25 or 425). A return or correction belongs netted into the quantity consumed. US thousands separators such as `1,200` are read normally.
@@ -72,6 +72,18 @@ Exit code 2 with `"status": "BLOCKED"` lists exactly what's missing or malformed
 ### 5. Report
 
 Fill `assets/report-template.md` and follow `references/output-conventions.md`. Lead with cost per unit, total batch cost, the biggest driver, and the yield gap in dollars. For deeper context on the cost elements, read `references/cost-elements.md`.
+
+## Before you reply
+
+**Bad values and blanks.** Quote the raw cell (`'50,5'`, `NaN`, a blank price unit) with its row and column and ask for the right figure. Don't offer readings ("$4.25 or $425?"), don't work out what a reading would cost, and don't fill it from another line.
+
+**Missing inputs.** Ask for them; don't give a partial total or cost per unit you worked out yourself, not even a materials subtotal. If the operator says "use whatever" without a number, ask for a number they choose; you never pick one.
+
+**You never update or send anything.** Not the ERP standard cost, not an email to the team, and not later "if you give me access". Say the user does it, and give a draft message they can send.
+
+**Your final reply must contain:**
+- When BLOCKED: the word **BLOCKED** in the first line, every `missing_inputs` item, and every `input_problems` line (skipped blank rows, count lines read as per each, unreadable or negative numbers), each with its row, column and raw value, then one combined question. No cost figures.
+- When OK: cost per unit and total batch cost first, then the line-by-line roll-up including labor, overhead and testing, the yield variance in units and $ per unit, the ±10%/±20% sensitivity on the top 3 drivers, assumptions (each `[ASSUMPTION]` listed), Data gaps (every `input_problems` line), and the one-line CPA note on 280E.
 
 ## Gotchas
 

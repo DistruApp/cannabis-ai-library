@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: cannabis-harvest-yield-analysis--s1-close-in-metrc
+context:
+  scaffold_script: setup.sh

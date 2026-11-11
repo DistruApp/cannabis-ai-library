@@ -1,0 +1,8 @@
+employee_name,role,hourly_rate,vault_certified_y_n,availability_days,weekly_hour_cap,state_credential_expiration_if_required,notes
+Sarah M.,Lead Budtender,19.00,Y,Mon-Fri,34,2027-06-30,
+Dave S.,Compliance/Inventory Tech,20.00,Y,Mon-Fri,34,2027-03-15,
+Jen R.,Budtender,18.00,Y,Tue-Sat,34,2027-08-01,
+Lisa P.,Budtender,17.50,Y,"Mon, Wed, Fri, Sat, Sun",28,2027-01-31,
+Tom K.,Budtender,17.00,N,Wed-Sun,32,2026-11-22,
+Mike T.,Budtender,17.00,N,All days,30,2027-05-10,
+Amy W.,Front Desk,16.00,N,All days,25,2027-09-20,

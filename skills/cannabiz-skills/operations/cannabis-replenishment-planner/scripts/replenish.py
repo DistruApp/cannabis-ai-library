@@ -13,7 +13,9 @@ Usage:
   --as-of              REQUIRED. The date of the on-hand count; the sales window ends on this date.
                        If the last sale in the file is more than 1 day earlier, summary.json "warnings"
                        says so; sales dated after it are left out and counted in "warnings".
-  --detect-only        print detected column mappings and data date range, then exit.
+  --detect-only        print detected column mappings and data date range, then exit. A missing or
+                       AMBIGUOUS required column is listed under "missing_required_columns" instead of
+                       stopping the script, so both files' mappings can be confirmed in one step.
   --default-lead-time  used ONLY for SKUs whose lead time cell is truly blank; those SKUs are
                        flagged DEFAULT_LEAD_TIME(Nd). "7 days" / "2 weeks" are parsed; anything else
                        unreadable is flagged BAD_LEAD_TIME and not ordered.
@@ -33,6 +35,13 @@ Data rules (nothing is dropped, merged or invented silently):
   - Negative on-hand (NEGATIVE_ONHAND) or negative open PO (BAD_OPEN_PO) holds the SKU: no order.
   - Non-numeric open PO (BAD_OPEN_PO) holds the SKU; non-numeric case pack (BAD_CASE_PACK) leaves the
     quantity unrounded; non-numeric unit cost (BAD_UNIT_COST) leaves cost blank. All are reported.
+  - SKUs are matched ignoring case and repeated spaces ("e-case" in sales = "E-CASE " on hand). The
+    outputs show the on-hand spelling; a SKU written more than one way is flagged SKU_VARIANTS and
+    every spelling is listed in input_problems.
+  - Rows with a blank SKU are listed in input_problems. If no row has a SKU, or the on-hand file has no
+    data rows, the outputs are still written and summary.json "warnings" says so.
+  - Text cells written to the CSVs that start with = + - @ get a leading apostrophe (csv_safe), so a
+    spreadsheet never runs them as formulas.
 
 Defaults that are NOT operator-provided are listed in summary.json "assumptions" so
 the report can tag them [ASSUMPTION]. No industry benchmarks are built in.
@@ -73,6 +82,9 @@ ONHAND_ALIASES = {
     "lead_time_days": ["lead time", "lead time days", "lead_time_days", "lead days"],
     "open_po_qty": ["open po", "open po qty", "on order", "incoming", "qty on order"],
 }
+REPL_FIELDS = ["sku", "product", "brand", "category", "vendor", "units_sold_window", "days_measured", "units_per_day",
+               "revenue_window", "on_hand", "open_po_qty", "sell_through_pct", "days_of_supply", "lead_time_days",
+               "reorder_point", "suggested_order_qty", "case_pack", "unit_cost", "order_cost", "last_sale", "flags"]
 REQUIRED_SALES = ("date", "sku", "units")
 REQUIRED_ONHAND = ("sku", "on_hand")
 DATE_FORMATS = ("%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y", "%Y/%m/%d", "%Y-%m-%d %H:%M:%S", "%m/%d/%Y %H:%M",
@@ -111,18 +123,37 @@ def parse_overrides(pairs):
     return out
 
 
-def load(path, aliases, overrides, required, label):
-    with open(path, newline="", encoding="utf-8-sig") as f:
-        rows = list(csv.DictReader(f))
-        headers = list(rows[0].keys()) if rows else []
+def load(path, aliases, overrides, required, label, strict=True):
+    """Read a CSV and detect its columns. strict=False (--detect-only) reports a missing required
+    column in the returned "missing" list instead of exiting, so the whole mapping can be shown."""
+    try:
+        with open(path, newline="", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+            headers = list(reader.fieldnames or [])
+    except OSError as e:
+        sys.exit(f"[{label}] Cannot read {path}: {e.strerror or e}.")
+    except (UnicodeDecodeError, csv.Error) as e:
+        sys.exit(f"[{label}] Cannot read {path} as a UTF-8 CSV ({e}). Export it as CSV (UTF-8) and rerun.")
+    if not headers:
+        sys.exit(f"[{label}] {path} is empty (no header row). Export it again with its column headers.")
     m = detect(headers, aliases, overrides)
+    missing = []
     for req in required:
         if req not in m or m[req].startswith("AMBIGUOUS:"):
-            sys.exit(f"[{label}] Cannot identify '{req}' column (found: {m.get(req, 'none')}). "
-                     f"Headers: {headers}. Pass --map-{label} {req}=<Column>.")
+            if strict:
+                sys.exit(f"[{label}] Cannot identify '{req}' column (found: {m.get(req, 'none')}). "
+                         f"Headers: {headers}. Pass --map-{label} {req}=<Column>.")
+            missing.append(f"{req} (found: {m.get(req, 'none')}); pass --map-{label} {req}=<Column>")
     # drop ambiguous optional fields so they are not silently used
     clean = {k: v for k, v in m.items() if not v.startswith("AMBIGUOUS:")}
-    return rows, m, clean
+    return rows, m, clean, missing
+
+
+def sku_key(s):
+    """Matching key for a SKU: case and repeated inner spaces are ignored ("e-case" = "E-CASE ").
+    The SKU as written is still what the outputs show."""
+    return " ".join(s.split()).casefold()
 
 
 _THOUSANDS_RE = re.compile(r"^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$")
@@ -154,6 +185,23 @@ def to_number(s):
     if not math.isfinite(v):
         return None, f"not a finite number: '{s}'"
     return v, None
+
+
+_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_safe(v):
+    """Stop a spreadsheet from running a cell as a formula.
+
+    Text that starts with = + - @ or a tab/return gets a leading
+    apostrophe. Real numbers (including negatives like -5.69) are left alone.
+    """
+    if isinstance(v, str) and v.startswith(_FORMULA_START):
+        try:
+            float(v)
+        except ValueError:
+            return "'" + v
+    return v
 
 
 def cli_number(minimum, whole=False):
@@ -228,8 +276,11 @@ def main():
     ap.add_argument("--detect-only", action="store_true")
     a = ap.parse_args()
 
-    srows, sm_raw, sm = load(a.sales, SALES_ALIASES, parse_overrides(a.map_sales), REQUIRED_SALES, "sales")
-    orows, om_raw, om = load(a.onhand, ONHAND_ALIASES, parse_overrides(a.map_onhand), REQUIRED_ONHAND, "onhand")
+    strict = not a.detect_only
+    srows, sm_raw, sm, s_missing = load(a.sales, SALES_ALIASES, parse_overrides(a.map_sales), REQUIRED_SALES,
+                                        "sales", strict)
+    orows, om_raw, om, o_missing = load(a.onhand, ONHAND_ALIASES, parse_overrides(a.map_onhand), REQUIRED_ONHAND,
+                                        "onhand", strict)
 
     problems = []
     dates = []
@@ -239,14 +290,17 @@ def main():
             problems.append(f"sales row {i}: unparseable date '{get(r, sm, 'date')}'")
         else:
             dates.append(d)
-    if not dates:
-        sys.exit("No parseable sales dates.")
 
     if a.detect_only:
         print(json.dumps({"sales_mapping": sm_raw, "onhand_mapping": om_raw, "sales_rows": len(srows),
-                          "onhand_rows": len(orows), "sales_date_range": [str(min(dates)), str(max(dates))]},
+                          "onhand_rows": len(orows),
+                          "sales_date_range": [str(min(dates)), str(max(dates))] if dates else None,
+                          "missing_required_columns": {"sales": s_missing, "onhand": o_missing}},
                          indent=2, allow_nan=False))
         return
+    if not dates:
+        sys.exit(f"[sales] No sales rows with a readable date in {a.sales} ({len(srows)} data row(s)). "
+                 f"Check the export has sales rows and a date column (pass --map-sales date=<Column>).")
 
     assumptions = []
 
@@ -281,6 +335,7 @@ def main():
 
     sales = defaultdict(lambda: {"units": 0.0, "units_recent7": 0.0, "revenue": 0.0, "first": None, "last": None,
                                  "first_in_window": None, "product": "", "brand": "", "category": "", "neg": 0.0})
+    written = defaultdict(dict)  # sku_key -> {SKU as written: [where]}, to report case/spacing variants
     for i, r in enumerate(srows, start=2):
         d = parse_date(get(r, sm, "date"))
         sku = get(r, sm, "sku")
@@ -294,7 +349,8 @@ def main():
             problems.append(f"sales row {i} ({sku}): column '{sm['units']}' value '{get(r, sm, 'units')}': "
                             f"{u_prob or 'blank units'}; row left out")
             continue
-        s = sales[sku]
+        written[sku_key(sku)].setdefault(sku, []).append(("sales", i))
+        s = sales[sku_key(sku)]
         s["product"] = s["product"] or get(r, sm, "product")
         s["brand"] = s["brand"] or get(r, sm, "brand")
         s["category"] = s["category"] or get(r, sm, "category")
@@ -318,12 +374,38 @@ def main():
 
     # ---- on-hand: group rows by SKU so duplicates are combined openly, never by keeping the first row
     by_sku = defaultdict(list)
+    onhand_written = defaultdict(dict)
     for i, r in enumerate(orows, start=2):
         sku = get(r, om, "sku")
         if not sku:
             problems.append(f"onhand row {i}: blank sku")
             continue
-        by_sku[sku].append((i, r))
+        by_sku[sku_key(sku)].append((i, r))
+        onhand_written[sku_key(sku)].setdefault(sku, []).append(("onhand", i))
+    # The SKU shown in the outputs is the on-hand file's spelling (first row), else the sales file's.
+    display = {k: next(iter(v)) for k, v in written.items()}
+    display.update({k: next(iter(v)) for k, v in onhand_written.items()})
+    variants = set()
+    for k in sorted(set(written) | set(onhand_written), key=lambda k: (display[k], k)):
+        forms = {}
+        for src in (onhand_written.get(k, {}), written.get(k, {})):
+            for form, where in src.items():
+                forms.setdefault(form, []).extend(where)
+        if len(forms) > 1:
+            variants.add(k)
+
+            def places(where):
+                txt = []
+                for file in ("onhand", "sales"):
+                    rws = [str(i) for f, i in where if f == file]
+                    if rws:
+                        more = f" and {len(rws) - 5} more" if len(rws) > 5 else ""
+                        txt.append(f"{file} row{'s' if len(rws) > 1 else ''} {', '.join(rws[:5])}{more}")
+                return "; ".join(txt)
+            problems.append(f"SKU '{display[k]}' is written more than one way: "
+                            + ", ".join(f"'{form}' ({places(where)})" for form, where in forms.items())
+                            + ". Matched as one SKU (case and spacing ignored), flagged SKU_VARIANTS. "
+                              "Fix the exports so the SKU is written the same way everywhere.")
     onhand = {}
     def nonneg_number(raw):
         v, prob = to_number(raw)
@@ -337,7 +419,8 @@ def main():
 
     ATTRS = (("unit_cost", "unit cost", nonneg_number), ("case_pack", "case pack", nonneg_number),
              ("lead_time_days", "lead time", lead), ("vendor", "vendor", None))
-    for sku, rws in by_sku.items():
+    for key, rws in by_sku.items():
+        sku = display[key]
         rec = {"rows": [i for i, _ in rws], "on_hand": 0.0, "open_po": 0.0, "flags": [], "hold": False,
                "product": next((get(r, om, "product") for _, r in rws if get(r, om, "product")), ""),
                "brand": next((get(r, om, "brand") for _, r in rws if get(r, om, "brand")), ""),
@@ -420,15 +503,17 @@ def main():
         if rec["lead_status"] == "bad":
             rec["lead_time_days"] = None  # an unreadable cell is never silently outvoted by another row
         rec["vendor"] = rec["vendor"] or ""
-        onhand[sku] = rec
+        onhand[key] = rec
 
     vendor_brand_used = False
     out, po_lines, needs_vendor = [], [], []
     missing_lead, default_lead, held = [], [], []
-    for sku in sorted(set(sales) | set(onhand)):
-        s = sales.get(sku)
-        o = onhand.get(sku)
-        flags = []
+    out_keys = []
+    for key in sorted(set(sales) | set(onhand), key=lambda k: (display[k], k)):
+        sku = display[key]
+        s = sales.get(key)
+        o = onhand.get(key)
+        flags = ["SKU_VARIANTS"] if key in variants else []
         units = s["units"] if s else 0.0
         days = window
         if s and s["first"] is not None and s["first"] > start:
@@ -524,22 +609,34 @@ def main():
                         (po_lines if vendor else needs_vendor).append(line)
         row["flags"] = ";".join(flags)
         out.append(row)
+        out_keys.append(key)
     if vendor_brand_used:
         assumptions.append("vendor filled from brand where the vendor cell was blank (--vendor-from-brand, "
                            "operator said brand = vendor); those lines are flagged VENDOR_FROM_BRAND")
 
+    late_warnings = []
+    if not orows:
+        late_warnings.append(f"The on-hand file {a.onhand} has no data rows, so every SKU shows NO_ONHAND_RECORD "
+                             f"and nothing is ordered. Check the on-hand export.")
+    if not out:
+        late_warnings.append("No SKUs to plan: no sales or on-hand row has a SKU (see input_problems). "
+                             "Check the SKU column (pass --map-sales / --map-onhand sku=<Column>).")
+    for w in late_warnings:
+        print("WARNING: " + w, file=sys.stderr)
+    warnings.extend(late_warnings)
+
     os.makedirs(a.out_dir, exist_ok=True)
     with open(os.path.join(a.out_dir, "replenishment.csv"), "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(out[0].keys()))
+        w = csv.DictWriter(f, fieldnames=REPL_FIELDS)
         w.writeheader()
-        w.writerows(out)
+        w.writerows([{k: csv_safe(v) for k, v in x.items()} for x in out])
     po_lines.sort(key=lambda r: (r["vendor"], r["sku"]))
     po_fields = ["vendor", "sku", "product", "qty", "case_pack", "unit_cost", "line_cost", "days_of_supply_now",
                  "flags"]
     with open(os.path.join(a.out_dir, "po_draft.csv"), "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=po_fields)
         w.writeheader()
-        w.writerows(po_lines)
+        w.writerows([{k: csv_safe(v) for k, v in x.items()} for x in po_lines])
 
     by_vendor = defaultdict(lambda: {"lines": 0, "units": 0, "cost": 0.0, "lines_missing_cost": 0})
     for p in po_lines:
@@ -556,8 +653,8 @@ def main():
     def count(flag):
         return sum(1 for r in out if any(f.split("(")[0] == flag for f in r["flags"].split(";")))
 
-    inv_value_dead = round(sum((r["on_hand"] or 0) * (onhand[r["sku"]]["unit_cost"] or 0)
-                               for r in out if "DEAD" in r["flags"] and r["sku"] in onhand), 2)
+    inv_value_dead = round(sum((r["on_hand"] or 0) * (onhand[k]["unit_cost"] or 0)
+                               for r, k in zip(out, out_keys) if "DEAD" in r["flags"] and k in onhand), 2)
     summary = {
         "warnings": warnings,
         "sales_file": a.sales, "onhand_file": a.onhand,
@@ -571,7 +668,7 @@ def main():
                                               "NO_ONHAND_RECORD", "RETURNS_IN_WINDOW", "DEFAULT_LEAD_TIME",
                                               "BAD_LEAD_TIME", "NO_VENDOR", "VENDOR_FROM_BRAND", "CONFLICTING_ROWS",
                                               "BAD_OPEN_PO", "BAD_CASE_PACK", "BAD_UNIT_COST", "BAD_ONHAND_ROW",
-                                              "NEGATIVE_ONHAND", "NEGATIVE_NET_SALES")},
+                                              "NEGATIVE_ONHAND", "NEGATIVE_NET_SALES", "SKU_VARIANTS")},
         "po_draft_by_vendor": dict(sorted(by_vendor.items())),
         "po_draft_total_cost": round(sum(v["cost"] for v in by_vendor.values()), 2),
         "dead_stock_cost_value": inv_value_dead,

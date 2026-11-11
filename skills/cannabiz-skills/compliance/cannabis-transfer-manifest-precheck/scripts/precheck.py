@@ -26,6 +26,9 @@ input_problems is not empty. A quantity that is NaN, inf, negative or written wi
 decimal comma is never guessed: the line is held as INVALID_NUMBER. When both the
 manifest and inventory have an item (or SKU) column, each line's item must match the
 package's (ITEM_MISMATCH / ITEM_MISSING); without one, verify_manually asks for it.
+A tag that Excel turned into scientific notation ("1.23457E+23") is never matched: the
+line holds as TAG_SCIENTIFIC_NOTATION. Text cells that a spreadsheet would run as a
+formula are written with a leading apostrophe.
 """
 import argparse
 import csv
@@ -111,20 +114,53 @@ def ok(m, f):
     return f in m and not m[f].startswith("AMBIGUOUS:")
 
 
-def parse_overrides(pairs):
+def parse_overrides(pairs, label):
     out = {}
     for p in pairs or []:
         if "=" not in p:
             sys.exit(f"Bad mapping '{p}'. Use field=Column Name")
         k, v = p.split("=", 1)
-        out[k.strip()] = v.strip()
+        k = k.strip()
+        if k not in ALIASES:
+            sys.exit(f"Bad mapping '{p}' for --map-{label}: unknown field '{k}'. "
+                     f"Fields: {', '.join(ALIASES)}")
+        out[k] = v.strip()
     return out
 
 
+def read_csv_rows(path, label):
+    """Read a CSV into (headers, rows). An unreadable file is a clean exit, never a traceback."""
+    try:
+        with open(path, newline="", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            headers = list(reader.fieldnames or [])
+            rows = list(reader)
+    except UnicodeDecodeError:
+        sys.exit(f"[{label}] {path} is not UTF-8 text. Save it as 'CSV UTF-8' and rerun.")
+    except (OSError, csv.Error) as e:
+        sys.exit(f"[{label}] Cannot read {path}: {e}")
+    if not any(h and h.strip() for h in headers):
+        sys.exit(f"[{label}] {path} is empty (no header row).")
+    if not rows:
+        sys.exit(f"[{label}] {path} has a header row but no data rows. Check that the right file "
+                 "was exported.")
+    named = [h.strip() for h in headers if h and h.strip()]
+    dupes = sorted({h for h in named if named.count(h) > 1})
+    if dupes:
+        sys.exit(f"[{label}] {path} has more than one column named {dupes}. Rename or remove the "
+                 "extra column and rerun.")
+    return headers, rows
+
+
 def load(path, overrides, label, required):
-    with open(path, newline="", encoding="utf-8-sig") as f:
-        rows = list(csv.DictReader(f))
-        headers = list(rows[0].keys()) if rows else []
+    headers, rows = read_csv_rows(path, label)
+    by_norm = {norm_header(h): h for h in headers}
+    for field, col in overrides.items():
+        if col not in headers:
+            if norm_header(col) not in by_norm:
+                sys.exit(f"[{label}] --map-{label} {field}={col}: there is no column named '{col}'. "
+                         f"Headers: {headers}")
+            overrides[field] = by_norm[norm_header(col)]
     m = detect(headers, overrides)
     for req in required:
         if not ok(m, req):
@@ -162,6 +198,32 @@ def to_number(s):
     if not math.isfinite(v):
         return None, f"not a finite number: '{s}'"
     return v, None
+
+
+_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_safe(v):
+    """Stop a spreadsheet from running a cell as a formula.
+
+    Text that starts with = + - @ or a tab/return gets a leading
+    apostrophe. Real numbers (including negatives like -5.69) are left alone.
+    """
+    if isinstance(v, str) and v.startswith(_FORMULA_START):
+        try:
+            float(v)
+        except ValueError:
+            return "'" + v
+    return v
+
+
+# A numeric tag that Excel turned into scientific notation ("1.23457E+23"). The real digits
+# are gone, so the tag can't be matched, and two packages can collapse to the same value.
+_SCI_TAG_RE = re.compile(r"^\d+(\.\d+)?[eE][+-]\d+$")
+
+
+def is_sci_tag(raw):
+    return bool(_SCI_TAG_RE.match(re.sub(r"\s", "", raw or "")))
 
 
 def parse_qty(raw):
@@ -217,9 +279,10 @@ def main():
     ap.add_argument("--detect-only", action="store_true")
     a = ap.parse_args()
 
-    orows, om = load(a.order, parse_overrides(a.map_order), "order", ["quantity"])
-    mrows, mm = load(a.manifest, parse_overrides(a.map_manifest), "manifest", ["package_id", "quantity"])
-    irows, im = load(a.inventory, parse_overrides(a.map_inventory), "inventory", ["package_id", "quantity"])
+    orows, om = load(a.order, parse_overrides(a.map_order, "order"), "order", ["quantity"])
+    mrows, mm = load(a.manifest, parse_overrides(a.map_manifest, "manifest"), "manifest", ["package_id", "quantity"])
+    irows, im = load(a.inventory, parse_overrides(a.map_inventory, "inventory"), "inventory",
+                     ["package_id", "quantity"])
     key = order_key(om, mm)
 
     lab_values = sorted({(r.get(im["lab_status"]) or "").strip() for r in irows}) if ok(im, "lab_status") else []
@@ -245,9 +308,15 @@ def main():
     inv_rows = defaultdict(list)
     blank_inv_rows = []
     for i, r in enumerate(irows, start=2):
-        t = norm_tag(r.get(im["package_id"]))
+        raw_tag = r.get(im["package_id"]) or ""
+        t = norm_tag(raw_tag)
         if not t:
             blank_inv_rows.append(str(i))
+            continue
+        if is_sci_tag(raw_tag):
+            problems.append(f"inventory row {i}, column '{im['package_id']}', value '{raw_tag.strip()}': "
+                            "package tag is in scientific notation (Excel dropped the real digits); row "
+                            "not used, so no manifest line can match it")
             continue
         raw_qty = (r.get(im["quantity"]) or "").strip()
         qty, qty_problem = parse_qty(raw_qty)
@@ -280,7 +349,7 @@ def main():
 
     # Order aggregated by join key
     order = defaultdict(lambda: {"qty": 0.0, "uom": "", "bad": False, "invalid": [], "label": "",
-                                 "unit_missing": False, "factors": set()})
+                                 "unit_missing": False, "factors": set(), "rows": [], "sci": False})
     if not ok(om, "uom"):
         problems.append("order file: no unit column found; order quantities can't be compared with the "
                         "manifest (ORDER_UNIT_MISSING)")
@@ -293,6 +362,12 @@ def main():
         q, q_problem = parse_qty(raw_q)
         o = order[k]
         o["label"] = r.get(om[key], "")
+        o["rows"].append(str(i))
+        if key == "package_id" and is_sci_tag(o["label"]):
+            o["sci"] = True
+            problems.append(f"order row {i}, column '{om[key]}', value '{o['label'].strip()}': package tag "
+                            "is in scientific notation (Excel dropped the real digits); held as "
+                            "TAG_SCIENTIFIC_NOTATION")
         u = (r.get(om["uom"]) or "").strip() if ok(om, "uom") else ""
         if q_problem:
             msg = f"order row {i}, column '{om['quantity']}', value '{raw_q}': {q_problem}"
@@ -317,6 +392,11 @@ def main():
         o["norm_kind"] = kind
         o["factors"].add(f)
 
+    for k, o in order.items():
+        if len(o["rows"]) > 1:
+            problems.append(f"order: {key} {k} is on {len(o['rows'])} rows ({', '.join(o['rows'])}); their "
+                            "quantities were added together. Confirm this is not a copy-paste duplicate")
+
     # Item check: compare the manifest's item and/or SKU with the package's, where both files have it.
     item_fields = [f for f in ("item", "sku") if ok(im, f) and ok(mm, f)]
     extra_manual = []
@@ -335,7 +415,8 @@ def main():
     manifest_key_factors = defaultdict(set)
     incomplete_keys = set()  # order keys with a manifest line whose quantity or unit is unusable
     for i, r in enumerate(mrows, start=2):
-        tag = norm_tag(r.get(mm["package_id"]))
+        raw_tag = r.get(mm["package_id"]) or ""
+        tag = norm_tag(raw_tag)
         raw_mq = (r.get(mm["quantity"]) or "").strip()
         mq, mq_problem = parse_qty(raw_mq)
         mu = (r.get(mm["uom"]) or "").strip() if ok(mm, "uom") else ""
@@ -348,6 +429,15 @@ def main():
 
         if not tag:
             flags.append("BLANK_TAG")
+            problems.append(f"manifest row {i}, column '{mm['package_id']}': blank package tag; line held as "
+                            "BLANK_TAG")
+        elif is_sci_tag(raw_tag):
+            flags.append("TAG_SCIENTIFIC_NOTATION")
+            notes.append(f"tag '{raw_tag.strip()}' is in scientific notation, so the real tag is lost; "
+                         "re-export with the tag column formatted as text")
+            problems.append(f"manifest row {i}, column '{mm['package_id']}', value '{raw_tag.strip()}': "
+                            "package tag is in scientific notation (Excel dropped the real digits); line "
+                            "held as TAG_SCIENTIFIC_NOTATION")
         if tag and tag_counts[tag] > 1:
             flags.append("DUPLICATE_TAG_ON_MANIFEST")
         if mq_problem:
@@ -451,7 +541,8 @@ def main():
             lines.append({"source": "order", "manifest_row": "", "package_id": k if key == "package_id" else "",
                           "item": o["label"], "join_key": k, "manifest_qty": "", "manifest_uom": "",
                           "on_hand_qty": "", "on_hand_uom": "", "lab_status": "", "order_qty": order_qty,
-                          "flags": "ON_ORDER_NOT_ON_MANIFEST" + (";INVALID_NUMBER" if o["invalid"] else ""),
+                          "flags": "ON_ORDER_NOT_ON_MANIFEST" + (";INVALID_NUMBER" if o["invalid"] else "")
+                                   + (";TAG_SCIENTIFIC_NOTATION" if o["sci"] else ""),
                           "result": "HOLD", "notes": order_note})
             continue
         mismatch, note = None, ""
@@ -462,6 +553,9 @@ def main():
         elif o["unit_missing"]:
             mismatch = "ORDER_UNIT_MISSING"
             note = "order unit is blank; order quantity not compared with the manifest"
+        elif o["sci"]:
+            mismatch = "TAG_SCIENTIFIC_NOTATION"
+            note = "the order's tag for this line is in scientific notation; order not compared"
         elif k in incomplete_keys:
             mismatch = "ORDER_QTY_NOT_CHECKED"
             note = "a manifest line for this order line has no usable quantity or unit; order total not compared"
@@ -483,14 +577,19 @@ def main():
                         l["flags"] = ";".join(filter(None, [l["flags"], mismatch]))
                     l["result"] = "HOLD"
 
-    os.makedirs(a.out_dir, exist_ok=True)
-    with open(os.path.join(a.out_dir, "precheck_lines.csv"), "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(lines[0].keys()))
-        w.writeheader()
-        w.writerows(lines)
+    if not lines:  # can't happen with a non-empty manifest; never let an empty check read as GO
+        sys.exit("No manifest lines to check.")
+    try:
+        os.makedirs(a.out_dir, exist_ok=True)
+        with open(os.path.join(a.out_dir, "precheck_lines.csv"), "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=list(lines[0].keys()))
+            w.writeheader()
+            w.writerows([{k: csv_safe(v) for k, v in l.items()} for l in lines])
+    except OSError as e:
+        sys.exit(f"Cannot write to --out-dir {a.out_dir}: {e}")
 
     flag_counts = Counter(fl for l in lines for fl in l["flags"].split(";") if fl)
-    overall = "GO" if all(l["result"] == "GO" for l in lines) and not problems else "HOLD"
+    overall = "GO" if lines and all(l["result"] == "GO" for l in lines) and not problems else "HOLD"
     summary = {
         "overall": overall,
         "note": "GO means no issues in the file-based checks only. Manual checks below are still required.",

@@ -1,0 +1,9 @@
+SKU,Product Name,Brand,Vendor,Available,Unit Cost,Case Pack,Lead Time Days,On Order
+SP-BD-35,Blue Dream 3.5g,Example Pines,Example Pines Distribution,"1,5",14.0,24,7,0
+SP-GMO-35,GMO Cookies 3.5g,Example Pines,Example Pines Distribution,30,16.0,24,7,0
+CE-LR-GEL,Live Resin Cart 1g - Gelato,Example Coast Extracts,Example Coast Extracts,0,18.0,10,10,0
+CE-DIST-1G,Distillate Cart 1g - Mango,Example Coast Extracts,Example Coast Extracts,5,12.0,10,14,50
+GH-GUM-100,Gummies 10pk 100mg - Mango,Example Edibles Co,Example Edibles Co,200,8.0,50,10,0
+GH-CHOC-100,Chocolate Bar 100mg - Dark,Example Edibles Co,,3,9.0,,,0
+NB-PR-5PK,Pre-Roll 5pk 0.5g - Sativa Mix,Example North Farms,Example North Farms,35,10.0,20,5,0
+NB-SM-14,Smalls 14g - Runtz,Example North Farms,Example North Farms,10,24.0,10,5,0

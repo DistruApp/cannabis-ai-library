@@ -38,6 +38,7 @@ All figures are per SKU. "Window" = the `--window-days` days ending at `--as-of`
 | `BAD_ONHAND_ROW(row n)` | One of several on-hand rows for the SKU has an unreadable quantity | No order until fixed |
 | `NEGATIVE_ONHAND` | An on-hand cell for the SKU is negative | No order, sell-through or days of supply until the count is corrected |
 | `NEGATIVE_NET_SALES(n)` | Returns exceed sales for the SKU in the window | Velocity set to 0, not negative. Check the returns. |
+| `SKU_VARIANTS` | The SKU is written more than one way across the files (case or spacing, e.g. `e-case` vs `E-CASE `) | Rows were matched as one SKU and every spelling is listed in `input_problems`. Fix the exports so they agree. |
 
 ## Duplicate on-hand rows
 

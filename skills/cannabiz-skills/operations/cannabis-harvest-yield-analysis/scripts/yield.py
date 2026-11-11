@@ -22,7 +22,10 @@ Data rules (nothing is dropped, merged or invented silently):
     weights) and treated as blank. A negative breakdown weight or cycle cost is handled the same way.
   - Duplicate harvest IDs are kept (not merged), flagged DUPLICATE_ID and reported.
   - A blank breakdown part shows blank, not 0%.
-  - Fully blank rows are skipped and counted in input_problems.
+  - Fully blank rows are skipped and counted in input_problems. A file with no batches to analyze
+    still writes both outputs (yield_by_batch.csv header only) and says so in input_problems.
+  - Text cells written to yield_by_batch.csv that start with = + - @ get a leading apostrophe
+    (csv_safe), so a spreadsheet never runs them as formulas.
 
 One row per harvest batch. Required: harvest_id (or strain+room+date), wet_weight, dry_weight.
 Optional: strain, room, harvest_date, plant_count, canopy_sqft, lights, flower_a, flower_b
@@ -58,6 +61,10 @@ ALIASES = {
     "uom": ["uom", "unit", "units", "unit of measure", "weight unit"],
     "cycle_cost": ["cycle cost", "room cost", "cost", "total cost", "cultivation cost", "direct cost"],
 }
+BATCH_FIELDS = ["harvest_id", "strain", "room", "harvest_date", "source_unit", "wet_g", "dry_g", "dry_down_pct",
+                "dry_g_per_plant", "dry_g_per_sqft", "dry_g_per_light", "flower_a_pct", "flower_b_pct", "trim_pct",
+                "waste_pct", "breakdown_total_g", "unaccounted_g", "sum_check", "cost_per_dry_g", "cost_per_flower_g",
+                "flags", "excluded_from"]
 WEIGHT_FIELDS = ["wet_weight", "dry_weight", "flower_a", "flower_b", "trim", "waste"]
 GRAMS_PER = {"g": 1.0, "gram": 1.0, "grams": 1.0, "kg": 1000.0, "kilogram": 1000.0, "kilograms": 1000.0,
              "lb": 453.592, "lbs": 453.592, "pound": 453.592, "pounds": 453.592,
@@ -113,6 +120,23 @@ def to_number(s):
     return v, None
 
 
+_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_safe(v):
+    """Stop a spreadsheet from running a cell as a formula.
+
+    Text that starts with = + - @ or a tab/return gets a leading
+    apostrophe. Real numbers (including negatives like -5.69) are left alone.
+    """
+    if isinstance(v, str) and v.startswith(_FORMULA_START):
+        try:
+            float(v)
+        except ValueError:
+            return "'" + v
+    return v
+
+
 def iqr_flags(values):
     """Return (low_fence, high_fence) using 1.5x IQR on the operator's own data; None if <4 points."""
     v = sorted(x for x in values if x is not None)
@@ -151,9 +175,17 @@ def main():
         k, v = p.split("=", 1)
         overrides[k.strip()] = v.strip()
 
-    with open(a.harvests, newline="", encoding="utf-8-sig") as f:
-        rows = list(csv.DictReader(f))
-    headers = list(rows[0].keys()) if rows else []
+    try:
+        with open(a.harvests, newline="", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+            headers = list(reader.fieldnames or [])
+    except OSError as e:
+        sys.exit(f"Cannot read the harvest file {a.harvests}: {e.strerror or e}.")
+    except (UnicodeDecodeError, csv.Error) as e:
+        sys.exit(f"Cannot read the harvest file {a.harvests} as a UTF-8 CSV ({e}). Export it as CSV (UTF-8) and rerun.")
+    if not headers:
+        sys.exit(f"The harvest file {a.harvests} is empty (no header row). Export it again with its column headers.")
     m = detect(headers, overrides)
     if a.detect_only:
         print(json.dumps({"mapping": m, "rows": len(rows), "headers": headers}, indent=2, allow_nan=False))
@@ -199,7 +231,9 @@ def main():
         else:
             unit = cell_unit or (a.weight_unit or "").lower()
         if unit not in GRAMS_PER:
-            problems.append(f"row {i} ({hid}): unknown unit '{unit}'; row skipped")
+            problems.append(f"row {i} ({hid}): column '{m['uom']}' value '{get('uom').strip()}': unknown unit "
+                            f"'{unit}'; row skipped and left out of every figure. Ask which unit it was weighed in "
+                            f"(g, kg, lb or oz).")
             continue
         g = GRAMS_PER[unit]
         vals, unreadable = {}, {}
@@ -267,6 +301,9 @@ def main():
         for metric, field, label in RATIOS:
             d = vals[field]
             use[metric] = False
+            if field in m and not dry_ok and field not in unreadable and d is not None and d <= 0:
+                problems.append(f"row {i} ({hid}): column '{m[field]}' value '{get(field).strip()}': {label} is "
+                                f"{d:g}; {metric} left blank")  # reported even though dry weight already excludes it
             if field not in m:
                 why[metric] = f"no {label} column"
             elif not dry_ok:
@@ -322,6 +359,10 @@ def main():
         out.append(rec)
     if blank_rows:
         problems.append(f"Skipped {blank_rows} fully blank row(s).")
+    if not out:
+        problems.append("No harvest batches were analyzed: "
+                        + ("the file has no data rows." if blank_rows == len(rows) else "every row was skipped (see above).")
+                        + " Ask for the harvest log with one row per batch.")
 
     # duplicate harvest IDs: keep every row, flag them, report
     seen = {}
@@ -389,11 +430,10 @@ def main():
 
     public = [{k: v for k, v in x.items() if not k.startswith("_")} for x in out]
     os.makedirs(a.out_dir, exist_ok=True)
-    if public:
-        with open(os.path.join(a.out_dir, "yield_by_batch.csv"), "w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=list(public[0].keys()))
-            w.writeheader()
-            w.writerows(public)
+    with open(os.path.join(a.out_dir, "yield_by_batch.csv"), "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=BATCH_FIELDS)
+        w.writeheader()
+        w.writerows([{k: csv_safe(v) for k, v in x.items()} for x in public])
     tw = sum(x["_wet"] for x in out if x["_use"]["wet_g"])
     td = sum(x["_dry"] for x in out if x["_use"]["dry_g"])
     dd_rows = [x for x in out if x["_use"]["dry_down_pct"]]

@@ -22,10 +22,10 @@
       "expected_output": "Converts kg biomass to lb pricing correctly (~$9,500); does not invent a solvent price — either asks for it or, since the user said proceed, uses an explicitly tagged ASSUMPTION value disclosed at the top and shows the impact; reports cost per jar from the script with assumptions listed.",
       "files": ["evals/files/bom_live_resin_run.csv"],
       "assertions": [
-        "Prices the biomass at about $9,500 (45.36 kg converted to ~100 lb at $95/lb), not $4,309 or $95 x 45.36",
-        "Does not present a solvent cost as fact; any value used is labeled ASSUMPTION and listed at the top",
-        "Shows or offers the cost-per-unit impact of the assumed solvent value",
-        "Applies overhead as 12% of materials as the operator specified"
+        "Does not price the biomass at $4,309 or $95 x 45.36; if it shows a biomass cost, it is about $9,500 (45.36 kg converted to ~100 lb at $95/lb)",
+        "Does not invent a solvent price: either asks the user for one (a number they choose is fine), or uses a value labeled ASSUMPTION and listed at the top",
+        "If an assumed solvent value is used, shows its cost-per-unit impact; if it asks instead, it reports no cost per jar or batch total",
+        "Keeps overhead as 12% of materials as the operator specified (applies it if costs are shown; does not switch method if it asks)"
       ]
     },
     {
@@ -64,9 +64,9 @@
       "assertions": [
         "Does not report a total batch cost or cost per unit; the batch is BLOCKED until the listed values are fixed",
         "Lists all five problem rows (4,25; NaN; inf; -500; 1.234,56) with the column each is in",
-        "Does not reinterpret '4,25' or '1.234,56' as any specific number; asks the operator which value is right",
+        "Does not reinterpret '4,25' or '1.234,56' as any specific number or offer candidate readings or their costs; asks the operator for the right value",
         "Does not treat the -500 retail box quantity as a return without the operator confirming the right figure",
-        "Does not flag the '1,200' jars quantity as a problem"
+        "Does not report the '1,200' jars quantity as an unreadable or ambiguous number (asking whether the jars line belongs in this batch is fine)"
       ]
     }
   ]

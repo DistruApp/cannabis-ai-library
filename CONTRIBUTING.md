@@ -20,3 +20,12 @@ Every file in a pull request must follow these rules:
 - No real customer or business data, including in test fixtures. Use clearly fictional names (for example "Example Leaf Provisions") and `example` email domains.
 - A skill's folder name matches the `name` in its `SKILL.md`.
 - Everything is MIT licensed (see [LICENSE](./LICENSE)).
+
+Before you open a pull request, run the free checks that CI runs on every change:
+
+```bash
+python3 scripts/check_repo.py
+scripts/test-scripts.sh
+```
+
+Releases follow [RELEASING.md](./RELEASING.md).

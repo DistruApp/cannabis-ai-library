@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: cannabis-transfer-manifest-precheck--s3-nan-manifest-qty
+context:
+  scaffold_script: setup.sh

@@ -1,0 +1,11 @@
+SKU,Product Name,Brand,Vendor,Available,Unit Cost,Case Pack,Lead Time Days,On Order
+EX-A,Example Flower A 3.5g,Example Grower,Example Distro,5,10,10,7,0
+EX-A,Example Flower A 3.5g,Example Grower,Example Distro,3,10,10,7,100
+EX-B,Example Cart B 1g,Example Extracts,Example Distro,4,12,10,7,0
+EX-B,Example Cart B 1g,Example Extracts,Example Distro,2,15,10,7,0
+EX-C,Example Gummy C 10pk,Example Edibles,Example Distro,5,6,20,2 weeks,0
+EX-D,Example Pre-Roll D 1g,Example Grower,Example Distro,5,4,10,7-10 days,0
+EX-E,Example Tincture E 30ml,Example Wellness,Example Wellness Supply,5,20,6,,0
+EX-F,Example Vape F 0.5g,Example Extracts,,5,14,10,7,0
+EX-G,Example Edible G,Example Edibles,Example Distro,5,5,10,7,TBD
+EX-H,Example Topical H,Example Wellness,Example Wellness Supply,5,9,1 case,7,0

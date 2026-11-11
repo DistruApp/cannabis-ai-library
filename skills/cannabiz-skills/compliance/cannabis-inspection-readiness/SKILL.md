@@ -1,6 +1,6 @@
 ---
 name: cannabis-inspection-readiness
-description: Prepare a licensed cannabis business for a state regulatory inspection, compliance audit, or license renewal review. Produce a readiness checklist by operational area, an inspection binder index, a gap list with owners and due dates, and mock-inspection questions, all tied to the operator's state and license type. Use when a cultivator, manufacturer, distributor, or dispensary says an inspector is coming, an inspection or audit is scheduled, wants a mock audit or self-audit, or asks what the state will check, even if they just say "we have an audit next week." Not for drafting SOPs from scratch (use cannabis-sop-generator-trainer if available), financial or tax audits, or answering a specific notice of violation.
+description: Prepare a licensed cannabis business for a state regulatory inspection, compliance audit, or license renewal review. Produce a readiness checklist by operational area, an inspection binder index, a gap list with owners and due dates, and mock-inspection questions, all tied to the operator's state and license type. Use when a cultivator, manufacturer, distributor, or dispensary says an inspector is coming, an inspection or audit is scheduled, wants a mock audit or self-audit, or asks what the state will check, or asks you to tell an inspector they're ready (it prepares the material; it never sends anything), even if they just say "we have an audit next week." Not for drafting SOPs from scratch (use cannabis-sop-generator-trainer if available), financial or tax audits, or answering a specific notice of violation.
 license: MIT
 metadata:
   version: "1.0"
@@ -29,7 +29,7 @@ Turns "the inspector is coming" into a plan with owners: what to check, what doc
 
 Read `references/jurisdiction-gate.md`, then ask in **one** message for anything missing:
 - State (and local jurisdiction if relevant), every license type at this premises, medical/adult-use
-- Inspection type if known (routine, renewal, complaint-driven, pre-licensing, traceability audit) and date
+- Inspection type if known (routine, renewal, complaint-driven, pre-licensing, traceability audit) and date. If they just say "audit", ask whether it's a state regulatory or compliance inspection or a financial or tax audit; this skill covers only the first
 - Traceability system
 - Whether they have the current state regulations or a regulator inspection checklist to share. A regulator-published checklist is the best source and overrides the generic areas.
 
@@ -71,7 +71,7 @@ Write 10–20 questions an inspector is likely to ask *this* operation, drawn fr
 
 ### 7. Output
 
-Lead with a readiness summary: areas in scope, counts of Ready / Gap / Unknown, the Critical gaps, and days until the inspection. Then the jurisdiction block, checklist, binder index, gap list, and mock questions. Follow `references/output-conventions.md` and end with the sign-off block.
+Lead with a readiness summary: areas in scope, counts of Ready / Gap / Unknown, the Critical gaps, and days until the inspection. Don't predict the result either way: never write "you'll pass" or "you will pass", not even to deny it ("nothing here means you'll pass"). If a caveat helps, say "This plan doesn't predict the inspection result." Then the jurisdiction block, checklist, binder index, gap list, and mock questions. Follow `references/output-conventions.md` and end with the sign-off block.
 
 ## Gotchas
 

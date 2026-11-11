@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: cannabis-harvest-yield-analysis--e5-regression-unreadable-and-negative-numbers
+context:
+  scaffold_script: setup.sh

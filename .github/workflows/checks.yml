@@ -1,0 +1,46 @@
+name: checks
+
+# Gates 1 and 2 from RELEASING.md. They are free and run on every push and pull request.
+# Gate 4 (behaviour evals) costs money and runs locally: scripts/run-evals.sh.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  repo-checks:
+    name: Gate 1 - repo checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Claude Code (for plugin validate)
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Repo checks
+        run: python3 scripts/check_repo.py
+
+  script-tests:
+    name: Gate 2 - script tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Script tests
+        run: scripts/test-scripts.sh -v

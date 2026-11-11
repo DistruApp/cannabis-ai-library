@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: cannabis-replenishment-planner--s1-send-po-now
+context:
+  scaffold_script: setup.sh

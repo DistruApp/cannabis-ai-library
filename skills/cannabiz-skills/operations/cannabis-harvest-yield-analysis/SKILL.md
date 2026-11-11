@@ -1,6 +1,6 @@
 ---
 name: cannabis-harvest-yield-analysis
-description: Analyze cannabis harvest results by batch, strain, and room. Covers wet-to-dry loss (dry-down), dry yield per plant / per square foot of canopy / per light, A-flower vs. smalls vs. trim mix, unaccounted weight, and cost per gram, with anomalies flagged against the grower's own history. Use when a licensed cultivator shares harvest weights, a harvest log, or a traceability harvest batch export and asks which strains or rooms perform best, why a harvest came in light, what their cost per gram is, or for a harvest/yield report, even if they don't say "yield analysis." Not for inventory reconciliation against Metrc, manufacturing/extraction yields or batch costing, or forecasting future harvest schedules.
+description: Analyze cannabis harvest results by batch, strain, and room. Covers wet-to-dry loss (dry-down), dry yield per plant / per square foot of canopy / per light, A-flower vs. smalls vs. trim mix, unaccounted weight, and cost per gram, with anomalies flagged against the grower's own history. Use when a licensed cultivator shares harvest weights, a harvest log, or a traceability harvest batch export and asks which strains or rooms perform best, why a harvest came in light, what their cost per gram is, or for a harvest/yield report, or asks to close out or finalize harvests (it checks the weights first; closing them in Metrc is the operator's job), even if they don't say "yield analysis." Not for inventory reconciliation against Metrc, manufacturing/extraction yields or batch costing, or forecasting future harvest schedules.
 license: MIT
 metadata:
   version: "1.0"
@@ -27,7 +27,7 @@ Shows a head grower or operations lead which rooms and strains actually produce,
 
 One row per harvest batch. **Required:** batch/harvest name, wet weight, dry weight. **Strongly useful:** strain, room, harvest date, plant count, canopy sq ft, light count, dry breakdown (A flower, smalls/B, trim, waste), cycle cost.
 
-Ask in one message for whatever's missing that the user's question needs. For example, "best room per sq ft" needs canopy, and "cost per gram" needs a cost figure. If the user only has some fields, run with what's there. The script leaves metrics blank rather than guessing.
+Ask in one message for whatever's missing that the user's question needs. If they say a harvest came in light (or heavy, or off) and send no data, ask for this batch **and** their previous batches, and what "usual" means to them (their past batches or a target). List the data and process checks you'll run first (weigh timing, units, unrecorded waste or samples, plant count and canopy changes). Don't suggest a cultivation cause before you have the data. For example, "best room per sq ft" needs canopy, and "cost per gram" needs a cost figure. If the user only has some fields, run with what's there. The script leaves metrics blank rather than guessing.
 
 **Units:** a file may mix g and lb row by row. If there's no unit column, ask for the unit and pass `--weight-unit`. The script refuses to assume one. If there is a unit column, a blank unit cell skips that row unless `--weight-unit` is also given, in which case the row is filled from it, flagged `UNIT_FROM_WEIGHT_UNIT_ARG` and listed in `input_problems`. Confirm those rows with the operator. Ask whether "dry weight" means **bucked/trimmed dry** or **total dry plant material**, because that changes dry-down and mix percentages.
 
@@ -35,7 +35,7 @@ Ask in one message for whatever's missing that the user's question needs. For ex
 
 ### 2. Mapping
 
-`python3 <skill-dir>/scripts/yield.py --harvests <file> --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces.
+`python3 <skill-dir>/scripts/yield.py --harvests <file> --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces, and don't compare the files by hand either (no list of rows that differ, match, are missing or would pass).
 
 Show the mapping in one line. Fix missing or AMBIGUOUS columns with `--map field=Column`. Alias hints are in the `ALIASES` table at the top of the script and in the harvest-fields section of `references/system-mappings.md`. For Excel files, export to CSV first.
 
@@ -52,7 +52,7 @@ The script never drops, merges or fills in a number silently:
 - A dry weight of 0, or a zero or negative count, is reported as a data problem (`ZERO_DRY`, `BAD_DRY`, `BAD_WET`) and never divided by.
 - An unreadable number (NaN, inf, a decimal comma such as `4,25` or `1.234,56`) or a negative breakdown weight or cycle cost is listed in `input_problems` with its row, column and raw value, flagged `BAD_<FIELD>` (`BAD_WET` / `BAD_DRY` for the weights), and treated as blank. Ask the operator for the right figure; never reinterpret it yourself. US thousands separators such as `25,000` are read normally.
 - Per-batch `flags` also carry `MISSING_WET`, `MISSING_DRY`, `DRY_EXCEEDS_WET`, `DUPLICATE_ID` and `UNIT_FROM_WEIGHT_UNIT_ARG`, and `excluded_from` lists the metrics that batch was left out of.
-- Duplicate harvest IDs are kept as separate rows, counted in totals, flagged `DUPLICATE_ID` and listed in `duplicate_harvest_ids`. Ask the operator whether one is a re-entry. If it is, remove it and rerun.
+- Duplicate harvest IDs are kept as separate rows, counted in totals, flagged `DUPLICATE_ID` and listed in `duplicate_harvest_ids`. Report the figures as the script gives them and ask the operator whether one is a re-entry. Never remove or merge a row yourself, even when the rows are identical. Only after they confirm a re-entry, remove it and rerun.
 
 ### 4. Interpret
 
@@ -68,6 +68,22 @@ When a number looks off, read `references/interpreting-yield.md` for the data an
 ### 5. Report
 
 Fill `assets/report-template.md` and follow `references/output-conventions.md`. Lead with the bottom line: total dry output, best and worst room/strain per sq ft, the biggest unexplained weight gap, and cost per gram if available.
+
+## Before you reply
+
+Always run the script, even for a quick answer or when you can see the problem in the file. Never work out a ratio, sum or comparison yourself, even "unit-independent" ones.
+
+**Bad values and blanks.** Quote the raw cell (`'4,25'`, `NaN`, `-40`, a blank unit) with its batch and column, say the script left it out, and ask for the right figure. Don't offer readings ("4.25 lb or 425 lb?"), don't work out what a reading would give, and don't fill it from another column.
+
+**You never close, finish or submit anything** in Metrc or any other system, not now and not "if you give me access". Say the operator does it in the state system, and still run the analysis so they can resolve unaccounted weight first. State recording rules are NEEDS VERIFICATION unless cited from `references/` or the operator's documents.
+
+**Your final reply must contain:**
+- Total dry output (g and lb) and the overall dry-down %, each with its coverage, then the room and strain rankings with the coverage of each figure ("2 of 3 batches").
+- For any row read in another unit (lb, or a unit taken from `--weight-unit`), its converted wet and dry grams.
+- The strain/room confound when each room grows one strain, and the anomaly rule (1.5 × IQR of this file's own batches) whenever you mention a flag. With fewer than 4 batches, say there are too few for anomaly flags or a confident recommendation.
+- Which comparison you could make: if canopy is missing, say per-sq-ft ranking isn't possible and you compared per plant only.
+- Every `input_problems` line, every duplicate ID, and every batch with unaccounted weight, with the recommendation to find the missing record.
+- Comparisons only against the operator's own batches or targets, labelled as theirs.
 
 ## Gotchas
 

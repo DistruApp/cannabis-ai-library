@@ -8,8 +8,8 @@ description: >-
   compliance lead to review, then builds a matching training packet: a
   quick-reference summary, a comprehension check with an answer key and pass
   rule, and a sign-off log. Use for "write an SOP for...", "turn these notes
-  into an SOP", "make training for this SOP" or "is this SOP missing
-  anything?". Not for legal review, state-rule lookups or submitting anything
+  into an SOP", "make training for this SOP", "is this SOP missing
+  anything?" or "when should we review this SOP?". Not for legal review, state-rule lookups or submitting anything
   to a regulator.
 license: MIT
 metadata:

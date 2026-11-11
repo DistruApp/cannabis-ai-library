@@ -1,0 +1,8 @@
+Tag,Item,Category,Quantity,UoM,Location,Lab Testing State
+1A4060300003B21000000601,Example Haze - Bulk Flower,Buds,1000,Grams,Vault C,TestPassed
+1A4060300003B21000000602,Example Kush - Smalls,Buds,500,Grams,Vault C,TestPassed
+1A4060300003B21000000603,Example Sour 1g Cart,Vape Cartridge,100,Each,Finished Goods,TestPassed
+1A4060300003B21000000604,Example Kush - Bulk Flower,Buds,1,Pounds,Vault C,TestPassed
+1A4060300003B21000000605,Example Haze - Smalls,Buds,1500,Grams,Vault C,TestPassed
+1A4060300003B21000000606,Example Shake,Shake/Trim,"1,234.5",Grams,Vault C,TestPassed
+1A4060300003B21000000607,Example Trim,Shake/Trim,200,Grams,Vault C,TestPassed

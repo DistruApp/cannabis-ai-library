@@ -7,9 +7,11 @@ description: >-
   coverage gaps, overtime risk, hour-cap and hard-constraint problems, and
   state worker credential (agent card or badge) expirations where the state
   requires one. Handles time-off requests and shift swaps with the same
-  logic. Use when building or checking a weekly staff schedule, comparing
-  labor cost to a target percentage, checking overtime risk, or processing a
-  time-off or swap request. Not for payroll, hiring, HR policy or legal
+  logic. Use when building or checking a weekly staff schedule, asking whether
+  a shift or day is overstaffed or understaffed, comparing labor cost to a
+  target percentage, working out how many budtenders, trimmers or packagers a
+  shift or harvest needs, checking overtime risk, or processing a time-off,
+  call-out or swap request, including "who can cover this shift?". Not for payroll, hiring, HR policy or legal
   advice on labor law.
 license: MIT
 metadata:
@@ -124,7 +126,9 @@ at demand, budgets, or staffing costs.
    If no one available and qualified can fill a slot, leave it in the
    schedule as **OPEN GAP** with what's needed (for example "vault-certified
    staff needed"). Don't assume someone will agree to work outside their
-   availability. List options for the manager instead: who could be asked to
+   availability, and don't give one person both shifts in a day (a double)
+   to cover a gap: a double can trigger daily overtime or break rules, and
+   it's the manager's call. Show the OPEN GAP and list the double as an option. List options for the manager instead: who could be asked to
    volunteer and what it would do to their hours, cross-training, or changing
    the shift.
 

@@ -1,0 +1,4 @@
+---
+type: regex
+pattern: '1\.234,56'
+---

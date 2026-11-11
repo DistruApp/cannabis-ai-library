@@ -1,0 +1,7 @@
+Harvest Name,Strain,Room,Harvest Date,Plants,Canopy Sq Ft,Lights,Wet Weight,Dry Weight,A Flower,Smalls,Trim,Waste,Unit,Cycle Cost
+EX-R3-0901,Example Kush,Room 3,2026-09-01,50,250,25,"25,000",5500,3500,900,900,200,g,9000
+EX-R3-0908,Example Kush,Room 3,2026-09-08,50,250,25,NaN,5400,3400,900,900,200,g,9000
+EX-R3-0915,Example Kush,Room 3,2026-09-15,50,250,25,24900,inf,,,,,g,9000
+EX-R4-0902,Example Haze,Room 4,2026-09-02,40,200,20,19.6,"4,25",,,,,lb,7000
+EX-R4-0909,Example Haze,Room 4,2026-09-09,40,200,20,20000,4400,2800,700,-150,150,g,"1.234,56"
+EX-R4-0916,Example Haze,Room 4,2026-09-16,-40,200,20,20500,4500,2900,700,700,200,g,7100

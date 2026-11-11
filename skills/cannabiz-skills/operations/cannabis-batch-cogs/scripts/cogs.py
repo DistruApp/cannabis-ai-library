@@ -15,6 +15,9 @@ BOM CSV (one row per component consumed in this batch):
   If the cost unit is blank (or there is no cost unit column), weight and volume lines are BLOCKED
   ("price per what unit?"). Count lines (each, ct, pcs...) are read as price per each and noted.
   Fully blank rows (e.g. trailing ",,,," from Excel) are skipped and counted in input_problems.
+  A row that repeats another row exactly is costed and noted in input_problems (possible double
+  entry), as is a blank component name. A BOM with no component rows is BLOCKED.
+  Text cells written to cogs_lines.csv that start with = + - @ get a leading apostrophe (csv_safe).
   Numbers are parsed strictly (see to_number): NaN, inf, decimal commas ("4,25", "1.234,56") and
   negative quantities or costs BLOCK the batch and are listed with row, column and raw value.
 
@@ -106,6 +109,23 @@ def to_number(s):
     return v, None
 
 
+_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_safe(v):
+    """Stop a spreadsheet from running a cell as a formula.
+
+    Text that starts with = + - @ or a tab/return gets a leading
+    apostrophe. Real numbers (including negatives like -5.69) are left alone.
+    """
+    if isinstance(v, str) and v.startswith(_FORMULA_START):
+        try:
+            float(v)
+        except ValueError:
+            return "'" + v
+    return v
+
+
 def cli_number(s):
     """argparse type for numeric flags: finite and not negative (0 is allowed: an operator-confirmed zero)."""
     v, prob = to_number(s)
@@ -157,9 +177,17 @@ def main():
     ap.add_argument("--detect-only", action="store_true")
     a = ap.parse_args()
 
-    with open(a.bom, newline="", encoding="utf-8-sig") as f:
-        rows = list(csv.DictReader(f))
-    headers = list(rows[0].keys()) if rows else []
+    try:
+        with open(a.bom, newline="", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+            headers = list(reader.fieldnames or [])
+    except OSError as e:
+        sys.exit(f"Cannot read the BOM file {a.bom}: {e.strerror or e}.")
+    except (UnicodeDecodeError, csv.Error) as e:
+        sys.exit(f"Cannot read the BOM file {a.bom} as a UTF-8 CSV ({e}). Export it as CSV (UTF-8) and rerun.")
+    if not headers:
+        sys.exit(f"The BOM file {a.bom} is empty (no header row). Export the BOM again with its column headers.")
     m = detect(headers, kv(a.map, "mapping"))
     if a.detect_only:
         print(json.dumps({"mapping": m, "rows": len(rows), "headers": headers}, indent=2, allow_nan=False))
@@ -206,12 +234,21 @@ def main():
     elif not cu_col:
         notes.append("No cost unit column found (the unit each price is quoted in, e.g. $/lb). Weight and volume "
                      "lines need it; count lines are read as price per each.")
-    blank_rows, each_read = 0, []
+    blank_rows, each_read, seen_rows = 0, [], {}
     for i, r in enumerate(rows, start=2):
         if is_blank(r):
             blank_rows += 1
             continue
+        key = tuple(sorted((k or "", str(v).strip()) for k, v in r.items()))
+        if key in seen_rows:  # kept and costed, but the operator should rule out a double entry
+            notes.append(f"row {i} repeats row {seen_rows[key]} exactly; both lines were costed. If one is a "
+                         f"double entry, remove it and rerun.")
+        else:
+            seen_rows[key] = i
         comp = (r.get(m["component"]) or "").strip() or f"row{i}"
+        if not (r.get(m["component"]) or "").strip():
+            notes.append(f"row {i}: column '{m['component']}' is blank; the line is shown as '{comp}'. "
+                         f"Ask which component it is.")
         raw_qty, raw_cost = (r.get(m["qty"]) or "").strip(), (r.get(m["unit_cost"]) or "").strip()
         qty, qty_prob = to_number(raw_qty)
         cost, cost_prob = to_number(raw_cost)
@@ -267,6 +304,9 @@ def main():
         lines.append({"line": comp, "type": "material", "qty": qty, "uom": uom,
                       "unit_cost": cost, "cost_uom": cuom, "qty_in_cost_uom": round(qty_in_cost_uom, 6),
                       "line_cost": round(qty_in_cost_uom * cost, 4), "source": tag, "note": note})
+    if blank_rows == len(rows):  # header only, or nothing but blank rows: there is nothing to cost
+        problems.append(f"The BOM has no component rows (only the header{' and blank rows' if rows else ''}). "
+                        f"Ask for the components consumed in this batch.")
     if blank_rows:
         notes.append(f"Skipped {blank_rows} fully blank row(s) in the BOM.")
     if each_read:
@@ -349,7 +389,7 @@ def main():
     with open(os.path.join(a.out_dir, "cogs_lines.csv"), "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(lines[0].keys()))
         w.writeheader()
-        w.writerows(lines)
+        w.writerows([{k: csv_safe(v) for k, v in x.items()} for x in lines])
     summary = {
         "status": "OK", "batch": a.batch_name, "bom_file": a.bom, "mapping": m,
         "units_produced": units, "materials": round(materials, 2), "labor": round(labor, 2),

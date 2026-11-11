@@ -3,3 +3,8 @@ __pycache__/
 *.pyc
 node_modules
 .claude
+plugin-evals/results/
+
+# Real-data trial: Distru test-account exports stay local until approved for the public repo
+plugin-evals/trial/**/resources/
+plugin-evals/trial/**/oracle/*.json

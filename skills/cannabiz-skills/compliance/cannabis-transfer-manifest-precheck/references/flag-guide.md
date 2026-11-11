@@ -19,17 +19,19 @@ Each flag puts its line on HOLD. Fixes are operational. Whether a fix also needs
 | `MISSING_UNIT` | The manifest line has no unit (blank cell or no unit column). Quantities weren't compared with inventory or the order | Unit left off the draft manifest | Add the package's unit of measure and rerun. Never copy it from the order without checking the package | Shipping |
 | `INVENTORY_UNIT_MISSING` | The package's inventory row has no unit, so on-hand wasn't compared | Export missing the unit column or cell | Re-export inventory with units and rerun | Compliance |
 | `DUPLICATE_INVENTORY_TAG` | The tag is on more than one row of the inventory export; on-hand and lab status weren't checked. The note lists each row's quantity and lab status | Stale or merged export; two packages sharing a mistyped tag | Find which row is current (re-export, read the physical tag) and rerun | Compliance / Shipping |
+| `MANIFEST_VS_INVENTORY_UNKNOWN_UOM` | The manifest or package unit isn't one the script recognizes, so on-hand wasn't compared | Unusual unit label or typo ("Grms", "Boxes") | Use the package's unit of measure as the traceability system writes it, and rerun | Shipping |
 | `MANIFEST_VS_INVENTORY_UOM_MISMATCH` | Manifest unit and package unit are different kinds | Count vs. weight | Use the package's unit of measure | Shipping |
 | `LAB_NOT_PASSED` | Lab status isn't one of the confirmed passing values | Failed, pending, retest, or not submitted | Pull the package. Don't ship until status is confirmed passed | Compliance / QA |
 | `LAB_STATUS_UNCONFIRMED` | Operator didn't confirm which values mean passed | Missing confirmation | Confirm the passing values and rerun | Compliance |
 | `NO_LAB_STATUS_COLUMN` | Inventory export has no testing status | Wrong export or columns hidden | Re-export with testing status included | Compliance |
 | `DUPLICATE_TAG_ON_MANIFEST` | Same tag appears on more than one line | Copy-paste | Merge into one line | Shipping |
+| `TAG_SCIENTIFIC_NOTATION` | The tag on this manifest or order line reads like `1.23457E+23`: Excel dropped the real digits, so the package can't be identified. Inventory rows with such a tag are not used at all | Numeric tag (often a BioTrack or state ID) opened and saved in Excel | Re-export with the tag column formatted as text and rerun. Never guess the tag | Whoever owns the file |
 | `INVALID_NUMBER` | A manifest, on-hand or order quantity is text, NaN or inf, negative, or uses a decimal comma ("1,5", "1.234,5"). It wasn't read or compared. The note gives the file, row, column and raw value | Hand-typed value; spreadsheet set to a European number format | Correct the cell and rerun. Never guess the value | Whoever owns the file |
 | `BAD_QUANTITY` / `BLANK_TAG` / `INVENTORY_QTY_UNREADABLE` / `ORDER_QTY_UNREADABLE` | Input data problem | Blank cell (`ORDER_QTY_UNREADABLE` also covers mixed units on one order line) | Fix the file and rerun | Whoever owns the file |
 
 ## Input problems
 
-`input_problems` in `precheck_summary.json` lists file issues the line flags can't show on their own: blank inventory tags (with row numbers), duplicate inventory tags, blank units, missing unit columns, blank or invalid quantities (with file, row, column and raw value), and blank item cells. Report every entry. The overall result is HOLD whenever the list isn't empty, even if every line is GO.
+`input_problems` in `precheck_summary.json` lists file issues the line flags can't show on their own: blank tags (with row numbers), tags in scientific notation, duplicate inventory tags, order lines whose tag/SKU/item is on more than one row (their quantities are added; confirm it isn't a copy-paste duplicate), blank units, missing unit columns, blank or invalid quantities (with file, row, column and raw value), and blank item cells. Report every entry. The overall result is HOLD whenever the list isn't empty, even if every line is GO.
 
 ## Grouping tips
 

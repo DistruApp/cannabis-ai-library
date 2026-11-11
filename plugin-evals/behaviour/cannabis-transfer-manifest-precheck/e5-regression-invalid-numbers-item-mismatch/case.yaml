@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: cannabis-transfer-manifest-precheck--e5-regression-invalid-numbers-item-mismatch
+context:
+  scaffold_script: setup.sh

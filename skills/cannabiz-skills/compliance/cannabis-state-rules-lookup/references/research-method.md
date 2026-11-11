@@ -25,4 +25,4 @@ Never cite: AI-generated summaries, vendor marketing copy (except to say which v
 
 ## If a site blocks access
 
-Several state sites block automated access (as of 2026-10-16: michigan.gov, azdhs.gov, commerce.alaska.gov, com.ohio.gov). Don't fill the gap from memory. Tell the user which page to open, what to look for, and give the answer as **UNVERIFIED** until they confirm it.
+Several state sites block automated access. As of 2026-11-11: med.colorado.gov and its new home sbg.colorado.gov/med, sos.state.co.us, michigan.gov (including michigan.gov/cra), legislature.mi.gov, ilga.gov and cannabis.illinois.gov. As of 2026-10-16 also: azdhs.gov, commerce.alaska.gov, com.ohio.gov. The exact pages a person should open are listed under **Blocked sites (open in a browser)** in `state-profiles.md`. Don't fill the gap from memory. Tell the user which page to open, what to look for, and give the answer as **UNVERIFIED** until they confirm it.

@@ -32,7 +32,7 @@ Legend for applicability: C = cultivation, M = manufacturing/processing, D = dis
 
 ## 5. Waste and destruction (C, M, R)
 - Waste log complete: date, item, weight, method, reason, people involved
-- Waste rendered/destroyed and stored per state method (method, witness, and hold rules are state-specific, NEEDS VERIFICATION)
+- Waste rendered/destroyed and stored per state method (method, witness, notice and hold rules are state-specific: for pilot states see **Waste and destruction** in `state-profiles.md`, otherwise NEEDS VERIFICATION)
 - Waste weights tie to traceability records
 
 ## 6. Cultivation-specific (C)
@@ -59,7 +59,7 @@ Legend for applicability: C = cultivation, M = manufacturing/processing, D = dis
 - Label claims (potency, weight) consistent with COA
 
 ## 10. Transport (D, and anyone who transports)
-- Manifests/transfer records complete and retained
+- Manifests/transfer records complete and retained (retention periods are state-specific: for pilot states see **Records retention** in `state-profiles.md`)
 - Vehicles and drivers meet state requirements (NEEDS VERIFICATION)
 - Product secured during transport; trip records
 
@@ -70,7 +70,7 @@ Legend for applicability: C = cultivation, M = manufacturing/processing, D = dis
 - Returns and recalls handled through the system
 
 ## 12. People and training (All)
-- Employee roster matches badged/registered staff; badges current (badge/registration rules state-specific)
+- Employee roster matches badged/registered staff; badges current (badge/registration rules state-specific: for pilot states see **Worker credentials** in `state-profiles.md`)
 - Required training completed and documented
 - Background-check records where required
 

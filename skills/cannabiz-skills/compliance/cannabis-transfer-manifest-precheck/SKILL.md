@@ -1,12 +1,12 @@
 ---
 name: cannabis-transfer-manifest-precheck
-description: Check an outgoing cannabis B2B transfer before the driver leaves by comparing the sales order, the draft transfer manifest, and active package inventory with lab status, then return GO or HOLD per line with fixes. Use when a licensed cultivator, manufacturer, or distributor asks to check a manifest, verify a transfer or delivery against an order, catch wrong packages, quantities, units, or untested product before shipping, or uploads a Metrc/BioTrack transfer draft next to an invoice or sales order, even if they don't say "manifest." Not for receiving inbound transfers, full inventory reconciliations, route planning, or creating or submitting the transfer in the state system.
+description: Check an outgoing cannabis B2B transfer before the driver leaves by comparing the sales order, the draft transfer manifest, and active package inventory with lab status, then return GO or HOLD per line with fixes. Use when a licensed cultivator, manufacturer, or distributor asks to check a manifest, verify a transfer or delivery against an order, asks whether the quantity, package or unit on an outgoing transfer is right, catch wrong packages, quantities, units, or untested product before shipping, or uploads a Metrc/BioTrack transfer draft next to an invoice or sales order, even if they don't say "manifest." Not for receiving inbound transfers, full inventory reconciliations, route planning, or creating or submitting the transfer in the state system.
 license: MIT
 metadata:
   version: "1.0"
   category: compliance-distribution
   risk-level: high
-  last-compliance-review: "2026-10-16"
+  last-compliance-review: "2026-11-11"
 ---
 
 # Transfer manifest pre-check
@@ -38,7 +38,7 @@ Read `references/jurisdiction-gate.md`. Get state, your license type, the receiv
 
 Optional: COA list, receiver license number. If a file is missing, ask for it. Never reconstruct a manifest from the order.
 
-Run `python3 <skill-dir>/scripts/precheck.py --order … --manifest … --inventory … --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces.
+Run `python3 <skill-dir>/scripts/precheck.py --order … --manifest … --inventory … --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces, and don't compare the files by hand either (no list of rows that differ, match, are missing or would pass).
 
 Show the user the mappings, the join key, and the **distinct lab-status values** found. Ask which values mean "passed for sale/transfer" in their system and state, and pass them exactly with `--passing-lab-values`. Never assume a value like "TestPassed" counts as passed without that confirmation. Different states and systems use different status sets. If no confirmation comes, run without the flag: every line holds as `LAB_STATUS_UNCONFIRMED`, and you say why.
 
@@ -50,7 +50,7 @@ Resolve `AMBIGUOUS` columns with `--map-order field=Column` (also `--map-manifes
 python3 <skill-dir>/scripts/precheck.py --order <f> --manifest <f> --inventory <f> --passing-lab-values <v…> --out-dir <dir>
 ```
 
-Use the script's results as-is. You may move a line from GO to HOLD if you see a problem the script missed; say why. Never move a line from HOLD to GO. Flag meanings and fixes are in `references/flag-guide.md`. Read the `notes` column too: it explains blank units and lists both rows of a duplicate inventory tag. Also report every line in `input_problems` (blank inventory tags, duplicate inventory tags, blank units, missing unit columns, blank or invalid quantities, blank item cells). The overall result is HOLD whenever `input_problems` isn't empty, even if every line shows GO, because an input problem can hide a problem with a shipped line.
+Use the script's results as-is. You may move a line from GO to HOLD if you see a problem the script missed; say why. Never move a line from HOLD to GO. Flag meanings and fixes are in `references/flag-guide.md`. Read the `notes` column too: it explains blank units and lists both rows of a duplicate inventory tag. Also report every line in `input_problems` (blank tags, tags in scientific notation, duplicate inventory tags, order lines entered on more than one row, blank units, missing unit columns, blank or invalid quantities, blank item cells). The overall result is HOLD whenever `input_problems` isn't empty, even if every line shows GO, because an input problem can hide a problem with a shipped line.
 
 ### 4. Explain HOLDs
 
@@ -64,14 +64,33 @@ The script prints `verify_manually` items that files can't prove: license status
 
 Use `assets/precheck-template.md` and `references/output-conventions.md`. The top line is **GO** or **HOLD** with the count of lines to fix. "GO" always reads as *"GO on file checks; manual checks below still required."*
 
+## Before you reply
+
+**Bad values and blanks.** Quote the raw cell (`NaN`, `'1,5'`, `'12,5'`, a blank unit or item) with its tag, file and row, and say who corrects it before a rerun. Don't offer readings ("probably 1.5 lb", "a typo for 125"), don't work out what a reading would give, and don't tell them what to enter from another file ("enter 24, the order quantity"). The file's owner confirms the real figure.
+
+**You never create, submit or dispatch anything** in Metrc or any system, not now and not "if you give me access". Say the operator does it after the manual checks.
+
+**Your final reply must contain** (from `assets/precheck-template.md`):
+- First line: **HOLD** with the number of lines to fix, or, in these exact words, "**GO on file checks**; manual checks below still required." (not "file checks pass" or a bare "GO"). Don't use the words "compliant" or "cleared" anywhere, not even to say you aren't using them.
+- For a `UNIT_CONVERSION_ROUNDING` line, both figures (e.g. 2268 g on the manifest vs 5 lb = 2267.96 g in the package) and the fix: restate it in the package's unit.
+- The jurisdiction block: state, both license types, traceability system, and rules relied on, with every rule-dependent item that isn't cited in `references/state-profiles.md` marked **NEEDS VERIFICATION**.
+- The line table with a Flags column holding the script's flag names (e.g. `MISSING_UNIT`, `DUPLICATE_INVENTORY_TAG`, `INVALID_NUMBER`, `ITEM_MISMATCH`), and for a duplicate inventory tag each row's quantity and lab status.
+- Fixes grouped by owner.
+- "Input problems found": every `input_problems` line with its file and row, or "None".
+- The manual-verification list, with where to check and NEEDS VERIFICATION on anything not cited.
+- The sign-off block.
+
 ## Gotchas
 
 - **Unit conversion rounding.** 5 lb is 2267.96 g, not 2268 g. A manifest that restates a pound-based package in rounded grams asks for more than the package holds. The script flags this as `UNIT_CONVERSION_ROUNDING`. Fix it by stating the quantity in the package's own unit. The rounding flags only appear when the units really differ (lb vs. g). 100.3 g against a 100 g package is `EXCEEDS_ON_HAND`, because "g" and "Grams" are the same unit.
 - **Blank units.** A blank unit is never filled in from another file. The line holds as `MISSING_UNIT` (manifest), `INVENTORY_UNIT_MISSING` (inventory) or `ORDER_UNIT_MISSING` (order), and the quantities aren't compared. Ask the file's owner for the unit and rerun.
 - **Wrong package** (`ITEM_MISMATCH`). The script compares the manifest's item name, and SKU when both files have one, with the package's, ignoring case, spaces and punctuation. A different item means the wrong package was pulled or the manifest names the wrong item. `ITEM_MISSING` means the item or SKU cell is blank, so the package couldn't be matched. If the inventory export has no item column, the line isn't held but `verify_manually` asks you to check each package's item by hand.
 - **Bad numbers** (`INVALID_NUMBER`). A manifest, on-hand or order quantity that is text, NaN or inf, negative, or written with a decimal comma ("1,5", "1.234,5") holds the line. US thousands separators ("1,234.5") are read normally. The script never guesses what a decimal comma means. Ask the file's owner to correct the cell and rerun.
+- **Tags in scientific notation** (`TAG_SCIENTIFIC_NOTATION`). A numeric tag that Excel turned into something like `1.23457E+23` has lost its real digits, so it can't be matched, even when every file was mangled the same way. The manifest line (or order line) holds, an inventory row with such a tag is not used, and `input_problems` gives the row and raw value. Ask for a re-export with the tag column formatted as text.
 - **Same tag twice in inventory** (`DUPLICATE_INVENTORY_TAG`). The script keeps neither row: the line holds and the note lists each row's quantity and lab status. Find out which row is current before shipping.
 - **Same tag twice** on a manifest (`DUPLICATE_TAG_ON_MANIFEST`) is usually a copy-paste error even when the total matches the order.
+- **State exceptions for untested product** (`LAB_NOT_PASSED`). Some states allow specific transfers of untested product: California cultivator→distributor (regulatory testing happens at the distributor), Michigan cultivator→processor/producer, and Massachusetts failed product cultivator→manufacturer for remediation only. The script still holds those lines as `LAB_NOT_PASSED`. Explain the state exception from `references/state-profiles.md`, with its citation and verification label, and let the compliance lead decide. Never move a HOLD to GO yourself.
+- **Michigan holds and recalls.** Before a sale or transfer in Michigan, verify in Metrc that each package isn't on administrative hold, recalled, or ordered destroyed (R 420.502(5), in the profile). Files can't prove this, so add it to the manual-verification list.
 - **Lab status is a snapshot.** A status can change between the inventory export and departure. Re-export inventory right before shipping if hours have passed.
 - **On-hand ≠ available.** Packages on hold, allocated to another order, or in quarantine can still show quantity. Ask whether the inventory export excludes holds.
 - **Partial ships and substitutions** appear as `ORDER_QTY_MISMATCH` / `NOT_ON_ORDER`. They aren't necessarily wrong, but the order or invoice has to match what ships.
