@@ -71,7 +71,9 @@ before any destructive, irreversible, or safety-critical action. Never invent
 a step that wasn't described or confirmed: the numbered procedure holds only
 steps the operator described or confirmed, split into one action each. A
 control you think is missing (stopping sales first, running a report, never
-leaving cash alone, sealing a bag, blind counts) is not a step. Put it in a
+leaving cash alone, sealing or labelling a bag, blind counts, writing a count
+on a form, signing or initialling a record, logging the drop) is not a step,
+and marking it CONFIRM doesn't make it one. Put it in a
 separate **Suggested additions (not in the SOP until you confirm)** list after
 the draft, one line each with the reason, and add it to the procedure only
 once the operator says yes.
