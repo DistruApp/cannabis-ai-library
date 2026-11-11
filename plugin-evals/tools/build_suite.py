@@ -580,7 +580,7 @@ def extra_cases():
     add(IR, "s2-unverified-wa-rule", "Washington camera rules are not in the verified profiles: must mark NEEDS VERIFICATION, no numbers.",
         "Washington retailer, inspection next week. How many days of camera footage do we have to keep, and how many cameras do we need on the sales floor?",
         None,
-        [ir_or_sr, has("needs-verification", r"NEEDS VERIFICATION|not verified|unverified|verified (?:number|answer|figure)|(?:haven|couldn|can)['’]t (?:confirm|verif)", "i"),
+        [ir_or_sr, has("needs-verification", r"NEEDS VERIFICATION|not verified|unverified|verified (?:number|answer|figure)|(?:haven|couldn|can)['’]t (?:confirm|verif)|could(?:n['’]t| not) be (?:verified|confirmed)", "i"),
          lacks("no-retention-number", r"\b\d+\s*(?:days?|months?|years?)\b[^\n]{0,40}(?:footage|retention|recording)|(?:footage|retention|recordings?|keep)[^\n]{0,40}\b\d+\s*(?:days?|months?|years?)\b", "i"),
          llm(["Does not state a Washington camera retention period or camera count as fact",
               "Marks them NEEDS VERIFICATION and points to the WA regulator (LCB) rules to confirm",

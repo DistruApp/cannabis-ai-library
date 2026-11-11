@@ -11,7 +11,7 @@ description: >-
   a shift or day is overstaffed or understaffed, comparing labor cost to a
   target percentage, working out how many budtenders, trimmers or packagers a
   shift or harvest needs (including "how many people do we need on this
-  shift?" or sizing a production or packaging crew), checking overtime risk, or processing a time-off,
+  shift?" or sizing a production or packaging crew from a unit target and a rate per hour), checking overtime risk, or processing a time-off,
   call-out or swap request, including "who can cover this shift?". Not for payroll, hiring, HR policy or legal
   advice on labor law.
 license: MIT
