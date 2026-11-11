@@ -5,6 +5,7 @@
   {"query": "Build me a harvest report for the owners from this Metrc harvest batch export", "should_trigger": true},
   {"query": "our trim percentage keeps climbing, can you look at the last 10 harvests", "should_trigger": true},
   {"query": "Before we close out these harvests, check the weights in this log for anything that doesn't add up", "should_trigger": true},
+  {"query": "Which strain is doing better for us, Blue Dream or GMO Cookies? Our harvest log is in this folder.", "should_trigger": true},
   {"query": "Metrc shows 2 lb more flower than we counted in the vault, why?", "should_trigger": false},
   {"query": "What's the extraction yield and cost per gram on our last live resin run?", "should_trigger": false},
   {"query": "Plan our flip schedule for the next 6 months across 4 flower rooms", "should_trigger": false},

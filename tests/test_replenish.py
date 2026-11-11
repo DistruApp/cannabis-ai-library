@@ -637,6 +637,120 @@ class Gate5Regressions(ReplenishCase):
             self.assertTrue(any("read as month/day (US)" in w for w in out["warnings"]), out["warnings"])
 
 
+def replen1_files(d):
+    """Round 2 reviewer's replen1 trial: a 28-day POS export (10/14-11/10) with two established SKUs that sell
+    daily and two SKUs that sold once near the end (tincture 3 on 11/09, chocolate 2 on 11/10)."""
+    sales = []
+    bd = [6, 4, 8, 4, 5, 8, 8, 5, 7, 6, 8, 4, 4, 8, 8, 5, 8, 7, 8, 5, 4, 6, 4, 4, 8, 6, 5, 5]
+    mg = [4, 1, 2, 4, 4, 2, 4, 2, 1, 2, 2, 1, 4, 3, 3, 2, 4, 1, 2, 4, 3, 4, 4, 3, 3, 4, 4, 2]
+    for n, (b, m) in enumerate(zip(bd, mg)):
+        day = f"2026-{'10' if n < 18 else '11'}-{(14 + n if n < 18 else n - 17):02d}"
+        sales += [[day, "FL-BD-35", "Blue Dream 3.5g", str(b), "100.00"],
+                  [day, "VP-MG-1G", "Mango Distillate Cart 1g", str(m), "50.00"]]
+    sales += [["2026-11-09", "TN-11-30", "Tincture 1:1 30ml", "3", "135.00"],
+              ["2026-11-10", "ED-CH-100", "Dark Chocolate 100mg", "2", "40.00"]]
+    h.write_csv(d / "sales.csv", ["Date", "SKU", "Product Name", "Units Sold", "Net Sales"], sales)
+    h.write_csv(d / "onhand.csv", ["SKU", "Vendor", "On Hand", "Unit Cost", "Case Pack", "Lead Time Days", "On Order"],
+                [["FL-BD-35", "Example Pines Distribution", "30", "14.00", "24", "7", "0"],
+                 ["VP-MG-1G", "Example Coast Extracts", "20", "12.00", "10", "10", "0"],
+                 ["TN-11-30", "Example Botanics Supply", "2", "28.00", "12", "14", "0"],
+                 ["ED-CH-100", "Example Edibles Co", "1", "9.00", "24", "10", "0"]])
+    return d / "sales.csv", d / "onhand.csv"
+
+
+class Gate5Round2(ReplenishCase):
+    """Findings from the second gate 5 reviewer (R1-R6 in fixes-cannabis-replenishment-planner.md, round 2)."""
+
+    def one_row(self, d, date, *params):
+        h.write_csv(d / "sales.csv", ["Date", "SKU", "Units Sold"], [[date, "EX-A", "5"]])
+        h.write_csv(d / "onhand.csv", ["SKU", "Vendor", "On Hand", "Lead Time Days"], [["EX-A", "V", "1", "7"]])
+        return self.run_repl(["--sales", d / "sales.csv", "--onhand", d / "onhand.csv", "--as-of", "2026-09-30",
+                              "--out-dir", d / "out"] + list(params))
+
+    def test_r1_replen1_once_sold_skus_are_not_ordered(self):
+        # Before the round 1 fix: NEW_SKU at 2.0/day and 1.5/day, 48 units each, PO total $3,720.
+        with h.TempDir() as d:
+            sales, onhand = replen1_files(d)
+            out, skus, po, _ = self.run_ok(sales, onhand, d / "out", "--as-of", "2026-11-10")
+            self.assertEqual(out["po_draft_total_cost"], 1944.0)
+            self.assertEqual((out["flag_counts"]["NEW_OR_SLOW"], out["flag_counts"]["NEW_SKU"]), (2, 0))
+            self.assertEqual(set(po), {"FL-BD-35", "VP-MG-1G"})
+            for sku, first, rate in (("ED-CH-100", "2026-11-10", "0.0714"), ("TN-11-30", "2026-11-09", "0.1071")):
+                with self.subTest(sku=sku):
+                    self.assertEqual((skus[sku]["days_measured"], skus[sku]["units_per_day"],
+                                      skus[sku]["suggested_order_qty"]), ("28", rate, "0"))
+                    self.assertIn(f"NEW_OR_SLOW(first sale {first})", skus[sku]["flags"])
+
+    def test_r2_pos_timestamp_formats_are_read(self):
+        for raw in ("9/29/2026 2:03:15 PM", "9/29/2026 2:03 pm", "09/29/26 14:03", "2026-09-29T14:03:00Z",
+                    "2026-09-29T14:03:00.000-07:00", "2026-09-29 14:03", "2026-09-29T14:03:00", "2026/09/29 14:03:00",
+                    "Sep 29, 2026", "September 29, 2026", "Sep 29, 2026 2:03 PM", "29 Sep 2026", "29-Sep-2026"):
+            with self.subTest(raw=raw), h.TempDir() as d:
+                res = self.one_row(d, raw)
+                self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
+                out = h.strict_json_load(res.stdout, is_text=True)
+                row = h.read_csv(d / "out" / "replenishment.csv")[0]
+                self.assertEqual((row["last_sale"], row["units_sold_window"]), ("2026-09-29", "5.0"))
+                self.assertEqual(out["input_problems"], [])
+                zoned = any("carry a time zone" in w for w in out["warnings"])
+                self.assertEqual(zoned, raw.endswith(("Z", "-07:00")), out["warnings"])
+
+    def test_r2_unreadable_dates_name_the_value_and_accepted_formats(self):
+        with h.TempDir() as d:
+            res = self.one_row(d, "2026-09-29T25:03:00")
+            self.assertEqual(res.returncode, 1)
+            self.assertIn("For example '2026-09-29T25:03:00' in column 'Date'", res.stderr)
+            self.assertIn("Accepted dates: YYYY-MM-DD", res.stderr)
+        with h.TempDir() as d:  # some rows unreadable: run continues, warns that velocity may be understated
+            rows = daily_sales("EX-A", 3, 30) + [["29.09.2026", "EX-A", "EX-A", "Example Brand", "Retail", "5", "1"]]
+            out, skus, po, _ = Gate5Regressions.plan(self, d, rows, [stock("EX-A")])
+            self.assertTrue(any(w.startswith("1 of 29 sales row(s) have a date the script can't read (e.g. "
+                                             "'29.09.2026')") for w in out["warnings"]), out["warnings"])
+            self.assert_problem(out, "sales row 30: unparseable date '29.09.2026'")
+
+    def test_r2_r3_day_month_order_is_never_guessed(self):
+        with h.TempDir() as d:  # 29/09 can only be day/month: stop, never read 03/09 as March
+            h.write_csv(d / "sales.csv", ["Date", "SKU", "Units Sold"], [["29/09/2026", "EX-A", "5"],
+                                                                         ["03/09/2026", "EX-A", "5"]])
+            h.write_csv(d / "onhand.csv", ["SKU", "Vendor", "On Hand", "Lead Time Days"], [["EX-A", "V", "1", "7"]])
+            base = ["--sales", d / "sales.csv", "--onhand", d / "onhand.csv", "--as-of", "2026-09-30"]
+            res = self.run_repl(base + ["--out-dir", d / "out"])
+            self.assertEqual(res.returncode, 1)
+            self.assertIn("look day/month", res.stderr)
+            self.assertIn("--date-order dmy", res.stderr)
+            self.assertFalse((d / "out").exists())
+            detect = h.strict_json_load(self.run_repl(base + ["--detect-only"]).stdout, is_text=True)
+            self.assertTrue(any("look day/month" in w for w in detect["warnings"]), detect["warnings"])
+            out, skus, _, _ = self.run_ok(d / "sales.csv", d / "onhand.csv", d / "out", "--as-of", "2026-09-30",
+                                          "--date-order", "dmy")
+            self.assertEqual((skus["EX-A"]["units_sold_window"], skus["EX-A"]["last_sale"]), ("10.0", "2026-09-29"))
+            self.assertFalse(any("month/day" in w for w in out["warnings"]), out["warnings"])
+        for dates, flag, msg in ((["29/09/2026", "09/28/2026"], [], "mix month/day"),
+                                 (["09/28/2026"], ["--date-order", "dmy"], "can't be read that way")):
+            with self.subTest(dates=dates), h.TempDir() as d:
+                h.write_csv(d / "sales.csv", ["Date", "SKU", "Units Sold"], [[x, "EX-A", "5"] for x in dates])
+                h.write_csv(d / "onhand.csv", ["SKU", "On Hand"], [["EX-A", "1"]])
+                res = self.run_repl(["--sales", d / "sales.csv", "--onhand", d / "onhand.csv", "--as-of",
+                                     "2026-09-30", "--out-dir", d / "out"] + flag)
+                self.assertEqual(res.returncode, 1)
+                self.assertIn(msg, res.stderr)
+
+    def test_r4_leading_zero_skus_are_reported_not_matched(self):
+        with h.TempDir() as d:
+            sales = daily_sales("EX-A", 3, 30) + daily_sales("123", 3, 30)
+            out, skus, po, _ = Gate5Regressions.plan(self, d, sales, [stock("EX-A", "100"), stock("00123", "40")])
+            self.assertEqual(skus["123"]["flags"], "NO_ONHAND_RECORD")
+            self.assertNotIn("123", po)
+            self.assert_problem(out, "SKU '123' in sales and '00123' on hand differ only by leading zeros")
+            self.assertTrue(any("differ only by leading zeros" in w for w in out["warnings"]), out["warnings"])
+
+    def test_r6_detect_only_does_not_need_as_of(self):
+        res = self.run_repl(["--sales", POS, "--onhand", ONHAND, "--detect-only"])
+        self.assertEqual(res.returncode, 0, res.stderr)
+        out = h.strict_json_load(res.stdout, is_text=True)
+        self.assertEqual(out["missing_required_columns"], {"sales": [], "onhand": []})
+
+
 class FormulaInjection(ReplenishCase):
     def assert_neutralised(self, out_dir, cell):
         h.assert_no_live_formulas(self, out_dir)

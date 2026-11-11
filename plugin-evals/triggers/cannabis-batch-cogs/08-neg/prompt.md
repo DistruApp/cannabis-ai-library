@@ -9,4 +9,4 @@ timeout_seconds: 180
 allowed_tools: ["Read", "Glob", "Grep", "Skill"]
 ---
 
-Build a wholesale price sheet with tiered discounts for our dispensary accounts
+What's our cost per gram of flower by grow room this quarter?

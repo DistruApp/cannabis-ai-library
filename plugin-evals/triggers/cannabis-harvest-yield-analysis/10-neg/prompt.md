@@ -9,4 +9,4 @@ timeout_seconds: 180
 allowed_tools: ["Read", "Glob", "Grep", "Skill"]
 ---
 
-Write an SOP for weighing and recording wet harvest weight
+Plan our flip schedule for the next 6 months across 4 flower rooms

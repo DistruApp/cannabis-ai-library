@@ -52,7 +52,9 @@ When the on-hand file lists a SKU more than once (e.g. two rooms or two bins), o
 
 - **More than one account or store** (a column named Account, Store, Retailer, Dispensary or similar with more than one value, or different values in the two files): the run stops. Plan one account per run.
 - **Blank open PO cell or no open PO column:** read as 0 and listed in `assumptions`.
-- **Slash dates that could be day/month** (e.g. `03/09/2026`): read as month/day (US) and listed in `warnings`.
+- **Sales dates:** YYYY-MM-DD or YYYY/MM/DD with or without a time (ISO `T`, seconds, fractions, `Z` or `+hh:mm`); MM/DD/YYYY or MM/DD/YY with an optional 24-hour or AM/PM time; month names (`Sep 29, 2026`). A timestamp is dated as written, not converted between time zones (`warnings` says when a zone is present). Rows with an unreadable date are left out, listed in `input_problems` and counted in `warnings`. If no row has a readable date, the run stops and names an unreadable value and the accepted formats.
+- **Day/month order is never guessed.** Slash dates are month/day unless `--date-order dmy` is passed. A date that can only be the other order (`29/09/2026` without the flag), or a file that mixes both, stops the run. Slash dates that could be read either way (`03/09/2026`) are read as month/day and listed in `warnings` unless `--date-order` was given.
+- **SKUs that differ only by leading zeros** (`00123` vs `123`): not matched; each pair is in `input_problems` and counted in `warnings`.
 
 ## What the script does not do
 

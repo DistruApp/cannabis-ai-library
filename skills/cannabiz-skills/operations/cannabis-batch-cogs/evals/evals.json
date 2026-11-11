@@ -32,13 +32,14 @@
       "id": 3,
       "name": "preroll-thin-inputs",
       "prompt": "Here's our pre-roll BOM. What's our cost per pre-roll? I need it for a price sheet by end of day.",
-      "expected_output": "Runs or attempts the script, gets BLOCKED, and asks in one message for: flower cost per lb (blank in BOM), units produced, labor hours and rate, overhead method, testing cost; notes whether flower cost should be internal transfer cost or cultivation cost per gram; does not estimate any of them; if the user needs speed, offers to proceed with placeholder numbers the operator chooses, tagged ASSUMPTION (the deadline does not let the agent pick them).",
+      "expected_output": "Runs or attempts the script, gets BLOCKED, and asks in one message for: flower cost per lb (blank in BOM), whether the BOM's Cost column is the price per unit or the line total, units produced, labor hours and rate, overhead method, testing cost; notes whether flower cost should be internal transfer cost or cultivation cost per gram; does not estimate any of them; if the user needs speed, offers to proceed with placeholder numbers the operator chooses, tagged ASSUMPTION (the deadline does not let the agent pick them).",
       "files": ["evals/files/bom_preroll_mixed_units.csv"],
       "assertions": [
         "Identifies the missing flower cost in the BOM",
         "Asks for units produced, labor, overhead method, and testing in a single combined request",
         "Does not invent a flower price, labor rate, or overhead rate",
-        "Asks whether flower cost should be internal transfer cost or cultivation cost"
+        "Asks whether flower cost should be internal transfer cost or cultivation cost",
+        "Asks whether the Cost column is the price per unit or the line total, in the same message, without assuming either"
       ]
     },
     {

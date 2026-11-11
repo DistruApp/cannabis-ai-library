@@ -68,7 +68,13 @@ person who wrote the template. Default to plain, simple language (aim for a
 something more technical. One action per step. Every step starts with an
 action verb. Include the expected result after critical steps. Add a warning
 before any destructive, irreversible, or safety-critical action. Never invent
-a step that wasn't described or confirmed.
+a step that wasn't described or confirmed: the numbered procedure holds only
+steps the operator described or confirmed, split into one action each. A
+control you think is missing (stopping sales first, running a report, never
+leaving cash alone, sealing a bag, blind counts) is not a step. Put it in a
+separate **Suggested additions (not in the SOP until you confirm)** list after
+the draft, one line each with the reason, and add it to the procedure only
+once the operator says yes.
 
 Follow the structure in `templates/cannabis-sop-skeleton.md`:
 
@@ -165,7 +171,9 @@ one.
 - This is not legal or compliance advice. Every regulatory citation, variance
   threshold, retention period, and review cadence should be flagged as
   "confirm with your compliance lead or counsel for this state," not
-  asserted as fact.
+  asserted as fact. The same goes for any statement of what a state rule or
+  the track-and-trace system requires (for example, which weight a Metrc
+  entry should record), including one made in passing or inside a question.
 - Never name an individual employee as the "owner" of an SOP. Roles stay when
   people leave; names don't.
 - Don't skip the Controls and Variance section for a process that touches

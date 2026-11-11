@@ -423,6 +423,43 @@ class Structure(YieldCase):
             out, _ = self.run_ok(Q3, d)
             self.assertEqual(out["ranking_metric"], "dry_g_per_sqft")
 
+    def test_strain_and_room_spelling_variants_are_grouped_and_reported(self):
+        # Gate 5 round 2 Y1: "Blue Dream", "Blue Dream " and "blue dream" were three ranking rows, with no problem.
+        with h.TempDir() as d:
+            (d / "h.csv").write_text("Harvest Name,Strain,Room,Canopy Sq Ft,Wet Weight,Dry Weight,Unit\n"
+                                     "A,Blue Dream,F1,100,1000,200,g\nB,Blue Dream ,F1,100,1000,300,g\n"
+                                     "C,blue dream,f1,100,1000,250,g\nD,GMO Cookies,F2,100,1000,100,g\n")
+            out, rows = self.run_ok(d / "h.csv", d / "out")
+            strains = {g["strain"]: g for g in out["by_strain_ranked_by_g_per_sqft"]}
+            self.assertEqual(list(strains), ["Blue Dream", "GMO Cookies"])
+            self.assertEqual((strains["Blue Dream"]["batches"], strains["Blue Dream"]["dry_g_per_sqft"]), (3, 2.5))
+            rooms = {g["room"]: g["batches"] for g in out["by_room_ranked_by_g_per_sqft"]}
+            self.assertEqual(rooms, {"F1": 3, "F2": 1})
+            self.assertIn("Strain 'Blue Dream' is written more than one way: 'Blue Dream' (row 2), 'Blue Dream ' "
+                          "(row 3), 'blue dream' (row 4). Grouped as one strain (case and spacing ignored), flagged "
+                          "STRAIN_VARIANTS. If they are really different strains, rename them in the log and rerun.",
+                          out["input_problems"])
+            self.assertIn("Room 'F1' is written more than one way: 'F1' (rows 2, 3), 'f1' (row 4). Grouped as one "
+                          "room (case and spacing ignored), flagged ROOM_VARIANTS. If they are really different "
+                          "rooms, rename them in the log and rerun.", out["input_problems"])
+            self.assertEqual(rows["C"]["flags"], "STRAIN_VARIANTS;ROOM_VARIANTS;")
+            self.assertEqual(rows["D"]["flags"], "")
+            self.assertEqual((rows["B"]["strain"], rows["C"]["room"]), ("Blue Dream ", "f1"))  # kept as written
+        with h.TempDir() as d:  # names spelled differently are never merged
+            (d / "h.csv").write_text("Batch,Strain,Wet,Dry,Unit\nA,GMO Cookies,1000,200,g\nB,GMO Cookie,1000,300,g\n")
+            out, _ = self.run_ok(d / "h.csv", d / "out")
+            self.assertEqual(len(out["by_strain_ranked_by_g_per_sqft"]), 2)
+            self.assertEqual(out["input_problems"], [])
+
+    def test_metrc_style_header_punctuation_is_matched(self):
+        # Gate 5 round 2 Y3: "Wet Wt.", "Strain(s)" and "Unit Of Weight" needed --map.
+        with h.TempDir() as d:
+            (d / "h.csv").write_text("Name,Strain(s),Wet Wt.,Dry Wt.,Unit Of Weight\nH1,X,1000,200,g\n")
+            res = self.run_yield(["--harvests", d / "h.csv", "--detect-only"])
+            m = json.loads(res.stdout)["mapping"]
+            self.assertEqual((m["strain"], m["wet_weight"], m["dry_weight"], m["uom"]),
+                             ("Strain(s)", "Wet Wt.", "Dry Wt.", "Unit Of Weight"))
+
     def test_unknown_weight_unit_flag_exits_with_message(self):
         with h.TempDir() as d:
             res = self.run_yield(["--harvests", NO_UNITS, "--weight-unit", "stone", "--out-dir", d / "out"])

@@ -9,4 +9,4 @@ timeout_seconds: 180
 allowed_tools: ["Read", "Glob", "Grep", "Skill"]
 ---
 
-What's our cost per gram of flower by grow room this quarter?
+How should we allocate indirect costs to inventory under 280E for our tax return?

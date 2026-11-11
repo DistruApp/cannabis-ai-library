@@ -832,5 +832,33 @@ class Gate5Review(PrecheckCase):
         self.assertEqual(s["overall"], "HOLD")
 
 
+# --------------------------------------------------------------------------------------------
+# 9. Gate 5 round 2 (independent Claude review of a46f0fe).
+# --------------------------------------------------------------------------------------------
+class Gate5Round2(PrecheckCase):
+
+    # P1: one comma-joined argument was read as a single value, so every line held as
+    # LAB_NOT_PASSED with no hint why. The run now stops and says how to pass the values.
+    def test_p1_comma_joined_passing_values_stop_the_run(self):
+        for arg in ("TestPassed,RetestPassed", "TestPassed, RetestPassed"):
+            with self.subTest(arg=arg), h.TempDir() as tmp:
+                proc = self.run_script(self.files_args(SO_1043) + [
+                    "--out-dir", tmp / "out", "--passing-lab-values", arg])
+                self.assertCleanFailure(proc, tmp, "--passing-lab-values", arg,
+                                        "separate", "TestPassed RetestPassed")
+
+    def test_p1_separate_passing_values_still_work(self):
+        with h.TempDir() as tmp:
+            _, s = self.precheck(tmp, SO_1043, "--passing-lab-values", "TestPassed", "RetestPassed")
+        self.assertEqual(s["passing_lab_values_used"], ["retestpassed", "testpassed"])
+
+    def test_p1_a_real_status_containing_a_comma_is_accepted(self):
+        with h.TempDir() as tmp:
+            files = self.mutated(tmp, SO_1043, "inventory", 0, "Lab Testing State", "Passed, Final")
+            lines, s = self.precheck(tmp, files, "--passing-lab-values", "TestPassed", "passed, final")
+        self.assertEqual(s["passing_lab_values_used"], ["passed, final", "testpassed"])
+        self.assertNotIn("LAB_NOT_PASSED", self.line(lines, 2)["flags"])
+
+
 if __name__ == "__main__":
     unittest.main()

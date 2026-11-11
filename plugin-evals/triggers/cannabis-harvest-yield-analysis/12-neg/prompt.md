@@ -1,5 +1,5 @@
 ---
-name: trigger--cannabis-harvest-yield-analysis--07-neg
+name: trigger--cannabis-harvest-yield-analysis--12-neg
 description: "must not fire cannabis-harvest-yield-analysis"
 tags: ["trigger", "cannabis-harvest-yield-analysis", "trigger-neg"]
 plugins: ["../../../.."]
@@ -9,4 +9,4 @@ timeout_seconds: 180
 allowed_tools: ["Read", "Glob", "Grep", "Skill"]
 ---
 
-Metrc shows 2 lb more flower than we counted in the vault, why?
+Which pre-roll SKUs should we reorder for the dispensary this week?

@@ -22,7 +22,7 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
 - **Michigan CRA (michigan.gov/cra):** https://www.michigan.gov/cra/laws-rules-and-regulations
 - **Michigan Legislature (legislature.mi.gov):** Marihuana Tracking Act, https://legislature.mi.gov/Laws/MCL?objectName=mcl-333-27903
 - **Illinois General Assembly (ilga.gov):** 8 Ill. Adm. Code 1300 including Subpart K, https://www.ilga.gov/agencies/JCAR/EntirePart?titlepart=00801300; 410 ILCS 705/15-75, https://www.ilga.gov/legislation/ilcs/documents/041007050K15-75.htm; 410 ILCS 705/20-30, https://www.ilga.gov/legislation/ilcs/documents/041007050K20-30.htm
-- **Illinois cannabis portal (cannabis.illinois.gov):** IB-2025-03, https://cannabis.illinois.gov/research-and-data/seed-to-sale-tracking.html; IDOA rule-update bulletin, https://cannabis.illinois.gov/content/dam/soi/en/web/cannabis/documents/idoa/informational-bulletin-crta-rule-update-summary.pdf
+- **Illinois cannabis portal (cannabis.illinois.gov):** IB-2025-03, https://cannabis.illinois.gov/research-and-data/seed-to-sale-tracking.html
 
 ## Pilot states (deep coverage)
 
@@ -178,7 +178,7 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
 ### New York (NY)
 - **Regulator:** Office of Cannabis Management (OCM). https://cannabis.ny.gov/ (V)
 - **Rules:** 9 NYCRR Parts 113–133 (linked from OCM). The Part 125 quotes below are from the Cornell LII copy (https://www.law.cornell.edu/regulations/new-york/9-NYCRR-125.8, -125.3, -125.10, -125.11, -125.13), eff. 2023-09-27, checked 2026-11-11. **Each is V (LII), NEEDS VERIFICATION:** Part 125 wasn't checked for post-2023 amendments. Confirm on the official NYCRR.
-- **Traceability:** **Metrc, which replaced BioTrack NY** (V). https://cannabis.ny.gov/seed-to-sale. OCM's Metrc implementation plan (V, https://cannabis.ny.gov/metrc-nys-implementation-plan, checked 2026-11-11): non-retail licensees had to have "All existing inventory … in the Metrc system" by 2025-12-17; dispensaries by "January 12, 2026 (new date)", when they also had to "start reporting sales to Metrc". From 2026-02-28, finished goods sent from a distributor to a dispensary "MUST have Retail Item ID QR code on each unit". From 2026-03-31 they must also carry "A 'TestPassed' or 'RetestPassed' testing status associated to each package prior to transfer." C.O.D. reporting is not covered by this document and stays UNVERIFIED.
+- **Traceability:** **Metrc, which replaced BioTrack NY** (V). https://cannabis.ny.gov/seed-to-sale. OCM's Metrc implementation plan (V, https://cannabis.ny.gov/metrc-nys-implementation-plan, checked 2026-11-11): non-retail licensees had to have "All existing inventory … in the Metrc system" by 2025-12-17; dispensaries by "January 12, 2026 (new date)", when they also had to "start reporting sales to Metrc". From 2026-02-28, finished goods sent from a distributor to a dispensary "MUST have Retail Item ID QR code on each unit". From 2026-03-31 they must also carry "A 'TestPassed' or 'RetestPassed' testing status associated to each package prior to transfer." Processors had an earlier TestPassed deadline (December 17, 2025): see Transfers, manifests and testing. C.O.D. reporting is not covered by this document and stays UNVERIFIED.
 - **Licensee lookup:** https://data.ny.gov/Economic-Development/Current-OCM-Licenses/jskf-tt3q
 - **Gotcha:** data and SOPs from the BioTrack era are out of date. Don't apply BioTrack workflows to NY.
 
@@ -201,7 +201,9 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
 
 #### Transfers, manifests and testing
 - **§125.10(g):** the manifest is generated "Prior to transporting". For product going to retail licensees, "a certificate of analysis shall accompany cannabis products".
-- Retail Item ID and TestPassed/RetestPassed requirements for distributor→dispensary transfers: see Traceability above.
+- **Processors, §123.6(h)(1), test before distribution:** "Prior to a cannabis product being distributed, a licensee authorized to process shall test a representative sample of cannabis products in accordance with required sampling protocols pursuant to Part 130 of this Title". Keep the COA for each lot 5 years from its expiration date. **§123.6(i)(1):** a lot that fails contaminant testing "shall be rejected and destroyed" (§125.11), unless OCM is notified first and the lot is remediated once and retested. (V, OCM's adopted-regulations PDF, https://cannabis.ny.gov/adopted-au-regulations, checked 2026-11-11; also V (LII), eff. 2023-09-27.)
+- **Processors, Metrc TestPassed before anything leaves (OCM Metrc plan, V, checked 2026-11-11):** from the processor "Final due date" of December 17 (2025; the plan prints no year), "All products leaving your facility must have a "TestPassed" or "RetestPassed" testing status in Metrc." Each unit also needs a Retail Item ID before transfer. This covers **every** transfer out of a processor and predates the 2026-03-31 distributor→dispensary date. It is OCM guidance; the regulation is §123.6(h)(1). https://cannabis.ny.gov/metrc-nys-implementation-plan
+- Retail Item ID and TestPassed/RetestPassed requirements for distributor→dispensary transfers (from 2026-03-31): see Traceability above. Processors were bound earlier: see the processor bullets above.
 
 #### Records retention
 - **§125.13(a):** records are kept "for at least five (5) years from the date of creation". Manifests are kept "for a period of five (5) years" (§125.10(g)). Incident records are kept "not less than five (5) years or the duration of an open investigation, whichever is longer." (§125.3)
@@ -216,17 +218,18 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
 - **Regulators:** split by license type. IDFPR (dispensaries); IDOA (cultivation centers, craft growers, infusers, transporters); IDPH (medical patients). https://cannabis.illinois.gov/ (V on 2026-10-16; unreachable on 2026-11-11)
 - **Traceability:** **Metrc, which replaced BioTrack** (V on 2026-10-16; corroborated by Metrc and secondary sources on 2026-11-11). IDOA Informational Bulletin IB-2025-03: "July 1: Metrc becomes the official cannabis inventory tracking system for Illinois." (UNVERIFIED: the quote couldn't be re-checked on 2026-11-11 because cannabis.illinois.gov was unreachable.) https://cannabis.illinois.gov/research-and-data/seed-to-sale-tracking.html
 - **Rules:** IDFPR dispensary rules, 68 Ill. Adm. Code 1291 (Cornell LII copy, eff. 2024-08-20: V (LII)). IDOA rules, 8 Ill. Adm. Code 1300 (Cornell LII copy, which predates the 2026-05-01 amendment: V (LII), NEEDS VERIFICATION). The statute, 410 ILCS 705, was seen only on FindLaw: UNVERIFIED.
-- **IDOA rule update:** Part 1300 was amended effective 2026-05-01 (50 Ill. Reg. 7050), adding Subpart K, "Cannabis Plant Monitoring System" (§§1300.1000–1300.1050: tagging, reporting, transfer/manifest, loss of access and reconciliation). The section text is UNVERIFIED: ilga.gov could not be reached on 2026-11-11. Treat every IDOA timing requirement as NEEDS VERIFICATION, and don't rely on Cornell copies of Part 1300 dated before 2026-05-01.
+- **IDOA rule update:** JCAR approved IDOA's Part 1300 amendments on 2026-04-14. They add Subpart K, "Cannabis Plant Monitoring System" (§§1300.1000–1300.1050: tagging, recording, manifests, loss of access). The adopted text is on IDOA's own Spring 2026 Rule Updates bulletin (V, checked 2026-11-11): https://cannabis.illinois.gov/content/dam/soi/en/web/cannabis/documents/idoa/informational-bulletin-crta-rule-update-summary.pdf. That copy leaves the Illinois Register citation and effective date blank. "Effective 2026-05-01, 50 Ill. Reg. 7050" comes from search results only (UNVERIFIED), and ilga.gov was blocked on 2026-11-11. Part 1300 is IDOA's rule for cultivation centers, craft growers, infusers and transporters (1300.30(a)). Don't apply Subpart K to IDFPR dispensaries. Don't rely on Cornell copies of Part 1300 dated before this amendment.
 - **Licensee lookup:** dispensaries at https://cannabis.illinois.gov/about/locations.html
 - **Gotcha:** confirm which agency regulates the operator's license type before citing any rule.
 
 #### Track and trace
 - **Dispensaries, 1291.310(b)(1):** "Each sales transaction at the time of sale" (V (LII)).
-- **IDOA licensees:** recording timing is in the new Subpart K, which is UNVERIFIED (see IDOA rule update).
+- **IDOA licensees, 8 Ill. Adm. Code 1300.1030(a), record on completion:** "All cultivation and production activities of a cannabis business establishment shall be recorded in the cannabis plant monitoring system by that licensee upon completion of the activity." 1300.1030(b) lists the activities: receipt, rejection, changes of form or item category, destruction or waste, packaging, sale (with price), harvests (with wet weight), movement within the facility, and plantings. **1300.1010(f), tags:** record plant and package tags "within three calendar days of receipt". **1300.1020(b):** each plant gets its own tag once it reaches 16 inches. (V, IDOA adopted text; see IDOA rule update.)
 
 #### Reconciliation and discrepancies
 - **Dispensaries, 1291.310(e):** "An AIC shall conduct a daily physical count of all inventory". Bulk "must be counted monthly". (V (LII)) 410 ILCS 705/15-75(d): "The agent-in-charge shall conduct daily inventory reconciliation." (UNVERIFIED, FindLaw.)
 - **Cultivation centers, 8 IAC 1300.180(b):** "a physical weekly inventory of cannabis stock" (V (LII), pre-2026-05-01 text; NEEDS VERIFICATION).
+- **IDOA licensees, 1300.1050, "Loss of Access and System Reconciliation":** despite its title, this section sets **no reconciliation frequency**. It covers loss of system access only (see Notifications and Adjustments and corrections). (V, IDOA adopted text.)
 - **No significant-discrepancy threshold found.** IL rules define no percentage "significant discrepancy" threshold; they use "imbalance". Don't import another state's 2% or 5%.
 
 #### Notifications
@@ -234,15 +237,24 @@ Each pilot state's rules are grouped under the same headings: **Track and trace*
   - **(e)(3), theft or criminal activity: IDFPR and ISP in writing within 24 hours:** "Within 24 hours after the first discovery of the reduction due to theft, criminal activity or suspected criminal activity … the dispensing organization shall inform the Department and ISP in writing."
   - **(e)(2), imbalance from a mistake: IDFPR immediately if the cause isn't found in 2 calendar days; investigation within 10 business days:** if it "cannot identify the reason for the mistake within two calendar days", it "shall inform the Department immediately in writing". "The dispensing organization shall complete its investigation within 10 business days."
 - **Cultivation centers (IDOA), 410 ILCS 705/20-30(h): local police, ISP and IDOA within 24 hours, by phone or in person** (UNVERIFIED: seen on FindLaw; ilga.gov was unreachable on 2026-11-11): "within 24 hours of the discovery of any loss or theft", notify "local law enforcement, the Illinois State Police, and the Department of Agriculture". "Notification shall be made by phone or in person". Craft-grower and infuser equivalents are UNVERIFIED.
+- **IDOA licensees, 1300.1050(b), loss of Metrc access: IDOA by the end of the business day:** "A Department licensed cannabis business establishment shall notify the Department of any loss of access no later than the end of the business day in which the loss of access was discovered." While access is down, keep "comprehensive records" of all reportable activity (1300.1050(a)). (V, IDOA adopted text.)
 - **Destruction notice:** see Waste and destruction (IDOA licensees: 7 days' notice).
 
 #### Adjustments and corrections
 - **Dispensaries, 1291.310(e)(1), Department approval first:** "A dispensing organization must receive Department approval prior to completing an inventory adjustment." It must give "a detailed reason for the adjustment". "Inventory adjustment documentation must be kept at the dispensary for two years from the date performed." (V (LII)) **Don't tell an IL dispensary to post a Metrc adjustment before it has approval.**
-- No IDOA adjustment rule was verified.
+- **IDOA licensees, 1300.1050(c), after an outage: back-enter within 3 business days:** "Within three business days after restoration, enter all activities that occurred during the loss of access into the cannabis plant monitoring system." Also record the cause and the dates and times access was lost and restored. These are **business** days, not calendar days. (V, IDOA adopted text.)
+- Subpart K sets no IDOA rule for inventory adjustments or a deadline for correcting data-entry errors. 1300.1000(d) only requires licensees to "take steps to ensure the accuracy and completeness" of system data. (V, IDOA adopted text.)
 
 #### Transfers, manifests and testing
 - **Receiving, 1291.310(d):** "Upon cannabis delivery, a dispensing organization shall confirm the product's name" and the other manifest details against the package (V (LII)).
-- **Manifest (UNVERIFIED, search-result text only):** 8 IAC 1300.1040 (Subpart K) has the manifest prepared "through the cannabis plant monitoring system, prior to transferring". 410 ILCS 705/40-25(k): a manifest "shall be present in any vehicle transporting cannabis".
+- **IDOA licensees, 1300.1040, manifest in Metrc before transfer:** "A cannabis business establishment shall prepare a manifest, through the cannabis plant monitoring system, prior to transferring cannabis and cannabis products from its facility to another cannabis business establishment." Under (b), the sender records:
+  - the origin, transporter and destination (name, license number and address);
+  - the unique serial numbers;
+  - the item name, category, and weight or count per tag;
+  - the estimated departure and arrival;
+  - "The agent badge numbers" of the transport staff;
+  - each vehicle's make, model, plate and "Department vehicle registration number".
+  Under (c), the transporter adds the actual departure and arrival times and any change of personnel or vehicle. (V, IDOA adopted text.) 410 ILCS 705/40-25(k): a manifest "shall be present in any vehicle transporting cannabis" (UNVERIFIED, search-result text only).
 - **Testing, 8 IAC 1300.700(e):** "must pass all testing requirements before offered for sale to the public" (V (LII), eff. 2020-06-03; NEEDS VERIFICATION).
 
 #### Records retention

@@ -40,7 +40,7 @@ Optional: COA list. If a file is missing, ask for it. Never reconstruct a manife
 
 Run `python3 <skill-dir>/scripts/precheck.py --order … --manifest … --inventory … --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces, and don't compare the files by hand either (no list of rows that differ, match, are missing or would pass).
 
-Show the user the mappings, the join key, and the **distinct lab-status values** found. Ask which values mean "passed for sale/transfer" in their system and state, and pass them exactly with `--passing-lab-values`. Never assume a value like "TestPassed" counts as passed without that confirmation. Different states and systems use different status sets. If no confirmation comes, run without the flag: every line holds as `LAB_STATUS_UNCONFIRMED`, and you say why.
+Show the user the mappings, the join key, and the **distinct lab-status values** found. Ask which values mean "passed for sale/transfer" in their system and state, and pass them exactly with `--passing-lab-values`, each as its own argument (`--passing-lab-values TestPassed RetestPassed`, not `"TestPassed,RetestPassed"`; the script stops on a comma-joined value). Never assume a value like "TestPassed" counts as passed without that confirmation. Different states and systems use different status sets. If no confirmation comes, run without the flag: every line holds as `LAB_STATUS_UNCONFIRMED`, and you say why.
 
 Resolve `AMBIGUOUS` columns with `--map-order field=Column` (also `--map-manifest`, `--map-inventory`). Alias hints are in `references/system-mappings.md`.
 

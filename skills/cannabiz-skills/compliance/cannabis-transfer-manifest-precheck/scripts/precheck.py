@@ -324,6 +324,16 @@ def main():
         sys.exit("No shared key between order and manifest (need package tag, SKU, or item name in both). "
                  "Pass --map-order / --map-manifest.")
 
+    # "A,B" as one argument is almost always two values joined by mistake. Never split it
+    # silently (that would widen what passes); stop unless it is a status the inventory really has.
+    known = {v.lower() for v in lab_values}
+    for v in a.passing_lab_values or []:
+        if "," in v and v.strip().lower() not in known:
+            parts = " ".join(p.strip() for p in v.split(",") if p.strip())
+            sys.exit(f"--passing-lab-values '{v}' contains a comma and matches no lab status in the "
+                     f"inventory file. Pass each value as a separate argument, for example: "
+                     f"--passing-lab-values {parts}")
+
     passing = {v.strip().lower() for v in (a.passing_lab_values or []) if v.strip()}  # blank never passes
     problems = []
 

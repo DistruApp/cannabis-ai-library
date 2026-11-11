@@ -153,6 +153,10 @@ class KnownAnswers(CogsCase):
                 "units_produced", "labor_hours", "labor_rate", "testing_cost",
                 "one of overhead_per_batch/overhead_per_labor_hour/overhead_pct_materials "
                 "(pass 0 if the operator confirms no overhead)",
+                # Round 2 (C1): a price column headed just "Cost" may be the line total; ask in the same message.
+                "unit_cost column 'Cost': the header doesn't say whether it is the price per unit or the line total "
+                "(qty x price). Ask the operator. If it is the price per unit, rerun with --map unit_cost=Cost. If it "
+                "is the line total, ask for a BOM export with the price per unit; don't divide it yourself.",
                 "cost:Flower - Blue Dream smalls (BD-F1-1004) (row 2): column 'Cost' is blank"])
             self.assertEqual(out["input_problems"], [])
             self.assert_no_outputs(d)
@@ -437,6 +441,95 @@ class Gate5Regressions(CogsCase):
             self.assertIn("Skipped 1 fully blank row(s) in the BOM: row 3.", probs)
             self.assert_no_outputs(d / "out")
 
+
+class Round2Regressions(CogsCase):
+    """Second Gate 5 review, findings C1-C7 (release/reports/2026-11-11-gate5/fixes-cannabis-batch-cogs.md)."""
+
+    def ext_bom(self, d):
+        # An ERP export whose "Cost" column is the line total: 505 g of distillate for $2,146.25 in all.
+        return self.write_bom(d / "bom.csv", [["Distillate (lot D-0921)", "505", "g", "2146.25", "g"],
+                                              ["510 cartridge", "510", "each", "943.50", "each"]],
+                              header=("Item", "Qty", "UOM", "Cost", "Cost UOM"))
+
+    def test_c1_cost_header_must_be_confirmed_as_per_unit(self):
+        with h.TempDir() as d:
+            bom = self.ext_bom(d)
+            det = h.strict_json_load(self.run_cogs(["--bom", bom, "--detect-only"]).stdout, is_text=True)
+            self.assertEqual(det["mapping"]["unit_cost"], "CONFIRM:Cost")
+            self.assertIn("price per unit or the line total", det["confirm"][0])
+            out = self.run_blocked(eval1_args(bom) + ["--out-dir", d / "out"])
+            self.assertEqual(len(out["missing_inputs"]), 1, out)
+            self.assertTrue(out["missing_inputs"][0].startswith("unit_cost column 'Cost':"), out)
+            self.assertNotIn("total_batch_cost", out)
+            self.assert_no_outputs(d / "out")
+            # Once the operator confirms "Cost" is the price per unit, the run goes ahead.
+            ok = self.run_ok(eval1_args(bom) + ["--map", "unit_cost=Cost", "--out-dir", d / "out"])
+            self.assertEqual(ok["materials"], round(505 * 2146.25 + 510 * 943.5, 2))
+
+    def test_c1_cost_header_question_comes_with_every_other_problem(self):
+        with h.TempDir() as d:
+            bom = self.write_bom(d / "bom.csv", [["Oil", "NaN", "g", "4", "g"]],
+                                 header=("Item", "Qty", "UOM", "Cost", "Cost UOM"))
+            out = self.run_blocked(["--bom", bom, "--out-dir", d / "out"])
+            self.assertIn("units_produced", out["missing_inputs"])
+            self.assertTrue(any(x.startswith("unit_cost column 'Cost':") for x in out["missing_inputs"]), out)
+            self.assertTrue(any("value 'NaN'" in p for p in out["input_problems"]), out)
+
+    def test_c3_dollar_sign_in_parentheses_is_detected(self):
+        with h.TempDir() as d:
+            bom = self.write_bom(d / "bom.csv", self.cart_rows(),
+                                 header=("Component", "Qty", "UoM", "Unit Cost ($)", "Cost UoM"))
+            det = h.strict_json_load(self.run_cogs(["--bom", bom, "--detect-only"]).stdout, is_text=True)
+            self.assertEqual(det["mapping"]["unit_cost"], "Unit Cost ($)")
+            self.assertEqual(self.run_ok(eval1_args(bom) + ["--out-dir", d / "out"])["total_batch_cost"], 4680.75)
+
+    def test_c5_overhead_pct_over_100_is_noted(self):
+        with h.TempDir() as d:
+            flags = {k: v for k, v in EVAL1_FLAGS.items() if k != "--overhead-per-labor-hour"}
+            out = self.run_ok(["--bom", CART] + flag_args(flags)
+                              + ["--overhead-pct-materials=1200", "--out-dir", d / "out"])
+            self.assertEqual(out["overhead"], round(3429.75 * 12, 2))
+            self.assertTrue(any(p.startswith("overhead_pct_materials is 1200") for p in out["input_problems"]), out)
+
+    def test_c5_bad_assume_keys_are_not_ignored(self):
+        with h.TempDir() as d:
+            res = self.run_cogs(["--bom", RESIN] + EVAL2_ARGS + ["--assume", "labour_rate=99", "--out-dir", d / "o"])
+            self.assertEqual(res.returncode, 1, res.stdout + res.stderr)
+            self.assertIn("Bad --assume key 'labour_rate'", res.stderr)
+            res = self.run_cogs(["--bom", RESIN] + EVAL2_ARGS + ["labor_rate=99", "--out-dir", d / "o"])
+            self.assertEqual(res.returncode, 1, res.stdout + res.stderr)
+            self.assertIn("--labor-rate and --assume labor_rate were both given", res.stderr)
+            self.assertFalse((d / "o").exists())
+            # A component name with a typo blocks; one whose cell is already filled is noted, not used.
+            out = self.run_blocked(["--bom", RESIN] + EVAL2_ARGS[:-1] + ["cost:Butane solvent=10",
+                                                                         "--out-dir", d / "o"])
+            self.assertIn("--assume cost:Butane solvent: no BOM line is named 'Butane solvent'. Use the name "
+                          "exactly as it appears in column 'Input'.", out["input_problems"])
+            self.assert_no_outputs(d / "o")
+            out = self.run_ok(["--bom", RESIN] + EVAL2_ARGS
+                              + ["cost:Fresh frozen biomass - Papaya (harvest PAP-F4-0927)=1", "--out-dir", d / "o"])
+            self.assertEqual(out["total_batch_cost"], 12973.98)
+            self.assertIn("--assume cost:Fresh frozen biomass - Papaya (harvest PAP-F4-0927) was not used: that BOM "
+                          "line already has a value in the cell.", out["input_problems"])
+
+    def test_c6_over_yield_says_the_negative_figure_is_a_saving(self):
+        with h.TempDir() as d:
+            out = self.run_ok(eval1_args(**{"--expected-units": "480"}) + ["--out-dir", d / "out"])
+            yv = out["yield_variance"]
+            self.assertLess(yv["cost_of_shortfall_per_unit"], 0)
+            self.assertIn("saved per unit", yv["note"])
+            self.assertNotIn("note", self.run_ok(eval1_args() + ["--out-dir", d / "o2"])["yield_variance"])
+
+    def test_c7_single_group_comma_on_weight_line_is_noted(self):
+        with h.TempDir() as d:
+            bom = h.mutate_csv(CART, d / "bom.csv", 0, "Qty", "1,250")
+            out = self.run_ok(eval1_args(bom) + ["--out-dir", d / "out"])
+            self.assertEqual(out["materials"], round(3429.75 + (1250 - 505) * 4.25, 2))
+            self.assertTrue(any("value '1,250' was read as 1250 g" in p and "1.250 g" in p
+                                for p in out["input_problems"]), out)
+            # Count lines can't be fractional, so "1,020" cartridges is not ambiguous and gets no note.
+            bom = h.mutate_csv(CART, d / "bom2.csv", 2, "Qty", "1,020")
+            self.assertEqual(self.run_ok(eval1_args(bom) + ["--out-dir", d / "o2"])["input_problems"], [])
 
 class FormulaInjection(CogsCase):
     def test_component_name_formulas_are_neutralised(self):

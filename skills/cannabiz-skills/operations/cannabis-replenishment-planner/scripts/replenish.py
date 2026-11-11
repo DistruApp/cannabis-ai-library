@@ -8,14 +8,18 @@ Usage:
                        [--map-sales field=Column ...] [--map-onhand field=Column ...]
                        [--window-days 28]
                        [--default-lead-time DAYS] [--safety-days N] [--cover-days N]
-                       [--dead-days N] [--slow-dos N] [--vendor-from-brand] [--detect-only]
+                       [--dead-days N] [--slow-dos N] [--vendor-from-brand] [--date-order mdy|dmy]
+                       [--detect-only]
 
-  --as-of              REQUIRED. The date of the on-hand count; the sales window ends on this date.
-                       If the last sale in the file is more than 1 day earlier, summary.json "warnings"
-                       says so; sales dated after it are left out and counted in "warnings".
+  --as-of              REQUIRED (except with --detect-only). The date of the on-hand count; the sales window
+                       ends on this date. If the last sale in the file is more than 1 day earlier, summary.json
+                       "warnings" says so; sales dated after it are left out and counted in "warnings".
   --detect-only        print detected column mappings and data date range, then exit. A missing or
                        AMBIGUOUS required column is listed under "missing_required_columns" instead of
                        stopping the script, so both files' mappings can be confirmed in one step.
+                       --as-of is not needed.
+  --date-order         the order of slash dates: mdy (month/day, the default) or dmy (day/month). Pass it
+                       once the operator has confirmed the export's order.
   --default-lead-time  used ONLY for SKUs whose lead time cell is truly blank; those SKUs are
                        flagged DEFAULT_LEAD_TIME(Nd). "7 days" / "2 weeks" are parsed; anything else
                        unreadable, or over 365 days, is flagged BAD_LEAD_TIME and not ordered.
@@ -39,6 +43,15 @@ Data rules (nothing is dropped, merged or invented silently):
   - A blank open PO cell, or no open PO column, counts as 0 and is listed in "assumptions".
   - Minimum order qty (MOQ) is not a case pack: a quantity below it is flagged BELOW_MOQ, not raised.
   - An account/store column with more than one value stops the run: plan one account per run.
+  - Sales dates: YYYY-MM-DD or YYYY/MM/DD, with or without a time (ISO "T", seconds, fractions, Z or +hh:mm
+    offset); MM/DD/YYYY or MM/DD/YY with an optional 24-hour or AM/PM time; month names ("Sep 29, 2026").
+    A timestamp is dated as written, never converted between time zones (a "warnings" entry says so).
+    Slash dates are month/day unless --date-order dmy. Day/month order is never guessed: a slash date
+    that can only be read the other way (29/09/2026) stops the run, and slash dates that could be read
+    either way (03/09/2026) are listed in "warnings" when --date-order was not given.
+  - Sales rows with an unreadable date are left out, listed in input_problems and counted in "warnings".
+  - SKUs that differ only by leading zeros ("00123" vs "123", often a spreadsheet dropping them) are
+    not matched, but each pair is listed in input_problems and counted in "warnings".
   - A first sale inside the window is NEW_SKU (velocity over days since that sale) only when the export
     reaches back before the window; otherwise NEW_OR_SLOW, measured over the whole window. No sale in an
     export shorter than --dead-days is NO_SALES_SEEN, not DEAD.
@@ -104,8 +117,22 @@ REPL_FIELDS = ["sku", "product", "brand", "category", "vendor", "units_sold_wind
                "reorder_point", "suggested_order_qty", "case_pack", "unit_cost", "order_cost", "last_sale", "flags"]
 REQUIRED_SALES = ("date", "sku", "units")
 REQUIRED_ONHAND = ("sku", "on_hand")
-DATE_FORMATS = ("%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y", "%Y/%m/%d", "%Y-%m-%d %H:%M:%S", "%m/%d/%Y %H:%M",
-                "%m/%d/%Y %I:%M %p", "%Y-%m-%dT%H:%M:%S")
+# ISO date with a time: optional seconds, fraction, and Z / UTC / +hh:mm offset. The date part is used as written.
+_ISO_STAMP = re.compile(r"(\d{4}-\d{1,2}-\d{1,2})[T ](\d{1,2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?\s*(Z|UTC|[+-]\d{2}:?\d{2})?",
+                        re.I)
+_TIMES = ("", " %H:%M", " %H:%M:%S", " %I:%M %p", " %I:%M:%S %p")
+_NAMED_DATES = ("%b %d, %Y", "%B %d, %Y", "%b %d %Y", "%B %d %Y", "%d %b %Y", "%d %B %Y", "%d-%b-%Y")
+ACCEPTED_DATES = ("YYYY-MM-DD or YYYY/MM/DD (a time, ISO 'T', seconds, Z or +hh:mm offset are fine), "
+                  "MM/DD/YYYY or MM/DD/YY (DD/MM with --date-order dmy) with an optional 24-hour or AM/PM time, "
+                  "or a month name such as 'Sep 29, 2026'")
+
+
+def date_formats(order):
+    """strptime formats for the slash date order ("mdy" or "dmy"). Year-first and month-name dates are the same
+    in both orders."""
+    slash = ("%m/%d/%Y", "%m/%d/%y") if order == "mdy" else ("%d/%m/%Y", "%d/%m/%y")
+    return (("%Y-%m-%d", "%Y/%m/%d") + tuple("%Y/%m/%d" + t for t in _TIMES[1:])
+            + tuple(d + t for d in slash + _NAMED_DATES for t in _TIMES))
 
 
 def norm_header(h):
@@ -279,9 +306,14 @@ def parse_lead(s):
     return days, None
 
 
-def parse_date(s):
-    s = (s or "").strip()
-    for fmt in DATE_FORMATS:
+def parse_date(s, order="mdy"):
+    s = " ".join((s or "").split())
+    mt = _ISO_STAMP.fullmatch(s)
+    if mt:
+        if int(mt.group(2)) > 23 or int(mt.group(3)) > 59 or int(mt.group(4) or 0) > 59:
+            return None
+        s = mt.group(1)
+    for fmt in date_formats(order):
         try:
             return datetime.strptime(s, fmt).date()
         except ValueError:
@@ -311,6 +343,26 @@ def us_ambiguous_dates(values):
     return out
 
 
+def slash_order_evidence(values):
+    """(only month/day, only day/month): slash dates whose second part, or first part, is over 12."""
+    mdy, dmy = [], []
+    for v in values:
+        mt = _SLASH_DATE.match(v)
+        if mt:
+            first, second = int(mt.group(1)), int(mt.group(2))
+            if second > 12 >= first:
+                mdy.append(v)
+            elif first > 12 >= second:
+                dmy.append(v)
+    return mdy, dmy
+
+
+def stamp_zone(s):
+    """The time zone written on an ISO timestamp (Z, UTC, +hh:mm), or None."""
+    mt = _ISO_STAMP.fullmatch(" ".join((s or "").split()))
+    return mt.group(5) if mt else None
+
+
 def main():
     ap = Parser()
     ap.add_argument("--sales", required=True)
@@ -319,7 +371,7 @@ def main():
     ap.add_argument("--map-sales", nargs="*")
     ap.add_argument("--map-onhand", nargs="*")
     ap.add_argument("--window-days", type=cli_number("pos", whole=True), default=None)
-    ap.add_argument("--as-of", required=True, metavar="YYYY-MM-DD", help=AS_OF_HELP)
+    ap.add_argument("--as-of", metavar="YYYY-MM-DD", help=AS_OF_HELP + " Required except with --detect-only.")
     ap.add_argument("--default-lead-time", type=lead_flag, default=None)
     ap.add_argument("--safety-days", type=cli_number(0), default=None)
     ap.add_argument("--cover-days", type=cli_number(0), default=None,
@@ -329,8 +381,13 @@ def main():
                     help="Flag SLOW when days of supply exceed this")
     ap.add_argument("--vendor-from-brand", action="store_true",
                     help="Operator confirmed brand = vendor: fill blank vendor from brand (flagged VENDOR_FROM_BRAND)")
+    ap.add_argument("--date-order", choices=("mdy", "dmy"), default=None,
+                    help="Slash dates are month/day (mdy, the default) or day/month (dmy), as the operator confirmed")
     ap.add_argument("--detect-only", action="store_true")
     a = ap.parse_args()
+    if a.as_of is None and not a.detect_only:
+        ap.error("the following arguments are required: --as-of")
+    order = a.date_order or "mdy"
 
     strict = not a.detect_only
     srows, sm_raw, sm, s_missing = load(a.sales, SALES_ALIASES, parse_overrides(a.map_sales), REQUIRED_SALES,
@@ -339,19 +396,47 @@ def main():
                                         "onhand", strict)
 
     problems = []
-    dates = []
-    for i, r in enumerate(srows, start=2):
-        d = parse_date(get(r, sm, "date"))
+    dates, bad_dates, zoned = [], [], []
+    date_cells = [" ".join(get(r, sm, "date").split()) for r in srows]
+    for i, raw in enumerate(date_cells, start=2):
+        d = parse_date(raw, order)
         if d is None:
-            problems.append(f"sales row {i}: unparseable date '{get(r, sm, 'date')}'")
+            problems.append(f"sales row {i}: unparseable date '{raw}'")
+            bad_dates.append(raw)
         else:
             dates.append(d)
+            if stamp_zone(raw):
+                zoned.append(raw)
 
     early_warnings = []
-    ambiguous = us_ambiguous_dates(get(r, sm, "date") for r in srows)
+    only_mdy, only_dmy = slash_order_evidence(date_cells)
+    date_order_problem = None
+    if only_mdy and only_dmy:
+        date_order_problem = (f"The sales dates mix month/day ('{only_mdy[0]}') and day/month ('{only_dmy[0]}'), "
+                              f"so the order of the other slash dates can't be known. Export the dates as YYYY-MM-DD "
+                              f"and rerun.")
+    elif a.date_order and (only_mdy if order == "dmy" else only_dmy):
+        date_order_problem = (f"--date-order {order} was given, but the sales date "
+                              f"'{(only_mdy or only_dmy)[0]}' can't be read that way. Check the export's date order.")
+    elif not a.date_order and only_dmy:
+        date_order_problem = (f"The sales dates look day/month: {len(only_dmy)} date(s) such as '{only_dmy[0]}' can't "
+                              f"be month/day, which is how slash dates are read by default. Confirm the export's "
+                              f"date order, then rerun with --date-order dmy (or export the dates as YYYY-MM-DD).")
+    if date_order_problem:
+        early_warnings.append(date_order_problem)
+    ambiguous = [] if a.date_order else us_ambiguous_dates(date_cells)
     if ambiguous:
         early_warnings.append(f"{len(ambiguous)} sales date(s) such as '{ambiguous[0]}' were read as month/day (US). "
-                              f"Confirm the export uses US dates; if it is day/month, the dates are wrong.")
+                              f"Confirm the export uses US dates; if it is day/month, the dates are wrong. "
+                              f"Pass --date-order mdy or dmy once confirmed.")
+    if bad_dates and dates and "date" in sm:
+        early_warnings.append(f"{len(bad_dates)} of {len(srows)} sales row(s) have a date the script can't read "
+                              f"(e.g. '{bad_dates[0]}') and were left out, so velocity may be understated. Each is in "
+                              f"input_problems. Accepted: {ACCEPTED_DATES}.")
+    if zoned:
+        early_warnings.append(f"{len(zoned)} sales timestamp(s) carry a time zone (e.g. '{zoned[0]}'). Each sale is "
+                              f"dated as written, not converted to store time: in UTC an evening sale can fall on the "
+                              f"next day. Check the export's time zone if sales near midnight matter.")
     s_acc, o_acc = accounts(srows, sm), accounts(orows, om)
     account_problem = None
     if len(s_acc) > 1 or len(o_acc) > 1 or (s_acc and o_acc and s_acc != o_acc):
@@ -365,14 +450,19 @@ def main():
                           "sales_date_range": [str(min(dates)), str(max(dates))] if dates else None,
                           "missing_required_columns": {"sales": s_missing, "onhand": o_missing},
                           "accounts": {"sales": s_acc, "onhand": o_acc},
+                          "date_order": order if a.date_order else "mdy (default, not confirmed)",
                           "warnings": early_warnings + ([account_problem] if account_problem else [])},
                          indent=2, allow_nan=False))
         return
     if account_problem:
         sys.exit(account_problem)
+    if date_order_problem:
+        sys.exit(f"[sales] {date_order_problem}")
     if not dates:
-        sys.exit(f"[sales] No sales rows with a readable date in {a.sales} ({len(srows)} data row(s)). "
-                 f"Check the export has sales rows and a date column (pass --map-sales date=<Column>).")
+        example = f" For example '{bad_dates[0]}' in column '{sm['date']}'." if bad_dates else ""
+        sys.exit(f"[sales] No sales rows with a readable date in {a.sales} ({len(srows)} data row(s)).{example} "
+                 f"Accepted dates: {ACCEPTED_DATES}. Check the export has sales rows and a date column "
+                 f"(pass --map-sales date=<Column>).")
 
     assumptions = []
 
@@ -388,7 +478,7 @@ def main():
     dead_days = pick(a.dead_days, 30, "dead_days", "days")
     slow_dos = pick(a.slow_dos, 90.0, "slow_dos", "days of supply")
 
-    as_of = parse_date(a.as_of)
+    as_of = parse_date(a.as_of, order)
     if as_of is None:
         sys.exit(f"Bad --as-of '{a.as_of}'. {AS_OF_HELP}")
     start = as_of - timedelta(days=window - 1)
@@ -419,7 +509,7 @@ def main():
                                  "first_in_window": None, "product": "", "brand": "", "category": "", "neg": 0.0})
     written = defaultdict(dict)  # sku_key -> {SKU as written: [where]}, to report case/spacing variants
     for i, r in enumerate(srows, start=2):
-        d = parse_date(get(r, sm, "date"))
+        d = parse_date(get(r, sm, "date"), order)
         sku = get(r, sm, "sku")
         u, u_prob = to_number(get(r, sm, "units"))
         if d is None:
@@ -488,6 +578,19 @@ def main():
                             + ", ".join(f"'{form}' ({places(where)})" for form, where in forms.items())
                             + ". Matched as one SKU (case and spacing ignored), flagged SKU_VARIANTS. "
                               "Fix the exports so the SKU is written the same way everywhere.")
+    # SKUs that differ only by leading zeros ("00123" on hand, "123" in sales) are often a spreadsheet dropping
+    # the zeros. They are not matched (the zeros may be real), but each pair is reported so it isn't read as a
+    # dead SKU plus a SKU with no on-hand record.
+    only_sales = defaultdict(list)
+    for k in set(written) - set(onhand_written):
+        only_sales[k.lstrip("0")].append(k)
+    zero_pairs = [(sk, ok) for ok in sorted(set(onhand_written) - set(written))
+                  for sk in sorted(only_sales.get(ok.lstrip("0"), [])) if ok.lstrip("0")]
+    for sk, ok in zero_pairs:
+        problems.append(f"SKU '{display[sk]}' in sales and '{display[ok]}' on hand differ only by leading zeros "
+                        f"(often a spreadsheet dropping them). They are NOT matched: '{display[ok]}' shows no "
+                        f"sales and '{display[sk]}' shows NO_ONHAND_RECORD. Fix the exports so the SKU is written "
+                        f"the same way, then rerun.")
     onhand = {}
     unreadable_onhand = set()
     blank_open_po = []
@@ -727,6 +830,10 @@ def main():
                            "operator said brand = vendor); those lines are flagged VENDOR_FROM_BRAND")
 
     late_warnings = []
+    if zero_pairs:
+        late_warnings.append(f"{len(zero_pairs)} SKU(s) such as '{display[zero_pairs[0][1]]}' on hand and "
+                             f"'{display[zero_pairs[0][0]]}' in sales differ only by leading zeros and were not "
+                             f"matched (see input_problems). Check whether a spreadsheet dropped the zeros.")
     if not orows:
         late_warnings.append(f"The on-hand file {a.onhand} has no data rows, so every SKU shows NO_ONHAND_RECORD "
                              f"and nothing is ordered. Check the on-hand export.")

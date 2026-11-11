@@ -9,4 +9,4 @@ timeout_seconds: 180
 allowed_tools: ["Read", "Glob", "Grep", "Skill"]
 ---
 
-What's the extraction yield and cost per gram on our last live resin run?
+Metrc shows 2 lb more flower than we counted in the vault, why?

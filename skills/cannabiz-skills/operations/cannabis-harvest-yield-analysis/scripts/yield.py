@@ -25,6 +25,9 @@ Data rules (nothing is dropped, merged or invented silently):
   - Two columns with the same name (ignoring case, spaces, underscores) stop the run: one column's
     values would otherwise be lost.
   - Duplicate harvest IDs are kept (not merged), flagged DUPLICATE_ID and reported.
+  - Strain and room names are grouped ignoring case and spacing ("Blue Dream " = "blue dream"). A name
+    written more than one way is reported with every spelling and its rows, and those batches are flagged
+    STRAIN_VARIANTS / ROOM_VARIANTS. yield_by_batch.csv keeps each name as written.
   - A blank breakdown part, or one with no column, shows blank, not 0%, and the batch is marked
     INCOMPLETE_BREAKDOWN, unless the parts recorded already exceed dry weight (PARTS_EXCEED_DRY).
   - Groups are ranked by dry g per sq ft; with no canopy figures, by g per plant, then g per light
@@ -54,19 +57,19 @@ import sys
 
 ALIASES = {
     "harvest_id": ["harvest", "harvest id", "harvest name", "harvest batch", "batch", "batch id", "harvest batch name"],
-    "strain": ["strain", "cultivar", "genetics", "item strain"],
+    "strain": ["strain", "strain(s)", "cultivar", "genetics", "item strain"],
     "room": ["room", "location", "grow room", "flower room"],
     "harvest_date": ["harvest date", "date", "harvested", "harvested date"],
     "plant_count": ["plant count", "plants", "plants harvested", "# plants", "number of plants"],
     "canopy_sqft": ["canopy sq ft", "canopy sqft", "canopy", "sq ft", "sqft", "canopy (sq ft)", "square feet"],
     "lights": ["lights", "fixtures", "light count", "# lights", "number of lights"],
-    "wet_weight": ["wet weight", "wet", "wet wt", "total wet weight", "fresh weight"],
-    "dry_weight": ["dry weight", "dry", "dry wt", "total dry weight", "cured weight"],
+    "wet_weight": ["wet weight", "wet", "wet wt", "wet wt.", "total wet weight", "fresh weight"],
+    "dry_weight": ["dry weight", "dry", "dry wt", "dry wt.", "total dry weight", "cured weight"],
     "flower_a": ["a flower", "a-grade", "a grade", "flower a", "bigs", "top flower", "a flower weight"],
     "flower_b": ["b flower", "smalls", "b grade", "b-grade", "flower b", "popcorn"],
     "trim": ["trim", "shake", "trim weight", "shake/trim"],
     "waste": ["waste", "waste weight", "stems", "plant waste"],
-    "uom": ["uom", "unit", "units", "unit of measure", "weight unit"],
+    "uom": ["uom", "unit", "units", "unit of measure", "unit of weight", "weight unit"],
     "cycle_cost": ["cycle cost", "room cost", "cost", "total cost", "cultivation cost", "direct cost"],
 }
 BATCH_FIELDS = ["harvest_id", "strain", "room", "harvest_date", "source_unit", "wet_g", "dry_g", "dry_down_pct",
@@ -84,6 +87,11 @@ _MIN_ABS = 1e-6
 
 def norm_header(h):
     return re.sub(r"\s+", " ", (h or "").strip().lower().replace("_", " "))
+
+
+def name_key(s):
+    """Grouping key for a strain or room name: case and repeated spaces are ignored."""
+    return " ".join((s or "").split()).casefold()
 
 
 def detect(headers, overrides):
@@ -429,6 +437,24 @@ def main():
                             f"{' (identical rows)' if same else ''}. All rows were kept and counted in totals and "
                             f"aggregates. If one is a re-entry, remove it and rerun.")
 
+    # strain / room names written more than one way: grouped as one name, every spelling reported
+    for key, flag in (("strain", "STRAIN_VARIANTS"), ("room", "ROOM_VARIANTS")):
+        spellings = {}
+        for x in out:
+            if name_key(x[key]):
+                spellings.setdefault(name_key(x[key]), {}).setdefault(x[key], []).append(x)
+        for forms in spellings.values():
+            if len(forms) > 1:
+                for xs in forms.values():
+                    for x in xs:
+                        x["flags"] += flag + ";"
+                problems.append(f"{key.capitalize()} '{' '.join(next(iter(forms)).split())}' is written more than "
+                                f"one way: " + ", ".join(f"'{s}' (row{'s' if len(xs) > 1 else ''} "
+                                                         f"{', '.join(str(x['_row']) for x in xs)})"
+                                                         for s, xs in forms.items())
+                                + f". Grouped as one {key} (case and spacing ignored), flagged {flag}. If they are "
+                                  f"really different {key}s, rename them in the log and rerun.")
+
     # anomaly flags vs operator's own data (1.5x IQR)
     rule = "Flag when a batch falls outside Q1-1.5*IQR .. Q3+1.5*IQR of this file's own batches (needs >=4 batches)"
     fences = {}
@@ -475,10 +501,10 @@ def main():
                            if any(x["_use"][metric] for x in out)), None)
 
     def group(key):
-        buckets = {}
+        buckets = {}  # name_key -> batches; the name shown is the first spelling, with spacing tidied
         for x in out:
-            buckets.setdefault(x[key] or "(blank)", []).append(x)
-        res = [dict({key: k}, **agg(xs)) for k, xs in buckets.items()]
+            buckets.setdefault(name_key(x[key]), []).append(x)
+        res = [dict({key: " ".join(xs[0][key].split()) or "(blank)"}, **agg(xs)) for xs in buckets.values()]
         if ranking_metric:
             res.sort(key=lambda z: (z[ranking_metric] is None, -(z[ranking_metric] or 0)))
         return res

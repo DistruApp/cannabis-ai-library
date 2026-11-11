@@ -56,7 +56,7 @@ Only terms that need it. If this section runs long, the SOP is written at the wr
 
 **Warning:** [What could go wrong, if this step is risky]
 
-*(Continue numbering until the process is complete. One action per step, every step starts with an action verb.)*
+*(Continue numbering until the process is complete. One action per step, every step starts with an action verb. Only steps the operator described or confirmed; list any control you'd add under "Suggested additions" after the draft, not here.)*
 
 ## 7. Controls, Thresholds, and Variance Handling
 

@@ -9,4 +9,4 @@ timeout_seconds: 180
 allowed_tools: ["Read", "Glob", "Grep", "Skill"]
 ---
 
-If distillate goes up 15% what happens to our vape margins? Use last week's batch costs
+What's the real per-jar cost on live resin run LR-2207? BOM is bom_LR-2207.csv in this folder. We got 1,480 jars out of it.

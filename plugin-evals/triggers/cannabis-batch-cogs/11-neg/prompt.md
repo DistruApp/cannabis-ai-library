@@ -1,5 +1,5 @@
 ---
-name: trigger--cannabis-batch-cogs--06-neg
+name: trigger--cannabis-batch-cogs--11-neg
 description: "must not fire cannabis-batch-cogs"
 tags: ["trigger", "cannabis-batch-cogs", "trigger-neg"]
 plugins: ["../../../.."]
@@ -9,4 +9,4 @@ timeout_seconds: 180
 allowed_tools: ["Read", "Glob", "Grep", "Skill"]
 ---
 
-How should we allocate indirect costs to inventory under 280E for our tax return?
+Which carts should the dispensary reorder this week?

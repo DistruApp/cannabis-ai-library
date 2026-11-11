@@ -9,4 +9,4 @@ timeout_seconds: 180
 allowed_tools: ["Read", "Glob", "Grep", "Skill"]
 ---
 
-Which carts should the dispensary reorder this week?
+Our live resin package in Metrc is 40 g more than what's on the shelf

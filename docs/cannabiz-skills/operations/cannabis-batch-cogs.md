@@ -4,12 +4,13 @@ Skill: [`cannabis-batch-cogs`](../../../skills/cannabiz-skills/operations/cannab
 
 ## What it does
 
-Tells a manufacturer what a batch or SKU really costs. A bundled script adds up every input (flower, biomass, distillate, terpenes, hardware, packaging, labels), labor, overhead and lab testing, then shows the line by line cost, cost per finished unit, the cost of yield shortfalls, and a sensitivity table on the top three cost drivers. It refuses to fill in missing rates silently, and it stops to ask "price per what unit?" when a weight or volume input has no price unit. An assumed value must be a number the user chooses: it is listed for them to confirm, and any line built on it (such as overhead set as a % of materials) is marked as an assumption too. It also stops when two BOM columns could both be the price, and it never writes its report over the BOM file.
+Tells a manufacturer what a batch or SKU really costs. A bundled script adds up every input (flower, biomass, distillate, terpenes, hardware, packaging, labels), labor, overhead and lab testing, then shows the line by line cost, cost per finished unit, the cost of yield shortfalls, and a sensitivity table on the top three cost drivers. It refuses to fill in missing rates silently, and it stops to ask "price per what unit?" when a weight or volume input has no price unit. An assumed value must be a number the user chooses: it is listed for them to confirm, and any line built on it (such as overhead set as a % of materials) is marked as an assumption too. It also stops when two BOM columns could both be the price, asks whether a column headed just "Cost" is the price per unit or the line total, and never writes its report over the BOM file.
 
 ## When to use it
 
 - "What does this batch really cost per unit?"
 - "Can you cost this BOM?"
+- "What's the real per-jar cost on this run?"
 - "Why did our unit cost go up?"
 - Needing a cost per unit figure for pricing a vape, edible, pre-roll or extract SKU
 

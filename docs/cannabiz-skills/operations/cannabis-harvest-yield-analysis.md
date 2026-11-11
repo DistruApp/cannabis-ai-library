@@ -4,11 +4,12 @@ Skill: [`cannabis-harvest-yield-analysis`](../../../skills/cannabiz-skills/opera
 
 ## What it does
 
-Shows a cultivator which rooms and strains produce the most dry weight per square foot, plant and light, and what each gram costs to grow. It does not look at sales prices, revenue or profit. A bundled script calculates wet to dry loss, dry yield per plant, per square foot of canopy and per light, the split between top flower, smalls and trim, any weight that is not accounted for, and cost per dry gram when costs are provided. It ranks strains and rooms and flags unusual batches using the grower's own numbers. It doesn't invent industry benchmarks. A batch with a missing or zero weight is left out of the figures that need that weight, and the report says how many batches each figure covers. If you name a period, such as Q3, it checks the harvest dates against it and asks about any batch outside it. Duplicate harvest IDs are flagged, not merged.
+Shows a cultivator which rooms and strains produce the most dry weight per square foot, plant and light, and what each gram costs to grow. It does not look at sales prices, revenue or profit. A bundled script calculates wet to dry loss, dry yield per plant, per square foot of canopy and per light, the split between top flower, smalls and trim, any weight that is not accounted for, and cost per dry gram when costs are provided. It ranks strains and rooms and flags unusual batches using the grower's own numbers. It doesn't invent industry benchmarks. A batch with a missing or zero weight is left out of the figures that need that weight, and the report says how many batches each figure covers. If you name a period, such as Q3, it checks the harvest dates against it and asks about any batch outside it. Duplicate harvest IDs are flagged, not merged. Strain and room names that differ only in capitals or spaces ("Blue Dream" and "blue dream ") are grouped together, and the report lists every spelling.
 
 ## When to use it
 
 - "Which strains or rooms are performing best?"
+- "Is Blue Dream doing better than GMO Cookies for us?"
 - "Why did this harvest come in light?"
 - "What's our cost per gram?"
 - Uploading a harvest log or a traceability harvest export and asking for a yield report

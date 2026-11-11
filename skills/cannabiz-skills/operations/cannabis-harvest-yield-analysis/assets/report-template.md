@@ -34,7 +34,7 @@ Rule used: outside 1.5 × IQR of this file's own batches (n = __).
 |---|---|---|---|
 
 ## Data gaps
-- [Every `input_problems` line: batches excluded from a metric and why, blank unit cells filled from --weight-unit, duplicate harvest IDs, blank breakdown parts, zero weights or counts]
+- [Every `input_problems` line: batches excluded from a metric and why, blank unit cells filled from --weight-unit, duplicate harvest IDs, strain or room names written more than one way, blank breakdown parts, zero weights or counts]
 - ...
 
 ---

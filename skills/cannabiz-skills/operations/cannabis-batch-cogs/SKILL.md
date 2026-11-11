@@ -1,7 +1,7 @@
 ---
 name: cannabis-batch-cogs
 description: >-
-  Calculate the true cost of a cannabis manufacturing or processing batch: bill-of-materials roll-up (flower, biomass, distillate, terpenes, hardware, packaging, labels), labor, overhead, and testing, giving cost per batch and per finished unit, yield variance against expected output, and sensitivity on the biggest cost drivers. Use when a licensed manufacturer, processor, extractor, packager, or pre-roll/edible/vape producer asks what a batch or SKU really costs, wants a BOM costed, asks why unit cost went up, or needs a cost-per-unit figure for pricing, even if they don't say "COGS." Not for 280E tax treatment or inventory capitalization (CPA territory), cultivation harvest yield and cost per gram, wholesale price sheets, or traceability reconciliation.
+  Calculate the true cost of a cannabis manufacturing or processing batch, run or lot: bill-of-materials roll-up (flower, biomass, distillate, terpenes, solvent, hardware, packaging, labels), labor, overhead, and testing, giving cost per batch and per finished unit (per jar, cart, pre-roll, gummy or pack), yield variance against expected output, and sensitivity on the biggest cost drivers. Use when a licensed manufacturer, processor, extractor, packager, or pre-roll/edible/vape producer asks what a batch, run or SKU really costs or costs per unit, shares a BOM or production cost file, wants a BOM costed, asks why unit cost went up, or needs a cost-per-unit figure for pricing, even if they don't say "COGS" and even if the sum looks simple: the bundled script does the roll-up, so never total a BOM by hand. Not for 280E tax treatment or inventory capitalization (CPA territory), cultivation harvest yield and cost per gram, wholesale price sheets, or traceability reconciliation.
 license: MIT
 metadata:
   version: "1.0"
@@ -13,6 +13,8 @@ metadata:
 # Batch COGS
 
 Gives a production manager or controller a defensible cost per unit for one batch: every line shown, every assumed rate called out, and the shortfall in output priced. The roll-up runs in `scripts/cogs.py`, which **refuses to fill in any rate the operator didn't give**.
+
+Run the script for every cost question, even when the operator sends only a BOM and a unit count. It comes back BLOCKED with the labor, overhead and testing questions to ask. Never answer with a cost per unit, total or materials-only figure you worked out yourself.
 
 **Scope:** operational cost of goods made. How these costs are treated for tax (IRC §280E, inventory capitalization) is out of scope and needs a CPA. Say so in one line in the report, and don't explain tax law.
 
@@ -44,7 +46,7 @@ Where inputs come from: ERP item costs and production records, purchase invoices
 
 `python3 <skill-dir>/scripts/cogs.py --bom <file> --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces, and don't compare the files by hand either (no list of rows that differ, match, are missing or would pass).
 
-Show the mapping in one line. Fix missing or AMBIGUOUS columns with `--map field=Column` (fields: component, qty, uom, unit_cost, cost_uom). AMBIGUOUS also covers two headers that read the same (e.g. `Unit Cost` and `unit_cost`): ask the operator which column holds the figure; don't pick one. Two columns with exactly the same name stop the script; ask the operator to rename or delete one. For Excel files, export to CSV first.
+Show the mapping in one line. Fix missing or AMBIGUOUS columns with `--map field=Column` (fields: component, qty, uom, unit_cost, cost_uom). AMBIGUOUS also covers two headers that read the same (e.g. `Unit Cost` and `unit_cost`): ask the operator which column holds the figure; don't pick one. Two columns with exactly the same name stop the script; ask the operator to rename or delete one. A price column headed just `Cost` shows as `CONFIRM:Cost`, because many ERP exports put the line total (qty × price) there. Ask the operator whether it is the price per unit or the line total, in the same message as the other questions. Pass `--map unit_cost=Cost` only after they confirm it is per unit. If it is the line total, ask for an export with the price per unit; don't divide it yourself. For Excel files, export to CSV first.
 
 ### 3. Run
 
@@ -58,15 +60,16 @@ Always run the script, even when you can already see the problem in the file: it
 
 - `cost_uom:<component>` in `missing_inputs` means a weight or volume line has a price but no price unit. Ask "price per what unit?" (per g, per lb, per kg). Never guess it from the quantity unit.
 - Unreadable numbers block the run: NaN, inf, a decimal comma such as `4,25` or `1.234,56`, and negative quantities or costs. Each is listed in `input_problems` with its row, column and raw value. Ask the operator for the right figure; never reinterpret it yourself (`4,25` could be 4.25 or 425). A return or correction belongs netted into the quantity consumed. US thousands separators such as `1,200` are read normally.
-- `input_problems` also appears on OK runs. It lists things that did not block the run but the operator should see: fully blank rows that were skipped, count lines with a blank price unit that were read as price per each, and an `--overhead-pct-materials` value between 0 and 1 (read as that many percent, so 0.12 means 0.12%, not 12%). Put each one under Data gaps in the report, and confirm the overhead percentage with the operator before reporting.
+- `input_problems` also appears on OK runs. It lists things that did not block the run but the operator should see: fully blank rows that were skipped, count lines with a blank price unit that were read as price per each, an `--overhead-pct-materials` value between 0 and 1 (read as that many percent, so 0.12 means 0.12%, not 12%) or over 100, a weight or volume quantity like `1,250` read as 1,250 (it could mean 1.25 in some locales), and an `--assume` value that wasn't used because the BOM cell was already filled. Put each one under Data gaps in the report, and confirm the overhead percentage and any `1,250`-style quantity with the operator before reporting.
 - Numeric flags and `--assume` values must be numbers; flags can't be negative and `--assume` values must be greater than 0. A bad value stops the script with a message. Pass a confirmed zero as the flag itself.
+- An unknown `--assume` key, or one given together with its own flag, stops the script. A `cost:<component>` or `cost_uom:<component>` that names no BOM line blocks the batch: use the component name exactly as it appears in the BOM.
 - `--expected-units` must be greater than 0. Leave it out if there is no expected count.
 - The script won't write its outputs over the BOM file. If it says `--out-dir` would overwrite the BOM, choose another folder.
 
 ### 4. Interpret
 
 - **Cost structure:** materials / labor / overhead / testing as $ and % of total. Name the top 3 lines. They usually drive every pricing conversation.
-- **Yield variance:** actual vs. expected units, and the cost of the shortfall per unit (`cost_of_shortfall_per_unit`). Common causes to check: fill loss, rejects at QC, hardware defects, units pulled for testing samples, miscounts. Use the operator's expected yield only, never an outside "standard."
+- **Yield variance:** actual vs. expected units, and the cost of the shortfall per unit (`cost_of_shortfall_per_unit`). When actual units beat expected, that figure is negative and `yield_variance.note` says so: report it as a saving per unit, not a shortfall. Common causes to check: fill loss, rejects at QC, hardware defects, units pulled for testing samples, miscounts. Use the operator's expected yield only, never an outside "standard."
 - **Sensitivity:** cost per unit at ±10% / ±20% on each of the top 3 drivers, one at a time. Use it to answer "what if distillate goes up?" Say clearly that the drivers are varied separately.
 - **Comparisons:** compare against the operator's previous batches or standard cost if they provide them. Otherwise present the result alone.
 

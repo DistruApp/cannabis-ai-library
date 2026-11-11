@@ -25,17 +25,27 @@ BOM CSV (one row per component consumed in this batch):
   density or pack size: the operator restates the line in one kind and reruns.
   Two non-blank headers with the same name stop the script (a CSV reader keeps only one of them). Two
   headers that read as the same field (e.g. "Unit Cost" and "unit_cost") are AMBIGUOUS: pass --map.
+  A price column headed just "Cost" may hold the price per unit or the line total (qty x price), as many
+  ERP exports do. It shows as CONFIRM:Cost and the run is BLOCKED until the operator confirms it is the
+  price per unit and it is passed as --map unit_cost=Cost.
+  A weight or volume quantity like "1,250" is read as 1250 (US thousands) and noted in input_problems,
+  since in some locales it means 1.25.
 
 --overhead-pct-materials is a whole-number percentage: 12 means 12%. A value between 0 and 1
-  (e.g. 0.12) is used as given (0.12%) and a warning is added to input_problems.
+  (e.g. 0.12) is used as given (0.12%) and a warning is added to input_problems, as is a value over 100.
 Numeric flags must be finite and not negative (units must be greater than 0); a bad value exits
   with a message.
 
 --assume key=value  supply a value the operator did NOT provide; it is used but tagged ASSUMPTION
   keys: units_produced, labor_hours, labor_rate, overhead_per_batch, overhead_per_labor_hour,
         overhead_pct_materials, testing_cost, expected_units, cost:<component>, cost_uom:<component>
-  Assumed numbers must be greater than 0.
+  Assumed numbers must be greater than 0. An unknown key, or a key whose flag was also given, stops the
+  script. cost:/cost_uom: naming no BOM line blocks the batch; one naming a line whose cell is already
+  filled is not used and is noted in input_problems.
   Pass 0 explicitly (not via --assume) when the operator confirms a cost is truly zero.
+
+When actual units exceed expected units, cost_of_shortfall_per_unit is negative (a saving per unit) and
+  yield_variance carries a note saying so.
 
 Outputs (in --out-dir, default ./cogs_out): cogs_lines.csv, summary.json
   The script stops before writing if either output path is the BOM file itself.
@@ -65,10 +75,13 @@ CONV = {  # to base: g for weight, ml for volume, each for count
 PARAMS = ["units_produced", "labor_hours", "labor_rate", "testing_cost"]
 OH = ["overhead_per_batch", "overhead_per_labor_hour", "overhead_pct_materials"]
 OUTPUTS = ("cogs_lines.csv", "summary.json")
+# Headers that don't say whether the figure is per unit or the extended line total: the operator confirms.
+CONFIRM = {"unit_cost": {"cost"}}
 
 
 def nh(h):
-    return re.sub(r"\s+", " ", (h or "").strip().lower().replace("_", " ").replace("$", "").strip())
+    h = re.sub(r"\(\s*\)", "", (h or "").strip().lower().replace("_", " ").replace("$", ""))  # "Unit Cost ($)"
+    return re.sub(r"\s+", " ", h).strip()
 
 
 def detect(headers, overrides):
@@ -82,7 +95,7 @@ def detect(headers, overrides):
             continue
         hits = [h for a in al for h in by_name.get(a, [])]
         if len(hits) == 1:
-            found[f] = hits[0]
+            found[f] = ("CONFIRM:" if nh(hits[0]) in CONFIRM.get(f, ()) else "") + hits[0]
         elif len(hits) > 1:
             found[f] = "AMBIGUOUS:" + "|".join(hits)
     return found
@@ -213,8 +226,15 @@ def main():
         if col not in headers:
             sys.exit(f"Bad --map {f}={col}: the BOM has no column named '{col}'. Headers: {headers}.")
     m = detect(headers, overrides)
+    confirm = [f"{f} column '{c}': the header doesn't say whether it is the price per unit or the line total "
+               f"(qty x price). Ask the operator. If it is the price per unit, rerun with --map {f}={c}. If it is "
+               f"the line total, ask for a BOM export with the price per unit; don't divide it yourself."
+               for f, c in ((f, col[len("CONFIRM:"):]) for f, col in m.items() if col.startswith("CONFIRM:"))]
     if a.detect_only:
-        print(json.dumps({"mapping": m, "rows": len(rows), "headers": headers}, indent=2, allow_nan=False))
+        out = {"mapping": m, "rows": len(rows), "headers": headers}
+        if confirm:
+            out["confirm"] = confirm
+        print(json.dumps(out, indent=2, allow_nan=False))
         return
     for name in OUTPUTS:  # never let a report overwrite its own source file (also through a symlink)
         path = os.path.join(a.out_dir, name)
@@ -228,6 +248,15 @@ def main():
                      f"Pass --map {req}=<Column>.")
 
     assume = kv(a.assume, "assumption")
+    for k in assume:
+        if k.startswith(("cost:", "cost_uom:")):
+            continue
+        if k not in PARAMS + OH + ["expected_units"]:
+            sys.exit(f"Bad --assume key '{k}'. Keys: {', '.join(PARAMS + OH + ['expected_units'])}, "
+                     f"cost:<component>, cost_uom:<component>.")
+        if getattr(a, k) is not None:
+            sys.exit(f"--{k.replace('_', '-')} and --assume {k} were both given. Pass the operator's figure as the "
+                     f"flag, or their placeholder via --assume, not both.")
     assumptions, missing = [], []
     vals = {}
     for p in PARAMS + OH + ["expected_units"]:
@@ -244,6 +273,8 @@ def main():
         missing.append("one of " + "/".join(OH) + " (pass 0 if the operator confirms no overhead)")
     elif len(oh_given) > 1:
         sys.exit(f"Give exactly one overhead method; got {oh_given}")
+    missing.extend(confirm)  # confirmed before costing, but every other problem is still listed in this run
+    m = {f: col[len("CONFIRM:"):] if col.startswith("CONFIRM:") else col for f, col in m.items()}
 
     lines, problems, notes = [], [], []  # problems block the run; notes are reported but do not block
     pct = vals["overhead_pct_materials"]
@@ -251,6 +282,9 @@ def main():
         notes.append(f"overhead_pct_materials is {pct:g}, so overhead was read as {pct:g}% of materials, not "
                      f"{pct * 100:g}%. The flag takes a whole-number percentage (12 means 12%). If {pct * 100:g}% "
                      f"was meant, rerun with --overhead-pct-materials {pct * 100:g}.")
+    elif pct is not None and pct > 100:
+        notes.append(f"overhead_pct_materials is {pct:g}, so overhead is {pct:g}% of materials, more than the "
+                     f"materials themselves. Confirm the percentage with the operator (12 means 12%).")
     for p in ("units_produced", "expected_units"):
         if vals[p] is not None and vals[p] <= 0:
             problems.append(f"{p} must be greater than 0 (got {vals[p]:g}). "
@@ -264,7 +298,7 @@ def main():
     elif not cu_col:
         notes.append("No cost unit column found (the unit each price is quoted in, e.g. $/lb). Weight and volume "
                      "lines need it; count lines are read as price per each.")
-    blank_rows, each_read, seen_rows = [], [], {}
+    blank_rows, each_read, seen_rows, comps, used = [], [], {}, set(), set()
     for i, r in enumerate(rows, start=2):
         if is_blank(r):
             blank_rows.append(i)
@@ -276,6 +310,7 @@ def main():
         else:
             seen_rows[key] = i
         comp = (r.get(m["component"]) or "").strip() or f"row{i}"
+        comps.add(comp)
         if not (r.get(m["component"]) or "").strip():
             notes.append(f"row {i}: column '{m['component']}' is blank; the line is shown as '{comp}'. "
                          f"Ask which component it is.")
@@ -294,6 +329,7 @@ def main():
         if not cuom:
             if f"cost_uom:{comp}" in assume:
                 cuom = assume[f"cost_uom:{comp}"].strip().lower()
+                used.add(f"cost_uom:{comp}")
                 tag = "ASSUMPTION"
                 assumptions.append(f"cost unit of {comp} = per {cuom} [ASSUMPTION]")
             elif uom in CONV and CONV[uom][0] == "e":
@@ -306,6 +342,7 @@ def main():
                 cuom = None
         if cost is None and not cost_prob and f"cost:{comp}" in assume:
             cost = assumed_number(f"cost:{comp}", assume[f"cost:{comp}"])
+            used.add(f"cost:{comp}")
             tag = "ASSUMPTION"
             assumptions.append(f"unit cost of {comp} = {cost} per {cuom or uom or '?'} [ASSUMPTION]")
         # Collect every problem in the row so the operator gets one complete list, not one per rerun.
@@ -331,6 +368,10 @@ def main():
         if row_probs or cost_missing or cuom is None:
             problems.extend(row_probs)
             continue
+        if re.fullmatch(r"[1-9]\d{0,2},\d{3}", raw_qty) and CONV[uom][0] in "wv":
+            notes.append(f"row {i} ({comp}): column '{m['qty']}' value '{raw_qty}' was read as {qty:g} {uom} (US "
+                         f"thousands separator). If it means {raw_qty.replace(',', '.')} {uom}, correct the BOM "
+                         f"and rerun.")
         f1, f2 = CONV[uom][1], CONV[cuom][1]
         qty_in_cost_uom = qty * f1 / f2
         lines.append({"line": comp, "type": "material", "qty": qty, "uom": uom,
@@ -339,6 +380,14 @@ def main():
     if len(blank_rows) == len(rows):  # header only, or nothing but blank rows: there is nothing to cost
         problems.append(f"The BOM has no component rows (only the header{' and blank rows' if rows else ''}). "
                         f"Ask for the components consumed in this batch.")
+    for k in assume:
+        if k.startswith(("cost:", "cost_uom:")) and k not in used:
+            name = k.split(":", 1)[1]
+            if name not in comps:
+                problems.append(f"--assume {k}: no BOM line is named '{name}'. Use the name exactly as it appears "
+                                f"in column '{m['component']}'.")
+            else:
+                notes.append(f"--assume {k} was not used: that BOM line already has a value in the cell.")
     if blank_rows:
         where = (f"row {blank_rows[0]}" if len(blank_rows) == 1
                  else "rows " + ", ".join(str(n) for n in blank_rows))
@@ -407,6 +456,9 @@ def main():
               "variance_pct": round((units - exp) / exp * 100, 2),
               "cost_per_unit_at_expected": round(total / exp, 4),
               "cost_of_shortfall_per_unit": round(total / units - total / exp, 4)}
+        if units > exp:
+            yv["note"] = ("Actual units exceed expected, so cost_of_shortfall_per_unit is negative: it is the cost "
+                          "saved per unit by the extra output, not a shortfall.")
 
     # Sensitivity on top 3 cost drivers. Overhead tied to materials or labor moves with them.
     drivers = sorted(lines, key=lambda x: -x["line_cost"])[:3]
