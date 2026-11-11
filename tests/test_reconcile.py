@@ -383,6 +383,20 @@ class Structure(ReconcileCase):
         self.assertEqual(rows[tag("103")]["status"], "IN_SYSTEM_NOT_COUNTED")
         self.assertIn("count row 4, column 'Package Tag': blank package tag; row not used", s["input_problems"])
 
+    def test_zero_quantity_system_package_is_flagged_not_missing(self):
+        # Trial finding: emptied packages left open in the system read as missing inventory.
+        with h.TempDir() as tmp:
+            rows, s = self.reconcile(tmp, SYSTEM, COUNT)
+            self.assertEqual(s["in_system_not_counted_zero_qty"], [])
+            for raw in ("0", "0.0", "0.000"):
+                with self.subTest(value=raw):
+                    system = h.mutate_csv(SYSTEM, tmp / "system.csv", 6, "Quantity", raw)
+                    rows, s = self.reconcile(tmp, system, COUNT)
+                    self.assertEqual(rows[tag("107")]["status"], "IN_SYSTEM_NOT_COUNTED")
+                    self.assertIn("zero quantity in the system", rows[tag("107")]["notes"])
+                    self.assertEqual(s["in_system_not_counted_zero_qty"], [tag("107")])
+                    self.assertNotIn("zero quantity", rows[tag("110")]["notes"])
+
     def test_blank_quantity_is_bad_quantity_not_zero(self):
         with h.TempDir() as tmp:
             count = h.mutate_csv(COUNT, tmp / "count.csv", 2, "Counted Qty", "")

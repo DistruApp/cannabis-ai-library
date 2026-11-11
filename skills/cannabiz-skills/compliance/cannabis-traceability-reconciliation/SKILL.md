@@ -104,7 +104,7 @@ Fill `assets/report-template.md`. Put the state's notification deadline(s) at th
 - **Splits and repackaging.** A package that was split into new tags shows the parent as short and the children as `COUNTED_NOT_IN_SYSTEM` if the new packages weren't created in the system yet. Look for matching item names and quantities that add up.
 - **Tag typos.** When a count-only tag is within 2 characters of exactly one system-only tag, both rows keep their own status (`COUNTED_NOT_IN_SYSTEM` and `IN_SYSTEM_NOT_COUNTED`) and the notes name the near-match. It may be a typo, but sequential tags from the same roll look the same, so confirm against the physical label before treating it as one package. Until then, keep both open and rank the counted-not-in-system row as high priority.
 - **Over-counts matter too.** `OVER_IN_COUNT` and `COUNTED_NOT_IN_SYSTEM` can mean untracked product on site. Rank them as high-priority, not as "good news."
-- **Zero-quantity active packages** in the system export are usually finished packages someone didn't close out. List them, but don't treat them as missing inventory.
+- **Zero-quantity active packages** in the system export are usually finished packages someone didn't close out. The script lists them in `in_system_not_counted_zero_qty` in `summary.json` and notes them on their rows. Report them as a separate group to close out, not as missing inventory, and leave them out of the missing-package count.
 
 ## Example
 

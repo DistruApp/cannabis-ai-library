@@ -483,6 +483,7 @@ def main():
     S = index(srows, sm, "system", problems, sci_rows, a.default_system_unit)
     C = index(crows, cm, "count", problems, sci_rows, a.default_count_unit)
     out = []
+    zero_qty_not_counted = []
     compared_base = {}
     defaults_used = {label: n for label, n in (("system", sum(r["defaulted"] for r in S.values())),
                                                ("count", sum(r["defaulted"] for r in C.values()))) if n}
@@ -521,6 +522,10 @@ def main():
                 notes.append(f"unit is blank in the {side} file")
         if s and not c:
             row["status"] = "IN_SYSTEM_NOT_COUNTED"
+            if s["qty"] is not None and not s["qty_problem"] and abs(s["qty"]) < 1e-9:
+                notes.append("zero quantity in the system: likely an emptied package not finished in the "
+                             "system; list it, but it isn't missing inventory")
+                zero_qty_not_counted.append(tag)
             if near_s.get(tag):
                 notes.append(typo_hint.format(other="count", tags=" / ".join(near_s[tag])))
         elif c and not s:
@@ -628,6 +633,7 @@ def main():
         "packages_compared": len(out),
         "packages_quantity_compared": len(compared_base),
         "by_status": dict(by_status),
+        "in_system_not_counted_zero_qty": sorted(zero_qty_not_counted),
         "net_difference": {k: r6(v) for k, v in net.items()},
         "gross_variance_all_compared": {k: r6(v) for k, v in gross_all.items()},
         "gross_variance_outside_tolerance": {k: r6(v) for k, v in gross.items()},
