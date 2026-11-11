@@ -25,4 +25,4 @@ Gives a licensed cannabis operator a cited answer to a state rule question: the 
 
 **Input:** "We're a California distributor. How often do we have to reconcile Metrc and what happens if we're off?"
 
-**Output:** "At least every 30 calendar days, and a significant discrepancy (5 percent) means an audit and written notice to DCC." It cites 4 CCR sections 15051 and 15034 with the source link and date, and flags that the rule does not say whether the 5 percent is per package or on total inventory.
+**Output:** "At least every 30 calendar days, and a significant discrepancy (5 percent) means an audit and written notice to DCC. Separately, you must report a significant discrepancy to DCC and local law enforcement within 24 hours of finding it." It cites 4 CCR sections 15051, 15034 and 15036 with the source link and date, and flags that the rule does not say whether the 5 percent is per package or on total inventory.

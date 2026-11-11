@@ -1,0 +1,11 @@
+Tag,Item,Category,Quantity,UoM,Lab Testing State
+1A4060300003B21000000501,Example Haze 3.5g Jar,Buds,100,Each,TestPassed
+1A4060300003B21000000502,Example Kush 3.5g Jar,Buds,100,Each,TestPassed
+1A4060300003B21000000503,Example Sour 1g Cart,Vape Cartridge,100,Each,TestPassed
+1A4060300003B21000000504,Example Kush - Bulk Flower,Buds,2,Pounds,TestPassed
+1A4060300003B21000000505,Example Haze - Bulk Flower,Buds,2000,Grams,TestPassed
+1A4060300003B21000000506,Example Gel Caps 10mg 30ct,Capsule,200,Each,TestPassed
+1A4060300003B21000000507,Example Mints 20pk,Edible,60,Each,TestPassed
+1A4060300003B21000000508,Example Chews 10pk,Edible,"12,5",Each,TestPassed
+1A4060300003B21000000509,Example Gummies 10pk,Edible,100,Each,TestPassed
+1A4060300003B21000000510,,Tincture,50,Each,TestPassed

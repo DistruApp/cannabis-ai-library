@@ -14,7 +14,8 @@ Use this to assign a **likely cause** and the **one check that would confirm it*
 | `UNKNOWN_UOM` | Unusual unit label in the export | Ask the operator what the unit means | Map it and rerun. |
 | `MISSING_UNIT` | Unit cell left blank, or the file has no unit column | Look at the source row; ask the operator what unit that file uses | Fill in the unit and rerun, or rerun with `--default-count-unit` / `--default-system-unit` if the operator states it. |
 | `DUPLICATE_CONFLICT` | The same tag on two or more rows with a blank quantity or units that can't be converted | Look at each listed row; check whether the tag was entered twice or two packages share a mistyped tag | Fix the file so each tag appears once with one quantity and unit, then rerun. |
-| `BAD_QUANTITY` | Blank or text in the quantity cell | Look at the source row | Fix the input, rerun. |
+| `BAD_QUANTITY` | Blank quantity cell | Look at the source row | Fix the input, rerun. |
+| `INVALID_NUMBER` | Quantity cell holds text, NaN or inf, a negative number, or a decimal comma ("1,5", "1.234,5"), often from a spreadsheet set to a European number format | Look at the raw value in `input_problems` and ask what was meant | Correct the cell and rerun. Never guess the value. |
 
 ## Pattern checks (run before row-by-row)
 

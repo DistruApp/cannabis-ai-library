@@ -1,12 +1,12 @@
 # Method: formulas and flags used by scripts/replenish.py
 
-All figures are per SKU. "Window" = the `--window-days` days ending at `--as-of` (default: the last date in the sales data).
+All figures are per SKU. "Window" = the `--window-days` days ending at `--as-of`, the date of the on-hand count (required). If the last sale in the export is more than 1 day before it, `warnings` in summary.json says so.
 
 | Metric | Formula | Notes |
 |---|---|---|
 | Units sold (window) | Sum of units in the window, returns (negative units) included | Net of returns |
 | Days measured | Window length, or days since first sale if the SKU first sold inside the window | Shorter for new SKUs → `NEW_SKU` |
-| Units per day | Units sold ÷ days measured | Understated if the SKU was out of stock during the window |
+| Units per day | Units sold ÷ days measured | Understated if the SKU was out of stock during the window. 0 if net units are negative (`NEGATIVE_NET_SALES`) |
 | Sell-through % | Units sold ÷ (units sold + ending on hand) × 100 | Period sell-through. Beginning inventory isn't needed. |
 | Days of supply | On hand ÷ units per day | "no sales" when velocity is 0 |
 | Reorder point | Units per day × (lead time + safety days) | Reorder when on hand + open PO ≤ reorder point |
@@ -32,10 +32,12 @@ All figures are per SKU. "Window" = the `--window-days` days ending at `--as-of`
 | `NO_VENDOR` | Vendor cell blank (and `--vendor-from-brand` not passed) | Line kept off the vendor PO and listed under `lines_needing_vendor`. Ask who supplies it. |
 | `VENDOR_FROM_BRAND` | Vendor blank, filled from brand because the operator confirmed brand = vendor | Listed in assumptions |
 | `CONFLICTING_ROWS(field)` | Duplicate on-hand rows for the SKU disagree on unit cost, case pack, lead time or vendor | No order until the operator says which value is right |
-| `BAD_OPEN_PO` | Open PO cell is not a number | No order: the SKU may already be on order |
+| `BAD_OPEN_PO` | Open PO cell is not a number, or is negative | No order: the SKU may already be on order |
 | `BAD_CASE_PACK` | Case pack is not a positive number | Quantity not rounded to a case pack |
-| `BAD_UNIT_COST` | Unit cost is not a number | Order cost blank |
+| `BAD_UNIT_COST` | Unit cost is not a number, or is negative | Order cost blank |
 | `BAD_ONHAND_ROW(row n)` | One of several on-hand rows for the SKU has an unreadable quantity | No order until fixed |
+| `NEGATIVE_ONHAND` | An on-hand cell for the SKU is negative | No order, sell-through or days of supply until the count is corrected |
+| `NEGATIVE_NET_SALES(n)` | Returns exceed sales for the SKU in the window | Velocity set to 0, not negative. Check the returns. |
 
 ## Duplicate on-hand rows
 

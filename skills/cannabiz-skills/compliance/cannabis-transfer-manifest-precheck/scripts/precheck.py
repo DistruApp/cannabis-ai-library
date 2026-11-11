@@ -22,11 +22,15 @@ Outputs (in --out-dir, default ./precheck_out):
 The script never fills a blank unit from another file, never keeps one of two inventory
 rows for the same tag, and never drops a row without saying so. Anything it can't check
 puts the line on HOLD and adds an input_problems entry. Overall is HOLD whenever
-input_problems is not empty.
+input_problems is not empty. A quantity that is NaN, inf, negative or written with a
+decimal comma is never guessed: the line is held as INVALID_NUMBER. When both the
+manifest and inventory have an item (or SKU) column, each line's item must match the
+package's (ITEM_MISMATCH / ITEM_MISSING); without one, verify_manually asks for it.
 """
 import argparse
 import csv
 import json
+import math
 import os
 import re
 import sys
@@ -84,6 +88,11 @@ def norm_text(t):
     return re.sub(r"\s+", " ", (t or "").strip().lower())
 
 
+def norm_item(t):
+    """Compare key for item names and SKUs: case, whitespace and punctuation are ignored."""
+    return re.sub(r"[\W_]+", "", (t or "").lower())
+
+
 def detect(headers, overrides):
     found, nh = {}, {norm_header(h): h for h in headers}
     for field, alist in ALIASES.items():
@@ -124,14 +133,43 @@ def load(path, overrides, label, required):
     return rows, m
 
 
+_THOUSANDS_RE = re.compile(r"^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$")
+
+
 def to_number(s):
-    s = (s or "").strip().replace(",", "")
+    """Strict numeric parse. Returns (value, problem).
+
+    value is a finite float or None; problem is None or a short reason.
+    Blank -> (None, None). Accepts plain numbers and US thousands
+    separators ("1,234.5"). Rejects NaN/inf and decimal commas
+    ("1,5", "1.234,56"): a wrong guess there changes the number by 10x
+    or more, so the row is reported instead of guessed.
+    Callers decide whether a negative value is allowed.
+    """
+    s = (s or "").strip().replace("$", "").strip()
     if s == "":
-        return None
+        return None, None
+    if any(c.isspace() or c == "_" for c in s):
+        return None, f"not a number: '{s}'"
+    if "," in s:
+        if not _THOUSANDS_RE.match(s):
+            return None, f"ambiguous comma in '{s}' (decimal comma or bad thousands separator)"
+        s = s.replace(",", "")
     try:
-        return float(s)
+        v = float(s)
     except ValueError:
-        return None
+        return None, f"not a number: '{s}'"
+    if not math.isfinite(v):
+        return None, f"not a finite number: '{s}'"
+    return v, None
+
+
+def parse_qty(raw):
+    """to_number plus the rule that a quantity or weight can't be negative."""
+    v, problem = to_number(raw)
+    if v is not None and v < 0:
+        return None, f"negative quantity '{(raw or '').strip()}'"
+    return v, problem
 
 
 def unit_kind(u):
@@ -195,7 +233,7 @@ def main():
         sys.exit("No shared key between order and manifest (need package tag, SKU, or item name in both). "
                  "Pass --map-order / --map-manifest.")
 
-    passing = {v.strip().lower() for v in (a.passing_lab_values or [])}
+    passing = {v.strip().lower() for v in (a.passing_lab_values or []) if v.strip()}  # blank never passes
     problems = []
 
     for label, m in (("manifest", mm), ("inventory", im)):
@@ -211,10 +249,19 @@ def main():
         if not t:
             blank_inv_rows.append(str(i))
             continue
-        inv_rows[t].append({"row": i, "qty": to_number(r.get(im["quantity"])),
-                            "raw_qty": (r.get(im["quantity"]) or "").strip(),
+        raw_qty = (r.get(im["quantity"]) or "").strip()
+        qty, qty_problem = parse_qty(raw_qty)
+        if qty_problem:
+            qty_problem = f"inventory row {i}, column '{im['quantity']}', value '{raw_qty}': {qty_problem}"
+            problems.append(f"{qty_problem} ({t}); on hand not compared")
+        elif qty is None:
+            problems.append(f"inventory row {i} ({t}), column '{im['quantity']}': blank quantity; "
+                            "on hand not compared")
+        inv_rows[t].append({"row": i, "qty": qty, "qty_problem": qty_problem, "raw_qty": raw_qty,
                             "uom": (r.get(im["uom"]) or "").strip() if ok(im, "uom") else "",
                             "lab": (r.get(im["lab_status"]) or "").strip() if ok(im, "lab_status") else None,
+                            "item": (r.get(im["item"]) or "").strip() if ok(im, "item") else "",
+                            "sku": (r.get(im["sku"]) or "").strip() if ok(im, "sku") else "",
                             "dup": ""})
     if blank_inv_rows:
         problems.append(f"inventory row(s) {', '.join(blank_inv_rows)}: blank package tag; these rows "
@@ -226,13 +273,14 @@ def main():
             continue
         desc = "; ".join(f"row {r['row']}: {r['raw_qty'] or '(blank)'} {r['uom'] or '(blank unit)'}, "
                          f"lab status {r['lab'] or '(blank)'}" for r in recs)
-        inv[t] = {"row": "", "qty": None, "uom": "", "lab": None, "dup": desc}
+        inv[t] = {"row": "", "qty": None, "qty_problem": None, "uom": "", "lab": None, "item": "", "sku": "",
+                  "dup": desc}
         problems.append(f"inventory: duplicate tag {t} on {len(recs)} rows ({desc}); any manifest line "
                         "with this tag is held as DUPLICATE_INVENTORY_TAG")
 
     # Order aggregated by join key
-    order = defaultdict(lambda: {"qty": 0.0, "uom": "", "bad": False, "label": "", "unit_missing": False,
-                                 "factors": set()})
+    order = defaultdict(lambda: {"qty": 0.0, "uom": "", "bad": False, "invalid": [], "label": "",
+                                 "unit_missing": False, "factors": set()})
     if not ok(om, "uom"):
         problems.append("order file: no unit column found; order quantities can't be compared with the "
                         "manifest (ORDER_UNIT_MISSING)")
@@ -241,13 +289,19 @@ def main():
         if not k:
             problems.append(f"order row {i}: blank {key}")
             continue
-        q = to_number(r.get(om["quantity"]))
+        raw_q = (r.get(om["quantity"]) or "").strip()
+        q, q_problem = parse_qty(raw_q)
         o = order[k]
         o["label"] = r.get(om[key], "")
         u = (r.get(om["uom"]) or "").strip() if ok(om, "uom") else ""
+        if q_problem:
+            msg = f"order row {i}, column '{om['quantity']}', value '{raw_q}': {q_problem}"
+            o["invalid"].append(msg)
+            problems.append(f"{msg} ({k}); order quantity not compared")
+            continue
         if q is None:
             o["bad"] = True
-            problems.append(f"order row {i} ({k}): non-numeric quantity")
+            problems.append(f"order row {i} ({k}), column '{om['quantity']}': blank quantity")
             continue
         if not u:
             o["unit_missing"] = True
@@ -263,8 +317,18 @@ def main():
         o["norm_kind"] = kind
         o["factors"].add(f)
 
+    # Item check: compare the manifest's item and/or SKU with the package's, where both files have it.
+    item_fields = [f for f in ("item", "sku") if ok(im, f) and ok(mm, f)]
+    extra_manual = []
+    if not item_fields:
+        why = ("inventory export had no item column" if not (ok(im, "item") or ok(im, "sku"))
+               else "manifest had no item or SKU column to compare with the inventory's")
+        extra_manual.append((f"Confirm each package's item matches the manifest ({why})",
+                             "Physical package label and the inventory record for each tag"))
+
     # Manifest lines
     lines = []
+    unusable_qty_rows = set()  # manifest rows whose own quantity or unit is unusable
     tag_counts = Counter(norm_tag(r.get(mm["package_id"])) for r in mrows)
     manifest_by_key = defaultdict(float)
     manifest_key_kind = {}
@@ -272,16 +336,32 @@ def main():
     incomplete_keys = set()  # order keys with a manifest line whose quantity or unit is unusable
     for i, r in enumerate(mrows, start=2):
         tag = norm_tag(r.get(mm["package_id"]))
-        mq = to_number(r.get(mm["quantity"]))
+        raw_mq = (r.get(mm["quantity"]) or "").strip()
+        mq, mq_problem = parse_qty(raw_mq)
         mu = (r.get(mm["uom"]) or "").strip() if ok(mm, "uom") else ""
         item = r.get(mm["item"], "") if ok(mm, "item") else ""
         flags, notes = [], []
+
+        def add(flag):
+            if flag not in flags:
+                flags.append(flag)
+
         if not tag:
             flags.append("BLANK_TAG")
         if tag and tag_counts[tag] > 1:
             flags.append("DUPLICATE_TAG_ON_MANIFEST")
-        if mq is None:
+        if mq_problem:
+            add("INVALID_NUMBER")
+            msg = f"manifest row {i}, column '{mm['quantity']}', value '{raw_mq}': {mq_problem}"
+            notes.append(msg + "; quantity not compared")
+            problems.append(f"{msg} ({tag or 'blank tag'}); line held as INVALID_NUMBER")
+        elif mq is None:
             flags.append("BAD_QUANTITY")
+            notes.append("manifest quantity is blank; not compared")
+            problems.append(f"manifest row {i} ({tag or 'blank tag'}), column '{mm['quantity']}': blank quantity; "
+                            "line held as BAD_QUANTITY")
+        if mq is None or not mu:
+            unusable_qty_rows.add(i)
         if not mu:
             flags.append("MISSING_UNIT")
             notes.append("manifest unit is blank; quantity not compared with inventory or order")
@@ -307,7 +387,7 @@ def main():
             notes.append(f"inventory has this tag on more than one row ({iv['dup']}); on-hand and lab "
                          "status not checked")
         elif iv is not None:
-            onhand = iv["qty"]
+            onhand = "" if iv["qty"] is None else iv["qty"]
             lab = iv["lab"] if iv["lab"] is not None else ""
             if iv["lab"] is None:
                 flags.append("NO_LAB_STATUS_COLUMN")
@@ -315,13 +395,32 @@ def main():
                 flags.append("LAB_STATUS_UNCONFIRMED")
             elif iv["lab"].lower() not in passing:
                 flags.append("LAB_NOT_PASSED")
+            if iv["lab"] == "":
+                notes.append("lab status is blank in the inventory file")
+            for f in item_fields:
+                name = "item" if f == "item" else "SKU"
+                mv, ivv = (r.get(mm[f]) or "").strip(), iv[f]
+                if not mv or not ivv:
+                    add("ITEM_MISSING")
+                    side = "inventory" if not ivv else "manifest"
+                    notes.append(f"{name} is blank in the {side} file (manifest '{mv}', inventory '{ivv}'); "
+                                 "package not matched to the manifest line")
+                    problems.append(f"{side} row {iv['row'] if side == 'inventory' else i} ({tag}), column "
+                                    f"'{(im if side == 'inventory' else mm)[f]}': blank {name}; "
+                                    f"manifest row {i} held as ITEM_MISSING")
+                elif norm_item(mv) != norm_item(ivv):
+                    add("ITEM_MISMATCH")
+                    notes.append(f"manifest {name} '{mv}' but inventory {name} for this tag is '{ivv}'")
             if not iv["uom"]:
                 flags.append("INVENTORY_UNIT_MISSING")
                 notes.append("inventory unit is blank; quantity not compared with on hand")
                 if ok(im, "uom"):
                     problems.append(f"inventory row {iv['row']} ({tag}): blank unit; manifest row {i} "
                                     "held as INVENTORY_UNIT_MISSING")
-            if mq is not None and iv["qty"] is not None:
+            if iv["qty_problem"]:
+                add("INVALID_NUMBER")
+                notes.append(iv["qty_problem"] + "; on hand not compared")
+            elif mq is not None and iv["qty"] is not None:
                 if not mu or not iv["uom"]:
                     pass  # already held above; never borrow a unit from the other file
                 else:
@@ -346,16 +445,20 @@ def main():
     # Order vs manifest totals per key
     for k, o in order.items():
         shipped = manifest_by_key.get(k)
+        order_qty = "" if o["unit_missing"] or o["bad"] or o["invalid"] else o["qty"]
+        order_note = "; ".join(o["invalid"]) + "; order quantity not compared" if o["invalid"] else ""
         if shipped is None and not any(l["join_key"] == k for l in lines):
             lines.append({"source": "order", "manifest_row": "", "package_id": k if key == "package_id" else "",
                           "item": o["label"], "join_key": k, "manifest_qty": "", "manifest_uom": "",
-                          "on_hand_qty": "", "on_hand_uom": "", "lab_status": "",
-                          "order_qty": "" if o["unit_missing"] else o["qty"],
-                          "flags": "ON_ORDER_NOT_ON_MANIFEST", "result": "HOLD", "notes": ""})
+                          "on_hand_qty": "", "on_hand_uom": "", "lab_status": "", "order_qty": order_qty,
+                          "flags": "ON_ORDER_NOT_ON_MANIFEST" + (";INVALID_NUMBER" if o["invalid"] else ""),
+                          "result": "HOLD", "notes": order_note})
             continue
         mismatch, note = None, ""
-        if o["bad"]:
-            mismatch = "ORDER_QTY_UNREADABLE"
+        if o["invalid"]:
+            mismatch, note = "INVALID_NUMBER", order_note
+        elif o["bad"]:
+            mismatch = "ORDER_QTY_UNREADABLE"  # blank quantity or mixed units on the order
         elif o["unit_missing"]:
             mismatch = "ORDER_UNIT_MISSING"
             note = "order unit is blank; order quantity not compared with the manifest"
@@ -370,13 +473,14 @@ def main():
                         and abs(shipped - o["qty"]) < ROUNDING_G else "ORDER_QTY_MISMATCH")
         for l in lines:
             if l["source"] == "manifest" and l["join_key"] == k:
-                l["order_qty"] = "" if o["unit_missing"] else o["qty"]
-                if mismatch == "ORDER_QTY_NOT_CHECKED" and {"MISSING_UNIT", "BAD_QUANTITY"} & set(l["flags"].split(";")):
+                l["order_qty"] = order_qty
+                if mismatch == "ORDER_QTY_NOT_CHECKED" and l["manifest_row"] in unusable_qty_rows:
                     continue  # this line is the reason; its own flag already says it was not compared
                 if note:
                     l["notes"] = " | ".join(filter(None, [l["notes"], note]))
                 if mismatch:
-                    l["flags"] = ";".join(filter(None, [l["flags"], mismatch]))
+                    if mismatch not in l["flags"].split(";"):
+                        l["flags"] = ";".join(filter(None, [l["flags"], mismatch]))
                     l["result"] = "HOLD"
 
     os.makedirs(a.out_dir, exist_ok=True)
@@ -399,10 +503,10 @@ def main():
         "input_problems": problems,
         "input_problems_rule": ("Overall is HOLD whenever input_problems is not empty, even if every line is GO: "
                                 "an input problem can hide a problem with a shipped line."),
-        "verify_manually": [{"check": c, "where": w} for c, w in MANUAL_VERIFY],
+        "verify_manually": [{"check": c, "where": w} for c, w in extra_manual + MANUAL_VERIFY],
     }
     with open(os.path.join(a.out_dir, "precheck_summary.json"), "w") as f:
-        json.dump(summary, f, indent=2)
+        json.dump(summary, f, indent=2, allow_nan=False)
     print(json.dumps(summary, indent=2))
 
 

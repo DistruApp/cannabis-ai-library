@@ -5,7 +5,7 @@
       "id": 1,
       "name": "dispensary-weekly-reorder",
       "prompt": "Here's our POS sales for Aug-Sep and today's on-hand (9/30). Lead times and case packs are in the on-hand sheet. Keep 3 days of safety stock. What should I order this week and how much cash do I need?",
-      "expected_output": "A replenishment plan with the confirmed mapping, the 28-day window (9/3-9/30) stated, 3 REORDER lines totaling $4,620 (Example Pines Distribution 120 units $1,680; Example Coast Extracts 110 units $1,980; Example North Farms 40 units $960), Live Resin Gelato flagged as a stockout with understated demand, Pre-Roll 5pk flagged dead with $350 at cost, Chocolate bar flagged NO_LEAD_TIME, Distillate cart not reordered because the 50-unit open PO covers it, default cover/dead/slow thresholds listed as assumptions, and a PO draft marked not sent.",
+      "expected_output": "Runs with --as-of 2026-09-30 (the on-hand count date the user gave). A replenishment plan with the confirmed mapping, the 28-day window (9/3-9/30) stated, 3 REORDER lines totaling $4,620 (Example Pines Distribution 120 units $1,680; Example Coast Extracts 110 units $1,980; Example North Farms 40 units $960), Live Resin Gelato flagged as a stockout with understated demand, Pre-Roll 5pk flagged dead with $350 at cost, Chocolate bar flagged NO_LEAD_TIME, Distillate cart not reordered because the 50-unit open PO covers it, default cover/dead/slow thresholds listed as assumptions, and a PO draft marked not sent.",
       "files": ["evals/files/pos_sales_2026-08-02_to_2026-09-30.csv", "evals/files/onhand_2026-09-30.csv"],
       "assertions": [
         "States PO draft total of $4,620 across 3 vendors, matching the script output",
@@ -21,7 +21,7 @@
       "id": 2,
       "name": "promo-spike-and-new-sku",
       "prompt": "we ran a labor day sale 9/1 on GMO Cookies, pull 35 days of sales so that's included. also the Runtz smalls just launched. same files. 7 day lead time if missing, no safety stock.",
-      "expected_output": "Runs with --window-days 35 so 9/1 is included, recognizes the GMO Cookies velocity is inflated by the 40-unit promo day and either reruns excluding it or explains the effect; treats NB-SM-14 velocity as provisional (NEW_SKU, 11 days); uses safety_days=0 as operator-provided, not as an assumption. GH-CHOC-100 has a blank lead time and a blank vendor: it uses the operator's 7-day default (flagged DEFAULT_LEAD_TIME(7d)) and is flagged NO_VENDOR, so its 18-unit ($162) suggestion is listed as needing a vendor instead of being placed on an Example Edibles Co PO. On the 35-day run that includes the promo day, the vendor PO draft totals $3,864 and does not include the chocolate line.",
+      "expected_output": "Runs with --as-of 2026-09-30 (same on-hand file as before, counted 9/30) and --window-days 35 so 9/1 is included, recognizes the GMO Cookies velocity is inflated by the 40-unit promo day and either reruns excluding it or explains the effect; treats NB-SM-14 velocity as provisional (NEW_SKU, 11 days); uses safety_days=0 as operator-provided, not as an assumption. GH-CHOC-100 has a blank lead time and a blank vendor: it uses the operator's 7-day default (flagged DEFAULT_LEAD_TIME(7d)) and is flagged NO_VENDOR, so its 18-unit ($162) suggestion is listed as needing a vendor instead of being placed on an Example Edibles Co PO. On the 35-day run that includes the promo day, the vendor PO draft totals $3,864 and does not include the chocolate line.",
       "files": ["evals/files/pos_sales_2026-08-02_to_2026-09-30.csv", "evals/files/onhand_2026-09-30.csv"],
       "assertions": [
         "Uses a 35-day window ending 2026-09-30",
@@ -35,20 +35,21 @@
       "id": 3,
       "name": "ambiguous-columns-missing-lead-times",
       "prompt": "what do i need to reorder? sales and inventory attached",
-      "expected_output": "Detects that the sales file has no SKU column and the on-hand file has two candidate quantity columns (On Hand vs Available); asks one combined question covering which on-hand column to use, whether product name can serve as SKU, vendor lead times, safety stock and order cycle; does not produce order quantities until lead times are provided or explicitly assumed and labeled.",
+      "expected_output": "Detects that the sales file has no SKU column and the on-hand file has two candidate quantity columns (On Hand vs Available); asks one combined question covering which on-hand column to use, whether product name can serve as SKU, the date of the on-hand count, vendor lead times, safety stock and order cycle; does not produce order quantities until lead times are provided or explicitly assumed and labeled.",
       "files": ["evals/files/sales_by_product_no_sku.csv", "evals/files/onhand_messy.csv"],
       "assertions": [
         "Identifies the On Hand vs Available ambiguity and asks which to use",
         "Notes there is no SKU column and proposes using product name with the SKU-churn caveat",
         "Asks for lead times (and safety/cover days) in a single combined question",
+        "Asks for the date of the on-hand count instead of taking the last sale date",
         "Does not present order quantities based on invented lead times"
       ]
     },
     {
       "id": 4,
       "name": "regression-duplicate-rows-lead-time-text-vendor",
-      "prompt": "Example Corner Dispensary: sales and on-hand attached (sales_regression_2026-09-03_to_2026-09-30.csv, onhand_regression_rows.csv). Use 7 days lead time where it's missing and 2 days safety stock. What should I order?",
-      "expected_output": "Runs with --default-lead-time 7 --safety-days 2. Vendor PO draft is $1,569: Example Distro EX-C 60 units $360 (lead time '2 weeks' read as 14 days); Example Wellness Supply EX-E 42 units $840 (blank lead time, DEFAULT_LEAD_TIME(7d)) and EX-H 41 units $369 (case pack '1 case' unreadable, quantity not rounded). EX-A is not reordered because its two rows sum to 8 on hand and 100 on order. EX-B is held (CONFLICTING_ROWS: unit cost 12 vs 15). EX-D is not ordered (BAD_LEAD_TIME '7-10 days'; the 7-day default is not used for it). EX-G is held (open PO 'TBD'). EX-F has no vendor, so its 50 units ($700) are listed as needing a vendor, not put on an Example Extracts PO.",
+      "prompt": "Example Corner Dispensary: sales and on-hand attached (sales_regression_2026-09-03_to_2026-09-30.csv, onhand_regression_rows.csv). On-hand was counted 9/30. Use 7 days lead time where it's missing and 2 days safety stock. What should I order?",
+      "expected_output": "Runs with --as-of 2026-09-30 --default-lead-time 7 --safety-days 2. The script warns that the last sale is 2026-09-24, 6 days before the on-hand count date; the agent passes this on and asks whether the sales export covers the full period. Vendor PO draft is $1,569 (running without --as-of is no longer possible; the old default of the last sale date, 9/24, gave $2,046): Example Distro EX-C 60 units $360 (lead time '2 weeks' read as 14 days); Example Wellness Supply EX-E 42 units $840 (blank lead time, DEFAULT_LEAD_TIME(7d)) and EX-H 41 units $369 (case pack '1 case' unreadable, quantity not rounded). EX-A is not reordered because its two rows sum to 8 on hand and 100 on order. EX-B is held (CONFLICTING_ROWS: unit cost 12 vs 15). EX-D is not ordered (BAD_LEAD_TIME '7-10 days'; the 7-day default is not used for it). EX-G is held (open PO 'TBD'). EX-F has no vendor, so its 50 units ($700) are listed as needing a vendor, not put on an Example Extracts PO.",
       "files": ["evals/files/sales_regression_2026-09-03_to_2026-09-30.csv", "evals/files/onhand_regression_rows.csv"],
       "assertions": [
         "Does not reorder EX-A and explains that the second on-hand row has 100 units on order",
@@ -57,7 +58,36 @@
         "Does not order EX-G until the 'TBD' open PO is confirmed",
         "Lists EX-F as needing a vendor rather than assuming the brand is the vendor",
         "Notes that EX-E uses the 7-day default lead time and EX-H's quantity is not rounded to a case pack",
-        "States a vendor PO draft total of $1,569, marked as a draft not sent to any vendor"
+        "States a vendor PO draft total of $1,569, marked as a draft not sent to any vendor",
+        "Passes on the warning that the last sale (9/24) is 6 days before the 9/30 on-hand count and asks whether the export covers the full period"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "regression-unreadable-and-negative-numbers",
+      "prompt": "Example Corner Dispensary 2: sales and on-hand attached (sales_regression_bad_numbers_2026-09-03_to_2026-09-30.csv, onhand_regression_bad_numbers.csv). On-hand was counted 9/30. Lead times are in the sheet, keep 2 days safety stock. What should I order?",
+      "expected_output": "Runs with --as-of 2026-09-30 --safety-days 2; summary.json is valid JSON and warnings is empty. input_problems lists, with row, column and raw value: sales units 'NaN' (EX-J), 'inf' (EX-K) and '4,25' (EX-L), each row left out; sales revenue '1.234,56' (EX-M) left out of revenue; on-hand 'inf' (EX-J, so EX-J shows NO_ONHAND_RECORD); unit cost '4,25' (EX-K, BAD_UNIT_COST, order cost blank); case pack 'NaN' (EX-L, BAD_CASE_PACK, quantity not rounded); open PO '1.234,56' (EX-M, BAD_OPEN_PO, held); on-hand '-3' (EX-P, NEGATIVE_ONHAND, held, no order). EX-N's returns (-8) exceed its sales (3), so it is flagged NEGATIVE_NET_SALES(-5) with velocity 0, not negative. EX-Q's on-hand '1,200' is read as 1,200 (SLOW). Vendor PO draft for Example Distro: EX-K 40 units (cost blank) and EX-L 40 units $240; PO total $240 with 1 line missing cost. skus_held_for_review is EX-M and EX-P. The pre-fix script crashed with OverflowError on the inf sales row.",
+      "files": ["evals/files/sales_regression_bad_numbers_2026-09-03_to_2026-09-30.csv", "evals/files/onhand_regression_bad_numbers.csv"],
+      "assertions": [
+        "Reports each unreadable value (NaN, inf, 4,25, 1.234,56) with its SKU and column and asks for the right figure, without reinterpreting any of them",
+        "Does not suggest an order for EX-P and says its on-hand of -3 must be corrected first",
+        "Does not give EX-N a negative velocity; notes its returns exceed its sales in the window",
+        "Does not order EX-M until the '1.234,56' open PO is confirmed",
+        "States the Example Distro PO draft as $240 plus EX-K's 40 units with no cost (unit cost unreadable), not as a complete total",
+        "Marks the PO as a draft not sent to any vendor"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "regression-missing-on-hand-count-date",
+      "prompt": "Here's our POS sales and on-hand. Lead times and case packs are in the sheet. 3 days safety. What do I order?",
+      "expected_output": "The user did not say when on-hand was counted. The agent asks for the on-hand count date before computing anything and does not take it from the last sale date in the export. If the script is run without --as-of it exits (code 2) with: 'the following arguments are required: --as-of. The date of the on-hand count (YYYY-MM-DD). The sales window ends on this date.' The agent reports that as the reason it needs the date and does not hand-compute order quantities. Once the user gives 9/30, the run with --as-of 2026-09-30 --safety-days 3 gives the $4,620 PO draft from eval 1.",
+      "files": ["evals/files/pos_sales_2026-08-02_to_2026-09-30.csv", "evals/files/onhand_2026-09-30.csv"],
+      "assertions": [
+        "Asks for the date of the on-hand count before giving any order quantities",
+        "Does not use the last sale date in the export as the on-hand count date without asking",
+        "Does not hand-compute velocity, reorder points or order quantities when the script cannot run",
+        "If the user answers 9/30, reports the $4,620 PO draft from the script"
       ]
     }
   ]

@@ -1,0 +1,171 @@
+Date,SKU,Product Name,Brand,Category,Units Sold,Net Sales
+2026-09-03,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-03,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-03,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-03,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-03,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-03,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-04,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-04,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-04,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-04,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-04,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-04,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-05,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-05,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-05,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-05,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-05,EX-N,Example Tincture N 30ml,Example Brand,Retail,3,90.00
+2026-09-05,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-05,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-06,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-06,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-06,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-06,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-06,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-06,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-07,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-07,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-07,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-07,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-07,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-07,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-08,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-08,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-08,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-08,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-08,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-08,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-09,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-09,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-09,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-09,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-09,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-09,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-10,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-10,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-10,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-10,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-10,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-10,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-11,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-11,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-11,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-11,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-11,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-11,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-12,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-12,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-12,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-12,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-12,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-12,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-13,EX-J,Example Flower J 3.5g,Example Brand,Retail,NaN,40.00
+2026-09-13,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-13,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-13,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-13,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-13,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-14,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-14,EX-K,Example Cart K 1g,Example Brand,Retail,inf,60.00
+2026-09-14,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-14,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-14,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-14,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-15,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-15,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-15,EX-L,Example Gummy L 10pk,Example Brand,Retail,"4,25",30.00
+2026-09-15,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-15,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-15,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-16,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-16,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-16,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-16,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,"1.234,56"
+2026-09-16,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-16,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-17,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-17,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-17,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-17,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-17,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-17,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-18,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-18,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-18,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-18,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-18,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-18,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-19,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-19,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-19,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-19,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-19,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-19,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-20,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-20,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-20,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-20,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-20,EX-N,Example Tincture N 30ml,Example Brand,Retail,-8,-240.00
+2026-09-20,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-20,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-21,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-21,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-21,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-21,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-21,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-21,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-22,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-22,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-22,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-22,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-22,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-22,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-23,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-23,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-23,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-23,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-23,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-23,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-24,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-24,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-24,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-24,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-24,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-24,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-25,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-25,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-25,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-25,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-25,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-25,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-26,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-26,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-26,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-26,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-26,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-26,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-27,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-27,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-27,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-27,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-27,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-27,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-28,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-28,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-28,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-28,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-28,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-28,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-29,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-29,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-29,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-29,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-29,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-29,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00
+2026-09-30,EX-J,Example Flower J 3.5g,Example Brand,Retail,2,40.00
+2026-09-30,EX-K,Example Cart K 1g,Example Brand,Retail,2,60.00
+2026-09-30,EX-L,Example Gummy L 10pk,Example Brand,Retail,2,30.00
+2026-09-30,EX-M,Example Pre-Roll M 1g,Example Brand,Retail,2,16.00
+2026-09-30,EX-P,Example Vape P 0.5g,Example Brand,Retail,2,50.00
+2026-09-30,EX-Q,Example Edible Q,Example Brand,Retail,3,30.00

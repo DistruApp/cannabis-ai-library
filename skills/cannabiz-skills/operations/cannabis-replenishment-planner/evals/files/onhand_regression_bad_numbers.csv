@@ -1,0 +1,8 @@
+SKU,Product Name,Brand,Vendor,Available,Unit Cost,Case Pack,Lead Time Days,On Order
+EX-J,Example Flower J 3.5g,Example Brand,Example Distro,inf,10,10,7,0
+EX-K,Example Cart K 1g,Example Brand,Example Distro,5,"4,25",10,7,0
+EX-L,Example Gummy L 10pk,Example Brand,Example Distro,5,6,NaN,7,0
+EX-M,Example Pre-Roll M 1g,Example Brand,Example Distro,5,3,10,7,"1.234,56"
+EX-N,Example Tincture N 30ml,Example Brand,Example Distro,12,15,6,7,0
+EX-P,Example Vape P 0.5g,Example Brand,Example Distro,-3,12,10,7,0
+EX-Q,Example Edible Q,Example Brand,Example Distro,"1,200",5,10,7,0

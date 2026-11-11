@@ -28,6 +28,7 @@ Gives a buyer a reorder list they can defend: what to buy, how much, from whom, 
 Required:
 - **Sales export** by SKU with a date per row (POS for a dispensary; account sell-through for a distributor/brand). At least 4 weeks of history is ideal.
 - **Current on-hand by SKU**, as of the end of the sales period. Say if the as-of dates don't line up.
+- **The date of the on-hand count.** It is passed as `--as-of` and the sales window ends on it. If the user hasn't given it, ask. Don't take it from the last sale date in the export.
 
 Planning parameters. Ask for them in **one** combined question. Use the operator's values and never invent "industry standard" targets:
 
@@ -36,7 +37,7 @@ Planning parameters. Ask for them in **one** combined question. Use the operator
 | Vendor lead time (days) | per-SKU column, or `--default-lead-time` for SKUs whose cell is blank | SKUs show `NO_LEAD_TIME`, with no order qty. Ask. A default the operator gives is used only for blank cells and flagged `DEFAULT_LEAD_TIME(Nd)`. |
 | Safety stock (days) | `--safety-days` | 0, tagged [ASSUMPTION] |
 | Days to cover after delivery (order cycle) | `--cover-days` | 14, tagged [ASSUMPTION] |
-| Velocity window | `--window-days` | Last 28 days in the data, stated in the report |
+| Velocity window | `--window-days` | 28 days ending on the on-hand count date, stated in the report |
 | Dead-stock threshold | `--dead-days` | 30 days with no sales, [ASSUMPTION] |
 | Slow-mover threshold (days of supply) | `--slow-dos` | 90, [ASSUMPTION] |
 
@@ -46,20 +47,23 @@ Optional per-SKU columns: unit cost (needed for PO dollars and dead-stock value)
 
 ### 2. Mapping
 
-Run `python3 scripts/replenish.py --sales <file> --onhand <file> --detect-only` and show the detected mapping in one line per file. If a column is missing or `AMBIGUOUS` (e.g. both "On Hand" and "Available"), ask which one and pass `--map-sales field=Column` / `--map-onhand field=Column`. Alias hints are in `references/system-mappings.md`. If the export has product names but no SKU, map `sku=Product` and warn that name changes will split history.
+Run `python3 <skill-dir>/scripts/replenish.py --sales <file> --onhand <file> --as-of <on-hand count date> --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces.
+
+Show the detected mapping in one line per file. If a column is missing or `AMBIGUOUS` (e.g. both "On Hand" and "Available"), ask which one and pass `--map-sales field=Column` / `--map-onhand field=Column`. Alias hints are in `references/system-mappings.md`. If the export has product names but no SKU, map `sku=Product` and warn that name changes will split history.
 
 ### 3. Run
 
 ```
-python3 scripts/replenish.py --sales <file> --onhand <file> --out-dir <dir> [params] [mappings]
+python3 <skill-dir>/scripts/replenish.py --sales <file> --onhand <file> --as-of <on-hand count date> --out-dir <dir> [params] [mappings]
 ```
 
-Use the script's numbers as-is and don't recompute by hand. Copy every entry in `assumptions` into the report's assumptions list, and every `input_problems` line into Data gaps. Formulas and flag definitions are in `references/method.md`. Read it if the user asks how a number was calculated.
+Use the script's numbers as-is and don't recompute by hand. Copy every entry in `assumptions` into the report's assumptions list, and every `input_problems` line into Data gaps. If `warnings` says the last sale is days before the on-hand count date, tell the buyer and ask whether the sales export covers the full period: missing days understate velocity. Formulas and flag definitions are in `references/method.md`. Read it if the user asks how a number was calculated.
 
 The script never silently drops, merges or fills in on-hand data:
 - **Duplicate SKU rows** in the on-hand file: on-hand and open PO are summed. If the rows disagree on unit cost, case pack, lead time or vendor, the SKU is flagged `CONFLICTING_ROWS(...)`, gets no order, and both values are in `input_problems`. Ask which is right, fix the file, rerun.
 - **Lead time text:** "7 days" and "2 weeks" are read as 7 and 14 days (and noted). Anything else, such as "7-10 days", is flagged `BAD_LEAD_TIME` and gets no order. The default lead time is never used in its place.
-- **Unreadable numbers:** a non-numeric open PO (`BAD_OPEN_PO`) holds the SKU because it might already be on order. A non-numeric or zero case pack (`BAD_CASE_PACK`) leaves the quantity unrounded. A non-numeric unit cost (`BAD_UNIT_COST`) leaves the cost blank.
+- **Unreadable numbers:** NaN, inf and decimal commas such as `4,25` or `1.234,56` are never guessed. Each is listed in `input_problems` with its row, column and raw value; an unreadable sales units cell leaves that sales row out. US thousands separators such as `1,200` are read normally. A non-numeric or negative open PO (`BAD_OPEN_PO`) holds the SKU because it might already be on order. A non-numeric or zero case pack (`BAD_CASE_PACK`) leaves the quantity unrounded. A non-numeric or negative unit cost (`BAD_UNIT_COST`) leaves the cost blank.
+- **Negative numbers:** negative on-hand (`NEGATIVE_ONHAND`) holds the SKU with no order until the count is corrected. Negative sales units are returns (`RETURNS_IN_WINDOW`); if returns exceed sales for a SKU in the window, its velocity is 0 and it is flagged `NEGATIVE_NET_SALES`.
 - `skus_held_for_review` lists every SKU that got no order because of a data problem. Put them in the report so they aren't forgotten.
 
 ### 4. Sanity-check before recommending
@@ -67,7 +71,7 @@ The script never silently drops, merges or fills in on-hand data:
 Look at `replenishment.csv` for these and adjust **the recommendation, not the math**:
 - `STOCKOUT(demand understated)`: zero on hand with recent sales. Measured velocity is too low because days with no stock record no sales. Say the true need is likely higher and recommend the buyer bump the qty. Don't invent a number.
 - `NEW_SKU`: velocity comes from fewer days of history. Treat it as provisional.
-- Promo or holiday spikes: if a big one-day spike sits inside the window (4/20, Green Wednesday, a vendor day, a Labor Day sale), rerun with `--as-of` or `--window-days` to exclude it, or call it out. Ask the buyer whether the spike will repeat.
+- Promo or holiday spikes: if a big one-day spike sits inside the window (4/20, Green Wednesday, a vendor day, a Labor Day sale), rerun with a `--window-days` that leaves it out (keep `--as-of` on the on-hand count date), or call it out. Ask the buyer whether the spike will repeat.
 - `RETURNS_IN_WINDOW`: returns reduce net units. Note them.
 - Open POs: a low days-of-supply SKU with a large open PO isn't a reorder. It's an "is the PO arriving on time?" question.
 

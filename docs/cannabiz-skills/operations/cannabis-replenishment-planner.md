@@ -16,7 +16,7 @@ Answers "what do I order this week?" A bundled script calculates units sold per 
 
 ## How to use it
 
-- **Inputs:** a sales export by SKU (date, product, units, revenue), current on-hand by SKU, vendor lead times, and safety stock days. Optional: open POs, unit cost and case pack sizes.
+- **Inputs:** a sales export by SKU (date, product, units, revenue), current on-hand by SKU and the date it was counted, vendor lead times, and safety stock days. Optional: open POs, unit cost and case pack sizes.
 - **Tools / connectors:** none. Works from uploaded files and needs an assistant that can run Python for the bundled calculator.
 - **Works in:** Claude or any LLM with code execution.
 - **Safeguards:** every default the user did not set (sales window, days of cover, dead stock threshold) is listed as an assumption to confirm. It doesn't use invented industry targets.

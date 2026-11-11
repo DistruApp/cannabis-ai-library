@@ -34,21 +34,23 @@ Read `references/jurisdiction-gate.md`. Get state, your license type, the receiv
 |---|---|---|
 | Sales order / invoice | quantity + package tag, SKU, or item name | Join key is chosen automatically: tag → SKU → item name |
 | Draft manifest / transfer export | package tag, quantity, unit | A line with no unit is held as `MISSING_UNIT`. The unit is never taken from the order or inventory |
-| Active package inventory | package tag, quantity, unit, lab/testing status | Export it *today*, close to departure |
+| Active package inventory | package tag, quantity, unit, lab/testing status | Export it *today*, close to departure. Include the item name or SKU so the script can catch a wrong package |
 
 Optional: COA list, receiver license number. If a file is missing, ask for it. Never reconstruct a manifest from the order.
 
-Run `python3 scripts/precheck.py --order … --manifest … --inventory … --detect-only`. Show the user the mappings, the join key, and the **distinct lab-status values** found. Ask which values mean "passed for sale/transfer" in their system and state, and pass them exactly with `--passing-lab-values`. Never assume a value like "TestPassed" counts as passed without that confirmation. Different states and systems use different status sets. If no confirmation comes, run without the flag: every line holds as `LAB_STATUS_UNCONFIRMED`, and you say why.
+Run `python3 <skill-dir>/scripts/precheck.py --order … --manifest … --inventory … --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces.
+
+Show the user the mappings, the join key, and the **distinct lab-status values** found. Ask which values mean "passed for sale/transfer" in their system and state, and pass them exactly with `--passing-lab-values`. Never assume a value like "TestPassed" counts as passed without that confirmation. Different states and systems use different status sets. If no confirmation comes, run without the flag: every line holds as `LAB_STATUS_UNCONFIRMED`, and you say why.
 
 Resolve `AMBIGUOUS` columns with `--map-order field=Column` (also `--map-manifest`, `--map-inventory`). Alias hints are in `references/system-mappings.md`.
 
 ### 3. Run
 
 ```
-python3 scripts/precheck.py --order <f> --manifest <f> --inventory <f> --passing-lab-values <v…> --out-dir <dir>
+python3 <skill-dir>/scripts/precheck.py --order <f> --manifest <f> --inventory <f> --passing-lab-values <v…> --out-dir <dir>
 ```
 
-Use the script's results as-is. Flag meanings and fixes are in `references/flag-guide.md`. Read the `notes` column too: it explains blank units and lists both rows of a duplicate inventory tag. Also report every line in `input_problems` (blank inventory tags, duplicate inventory tags, blank units, missing unit columns, non-numeric quantities). The overall result is HOLD whenever `input_problems` isn't empty, even if every line shows GO, because an input problem can hide a problem with a shipped line.
+Use the script's results as-is. You may move a line from GO to HOLD if you see a problem the script missed; say why. Never move a line from HOLD to GO. Flag meanings and fixes are in `references/flag-guide.md`. Read the `notes` column too: it explains blank units and lists both rows of a duplicate inventory tag. Also report every line in `input_problems` (blank inventory tags, duplicate inventory tags, blank units, missing unit columns, blank or invalid quantities, blank item cells). The overall result is HOLD whenever `input_problems` isn't empty, even if every line shows GO, because an input problem can hide a problem with a shipped line.
 
 ### 4. Explain HOLDs
 
@@ -66,6 +68,8 @@ Use `assets/precheck-template.md` and `references/output-conventions.md`. The to
 
 - **Unit conversion rounding.** 5 lb is 2267.96 g, not 2268 g. A manifest that restates a pound-based package in rounded grams asks for more than the package holds. The script flags this as `UNIT_CONVERSION_ROUNDING`. Fix it by stating the quantity in the package's own unit. The rounding flags only appear when the units really differ (lb vs. g). 100.3 g against a 100 g package is `EXCEEDS_ON_HAND`, because "g" and "Grams" are the same unit.
 - **Blank units.** A blank unit is never filled in from another file. The line holds as `MISSING_UNIT` (manifest), `INVENTORY_UNIT_MISSING` (inventory) or `ORDER_UNIT_MISSING` (order), and the quantities aren't compared. Ask the file's owner for the unit and rerun.
+- **Wrong package** (`ITEM_MISMATCH`). The script compares the manifest's item name, and SKU when both files have one, with the package's, ignoring case, spaces and punctuation. A different item means the wrong package was pulled or the manifest names the wrong item. `ITEM_MISSING` means the item or SKU cell is blank, so the package couldn't be matched. If the inventory export has no item column, the line isn't held but `verify_manually` asks you to check each package's item by hand.
+- **Bad numbers** (`INVALID_NUMBER`). A manifest, on-hand or order quantity that is text, NaN or inf, negative, or written with a decimal comma ("1,5", "1.234,5") holds the line. US thousands separators ("1,234.5") are read normally. The script never guesses what a decimal comma means. Ask the file's owner to correct the cell and rerun.
 - **Same tag twice in inventory** (`DUPLICATE_INVENTORY_TAG`). The script keeps neither row: the line holds and the note lists each row's quantity and lab status. Find out which row is current before shipping.
 - **Same tag twice** on a manifest (`DUPLICATE_TAG_ON_MANIFEST`) is usually a copy-paste error even when the total matches the order.
 - **Lab status is a snapshot.** A status can change between the inventory export and departure. Re-export inventory right before shipping if hours have passed.

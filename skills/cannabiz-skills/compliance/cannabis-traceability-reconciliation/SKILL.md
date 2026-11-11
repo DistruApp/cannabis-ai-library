@@ -38,7 +38,9 @@ You need exactly two lists that share a package tag:
 
 Ask for the as-of timestamp of each. A morning Metrc export against an end-of-day count produces false variances from the day's sales and transfers.
 
-Run `python3 scripts/reconcile.py --system <file> --count <file> --detect-only` and show the user the detected mapping in one line per file. If the script reports a missing or AMBIGUOUS column, ask which column to use and pass `--map-system field=Column` or `--map-count field=Column`. Column alias hints are in `references/system-mappings.md`.
+Run `python3 <skill-dir>/scripts/reconcile.py --system <file> --count <file> --detect-only` and show the user the detected mapping in one line per file. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces.
+
+If the script reports a missing or AMBIGUOUS column, ask which column to use and pass `--map-system field=Column` or `--map-count field=Column`. Column alias hints are in `references/system-mappings.md`.
 
 Tolerance: default is **0** (report everything). Only set `--tolerance-g` / `--tolerance-each` if the operator gives you their own internal threshold. Never use a "typical" or state threshold you can't cite.
 
@@ -47,12 +49,13 @@ If the files are Excel, export each sheet to CSV first. If they're PDFs, extract
 ### 3. Run
 
 ```
-python3 scripts/reconcile.py --system <file> --count <file> --out-dir <dir> [mappings] [tolerances]
+python3 <skill-dir>/scripts/reconcile.py --system <file> --count <file> --out-dir <dir> [mappings] [tolerances]
 ```
 
-Use the script's numbers as-is. Don't recompute differences by hand. Statuses: `MATCH`, `WITHIN_TOLERANCE`, `SHORT_IN_COUNT`, `OVER_IN_COUNT`, `IN_SYSTEM_NOT_COUNTED`, `COUNTED_NOT_IN_SYSTEM`, `UOM_MISMATCH`, `UNKNOWN_UOM`, `MISSING_UNIT`, `DUPLICATE_CONFLICT`, `BAD_QUANTITY`. Read the `notes` column too: it carries tag near-matches, unit conversions, rounding and summed duplicates. Also report every line in `input_problems` (duplicate tags, blank tags, blank units, non-numeric quantities).
+Use the script's numbers as-is. Don't recompute differences by hand. Statuses: `MATCH`, `WITHIN_TOLERANCE`, `SHORT_IN_COUNT`, `OVER_IN_COUNT`, `IN_SYSTEM_NOT_COUNTED`, `COUNTED_NOT_IN_SYSTEM`, `UOM_MISMATCH`, `UNKNOWN_UOM`, `MISSING_UNIT`, `DUPLICATE_CONFLICT`, `BAD_QUANTITY`, `INVALID_NUMBER`. Read the `notes` column too: it carries tag near-matches, unit conversions, rounding and summed duplicates. Also report every line in `input_problems` (duplicate tags, blank tags, blank units, blank or invalid quantities).
 
 - **Duplicate tags.** Rows with the same tag are summed only when every quantity is a number and the units match or convert (weight with weight, each with each). The note and `input_problems` say how many rows were summed, whether they were converted to g, and whether some rows are identical (a possible copy-paste duplicate to check). Anything else gets `DUPLICATE_CONFLICT`, lists each row's quantity and unit, and isn't compared.
+- **Bad numbers.** `BAD_QUANTITY` means the quantity cell is blank. `INVALID_NUMBER` means it holds something that isn't a usable quantity: text, NaN or inf, a negative number, or a decimal comma ("1,5", "1.234,5"). US thousands separators ("1,234.5") are read normally. The script never guesses what a decimal comma means. The row isn't compared or put in any total, and `input_problems` gives the row, column and raw value. Ask the file's owner to correct the cell and rerun.
 - **Blank units.** A blank unit is never copied from the other file. The package gets `MISSING_UNIT` and isn't compared. Only if the operator tells you the unit for that file, rerun with `--default-count-unit <unit>` or `--default-system-unit <unit>`; every row that used it says so in its notes, and `summary.json` records it under `default_units`. Say so in the report's assumptions.
 
 ### 4. Investigate and classify
@@ -75,7 +78,7 @@ Fill `assets/report-template.md`. Lead with the bottom line: how many packages a
 
 ## Gotchas
 
-- **"Significant" thresholds need a base.** Example: California 4 CCR §15034 defines a significant discrepancy as "a five percent difference" between physical and track-and-trace inventory, and §15051 requires an audit and written notice to DCC when one is found. The rule doesn't say whether 5% is per package or on total inventory. The script reports both (`pct_of_system` per row, `net_difference_pct_of_compared_total` overall). The overall figure covers only quantity-compared packages, and its base is `system_total_compared`. Packages missing from one list, and rows with unit, duplicate or quantity problems, aren't in it, so list them next to the total reading. `system_total_all_packages` gives the full system weight and count for context. Show both readings and leave the interpretation to compliance or counsel. For any other state, use only a threshold cited in `references/state-profiles.md`.
+- **"Significant" thresholds need a base.** Example: California 4 CCR §15034 defines a significant discrepancy as "a five percent difference" between physical and track-and-trace inventory, §15051 requires an audit and written notice to DCC when one is found, and §15036(a)(1) requires notifying DCC and local law enforcement within 24 hours of discovering a significant discrepancy (form DCC-LIC-028). If the variance could meet the 5% threshold under either reading, put the 24-hour notice at the top of the report as a decision for compliance to make today. The rule doesn't say whether 5% is per package or on total inventory. The script reports both (`pct_of_system` per row, `net_difference_pct_of_compared_total` overall). The overall figure covers only quantity-compared packages, and its base is `system_total_compared`. Packages missing from one list, and rows with unit, duplicate or quantity problems, aren't in it, so list them next to the total reading. `system_total_all_packages` gives the full system weight and count for context. Show both readings and leave the interpretation to compliance or counsel. For any other state, use only a threshold cited in `references/state-profiles.md`.
 
 - **Pounds vs. grams.** 1 lb = 453.592 g. A package recorded as "1 Pounds" and counted as 453.6 g is a match, not a variance. Let the script convert. When the two sides use different weight units, a difference of up to 0.05 g per pound of package weight (minimum 0.05 g) is treated as conversion rounding: status `MATCH`, note "within unit-conversion rounding", and the small difference still shows in the row and in the net. A larger gap is a real variance.
 - **"Each" vs. weight.** Pre-rolls, carts, and edibles may be tracked as count-based in traceability but weighed on the count sheet (or the other way round). The script won't convert these (`UOM_MISMATCH`). Ask for the net weight per unit, or recount in the system's unit.

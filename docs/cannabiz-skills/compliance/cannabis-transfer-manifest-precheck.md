@@ -4,7 +4,7 @@ Skill: [`cannabis-transfer-manifest-precheck`](../../../skills/cannabiz-skills/c
 
 ## What it does
 
-Catches shipping mistakes before they leave the building. A bundled script joins the sales order, the draft manifest and the package inventory, then flags packages not on the order, order lines missing from the manifest, quantity or unit mismatches, quantities above what the package holds, packages not in active inventory, duplicate tags on the manifest or in inventory, blank units and product without a passing lab status. It never fills in a missing unit or picks one of two inventory rows: those lines are held and listed as input problems. It returns GO or HOLD for each line with the fix needed. Anything it can't check from files, such as whether the receiving license is active or driver and vehicle details, goes on a manual checklist with where to verify it.
+Catches shipping mistakes before they leave the building. A bundled script joins the sales order, the draft manifest and the package inventory, then flags packages not on the order, order lines missing from the manifest, a package whose item doesn't match the manifest line, quantity or unit mismatches, unreadable numbers, quantities above what the package holds, packages not in active inventory, duplicate tags on the manifest or in inventory, blank units and product without a passing lab status. It never fills in a missing unit or picks one of two inventory rows: those lines are held and listed as input problems. It returns GO or HOLD for each line with the fix needed. Anything it can't check from files, such as whether the receiving license is active or driver and vehicle details, goes on a manual checklist with where to verify it.
 
 ## When to use it
 
@@ -15,7 +15,7 @@ Catches shipping mistakes before they leave the building. A bundled script joins
 
 ## How to use it
 
-- **Inputs:** the sales order, the draft manifest, and an active package export with lab status, all as CSV. Also the state and license type.
+- **Inputs:** the sales order, the draft manifest, and an active package export with item name or SKU and lab status, all as CSV. Also the state and license type.
 - **Tools / connectors:** none. Works from uploaded files and needs an assistant that can run Python for the bundled checker.
 - **Works in:** Claude or any LLM with code execution.
 - **Safeguards:** lab status only counts as passed for values the user confirms. GO means the file checks passed, not that the shipment is compliant. It never creates or submits the transfer.

@@ -1,6 +1,6 @@
 # State profiles
 
-**Last reviewed:** 2026-10-16. **Review again by:** 2027-01-16, or sooner if a state announces a rule or system change. Colorado's revised rules took effect 2026-11-01, so the CO rule quotes below are marked NEEDS VERIFICATION until they're checked against that version.
+**Last reviewed:** 2026-10-16 (California §15036 added 2026-11-10). **Review again by:** 2027-01-14, or sooner if a state announces a rule or system change. Colorado's revised rules took effect 2026-11-01, so the CO rule quotes below are marked NEEDS VERIFICATION until they're checked against that version.
 
 How to read this file:
 - **V** = confirmed on an official regulator/legislature page on the review date.
@@ -23,6 +23,7 @@ A rule listed here is a **pointer, not legal advice**. Always give the citation 
   - **§15049.1:** certain cultivation activities must be recorded "within three (3) calendar days of occurrence". See the section for the list.
   - **§15051, Reconciliation:** review the track and trace records "at least once every 30 calendar days", including "Reconciling on-hand inventory … with the records in the track and trace system". If a discrepancy is found, "the licensee shall conduct an audit and notify the Department in writing if the discrepancy is significant as defined in section 15034."
   - **§15034, Significant discrepancy:** "a five percent difference between the licensee's physical inventory and the inventory recorded in the track and trace system." *The text doesn't say whether 5% is measured per package, per item, or on total inventory, or by weight or by count. Present both readings and have compliance or counsel decide. Don't pick one.*
+  - **§15036(a)(1), 24-hour notice of a significant discrepancy:** "A licensee shall notify the Department and local law enforcement within 24 hours of discovery" when "The licensee discovers a significant discrepancy, as defined in section 15034, in its inventory." §15036(b): the notice to DCC goes on form DCC-LIC-028 (Notifications and Requests Regarding Regulatory Compliance) and includes the date and time, the local law enforcement agency notified, and a description, including the items involved. (V, checked 2026-11-10 against the Cornell LII copy of the CCR, amended 2022-11-07, and DCC's own DCC-LIC-028 form PDF dated January 2026.) **This is a separate, faster deadline than the §15051 written notice. Always state both when a significant discrepancy is possible.** The same section also covers diversion, theft, loss and other criminal activity.
   - **§15048.1, Account manager:** "Correct any data entry errors within three (3) calendar days of discovery". Reconcile "at least once every thirty (30) calendar days."
   - **§17223, Waste:** a written cannabis waste management plan is required (quoted by the research pass, V).
 - **Pending change:** DCC rulemaking DCC-2026-02-R may amend these sections. Text and status are UNVERIFIED.

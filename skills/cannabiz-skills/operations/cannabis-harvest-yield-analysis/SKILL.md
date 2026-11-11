@@ -35,12 +35,14 @@ Ask in one message for whatever's missing that the user's question needs. For ex
 
 ### 2. Mapping
 
-`python3 scripts/yield.py --harvests <file> --detect-only`. Show the mapping in one line. Fix missing or AMBIGUOUS columns with `--map field=Column`. Alias hints are in the `ALIASES` table at the top of the script and in the harvest-fields section of `references/system-mappings.md`. For Excel files, export to CSV first.
+`python3 <skill-dir>/scripts/yield.py --harvests <file> --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces.
+
+Show the mapping in one line. Fix missing or AMBIGUOUS columns with `--map field=Column`. Alias hints are in the `ALIASES` table at the top of the script and in the harvest-fields section of `references/system-mappings.md`. For Excel files, export to CSV first.
 
 ### 3. Run
 
 ```
-python3 scripts/yield.py --harvests <file> --out-dir <dir> [--weight-unit g|lb|kg|oz] [--map ...]
+python3 <skill-dir>/scripts/yield.py --harvests <file> --out-dir <dir> [--weight-unit g|lb|kg|oz] [--map ...]
 ```
 
 Use the script's numbers. Report every `input_problems` line.
@@ -48,6 +50,7 @@ Use the script's numbers. Report every `input_problems` line.
 The script never drops, merges or fills in a number silently:
 - A batch missing an input is left out of the ratios that need it, in both the numerator and the denominator. Dry-down needs wet and dry weight. Per plant, per sq ft and per light need dry weight and that count. Each aggregate carries a `coverage` line (e.g. "3 of 4 batches; 1 excluded: H3 (no dry weight)"), and `totals_coverage` does the same for the file totals. Quote the coverage whenever it is not all batches.
 - A dry weight of 0, or a zero or negative count, is reported as a data problem (`ZERO_DRY`, `BAD_DRY`, `BAD_WET`) and never divided by.
+- An unreadable number (NaN, inf, a decimal comma such as `4,25` or `1.234,56`) or a negative breakdown weight or cycle cost is listed in `input_problems` with its row, column and raw value, flagged `BAD_<FIELD>` (`BAD_WET` / `BAD_DRY` for the weights), and treated as blank. Ask the operator for the right figure; never reinterpret it yourself. US thousands separators such as `25,000` are read normally.
 - Per-batch `flags` also carry `MISSING_WET`, `MISSING_DRY`, `DRY_EXCEEDS_WET`, `DUPLICATE_ID` and `UNIT_FROM_WEIGHT_UNIT_ARG`, and `excluded_from` lists the metrics that batch was left out of.
 - Duplicate harvest IDs are kept as separate rows, counted in totals, flagged `DUPLICATE_ID` and listed in `duplicate_harvest_ids`. Ask the operator whether one is a re-entry. If it is, remove it and rerun.
 

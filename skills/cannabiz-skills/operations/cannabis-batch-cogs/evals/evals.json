@@ -45,7 +45,7 @@
       "id": 4,
       "name": "regression-blank-cost-unit-and-blank-rows",
       "prompt": "Cost out Example Extracts batch EX-LR-01 from the attached BOM. 800 jars. 20 labor hours at $25. Overhead is 10% of materials. Lab was $400. We don't have the solvent price yet, use $12/kg as a placeholder.",
-      "expected_output": "Script returns BLOCKED. The biomass line (20 kg at 90, price unit blank) is listed under missing inputs as cost_uom, and the agent asks the operator what unit the $90 is per instead of guessing kg or lb. input_problems reports 2 fully blank rows skipped, the jars line read as price per each, and the negative quantity on the returned labels line. The solvent placeholder is passed with --assume and tagged ASSUMPTION. If the run is repeated after the operator answers, the overhead line is tagged ASSUMPTION because 10% of materials includes the assumed solvent cost.",
+      "expected_output": "Script returns BLOCKED. The biomass line (20 kg at 90, price unit blank) is listed under missing inputs as cost_uom, and the agent asks the operator what unit the $90 is per instead of guessing kg or lb. input_problems reports 2 fully blank rows skipped, the jars line read as price per each, and the negative quantity on the returned labels line (with its column and raw value '-20'; a negative quantity also blocks the batch). The solvent placeholder is passed with --assume and tagged ASSUMPTION. If the run is repeated after the operator answers, the overhead line is tagged ASSUMPTION because 10% of materials includes the assumed solvent cost.",
       "files": ["evals/files/bom_regression_cost_units.csv"],
       "assertions": [
         "Does not price the biomass at $1,800 (20 x 90, treating the price as per kg) or any other guessed unit; asks what unit the $90 biomass price is per",
@@ -53,6 +53,20 @@
         "Mentions that the jars price was read as per each because its price unit is blank",
         "Flags the negative quantity on the returned labels line for the operator to confirm",
         "Labels the $12/kg solvent cost as an ASSUMPTION, and if a cost is shown, labels the overhead line as an ASSUMPTION too"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "regression-unreadable-and-negative-numbers",
+      "prompt": "Cost out Example Extracts cart batch EX-CART-02 from the attached BOM. 500 carts, 12 labor hours at $25, overhead is $30 per labor hour, lab was $400.",
+      "expected_output": "Script returns BLOCKED (exit 2) and no cost per unit is reported. input_problems lists, each with row, column and raw value: row 2 distillate unit cost '4,25' (ambiguous comma), row 3 terpene qty 'NaN' (not a finite number), row 4 hardware unit cost 'inf' (not a finite number), row 5 retail box qty '-500' (negative quantity), row 6 biomass unit cost '1.234,56' (ambiguous comma). The jars quantity '1,200' is read as 1,200 and is not listed. The agent asks the operator for the correct figure on each listed row in one message and does not reinterpret any of them (e.g. does not treat '4,25' as $4.25 or $425, '1.234,56' as $1,234.56, or '-500' as a return). The pre-fix script reported status OK with NaN totals (invalid JSON) and a $214,625 distillate line.",
+      "files": ["evals/files/bom_regression_bad_numbers.csv"],
+      "assertions": [
+        "Does not report a total batch cost or cost per unit; the batch is BLOCKED until the listed values are fixed",
+        "Lists all five problem rows (4,25; NaN; inf; -500; 1.234,56) with the column each is in",
+        "Does not reinterpret '4,25' or '1.234,56' as any specific number; asks the operator which value is right",
+        "Does not treat the -500 retail box quantity as a return without the operator confirming the right figure",
+        "Does not flag the '1,200' jars quantity as a problem"
       ]
     }
   ]

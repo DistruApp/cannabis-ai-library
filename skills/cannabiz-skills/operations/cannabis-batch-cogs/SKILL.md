@@ -33,7 +33,7 @@ Gives a production manager or controller a defensible cost per unit for one batc
 **Batch parameters**, all needed, asked for in **one** message:
 - Finished units produced (actual) and, if known, expected units
 - Direct labor hours and loaded hourly rate
-- Overhead method, **one** of: $ per batch, $ per labor hour, or % of materials. Ask how they normally allocate. Never pick a method for them.
+- Overhead method, **one** of: $ per batch, $ per labor hour, or % of materials. Ask how they normally allocate. Never pick a method for them. Pass a percentage as a whole number: `--overhead-pct-materials 12` means 12%. If the operator says "0.12" or "12 points", confirm they mean 12%.
 - Testing cost charged to this batch (lab fees, retests)
 
 If the operator says a cost really is zero, pass `0`. If they want to proceed without a number, pass it with `--assume key=value` (for a BOM line: `cost:<component>=12` or `cost_uom:<component>=lb`). It's then tagged **[ASSUMPTION]** everywhere and listed at the top of the report. Never estimate a market price for an input (e.g. "distillate usually costs…").
@@ -42,12 +42,14 @@ Where inputs come from: ERP item costs and production records, purchase invoices
 
 ### 2. Mapping
 
-`python3 scripts/cogs.py --bom <file> --detect-only`. Show the mapping in one line. Fix missing or AMBIGUOUS columns with `--map field=Column` (fields: component, qty, uom, unit_cost, cost_uom). For Excel files, export to CSV first.
+`python3 <skill-dir>/scripts/cogs.py --bom <file> --detect-only`. `<skill-dir>` is the folder that contains this SKILL.md. If the script can't be found or fails to run, stop and tell the user what failed. Never hand-compute the figures the script produces.
+
+Show the mapping in one line. Fix missing or AMBIGUOUS columns with `--map field=Column` (fields: component, qty, uom, unit_cost, cost_uom). For Excel files, export to CSV first.
 
 ### 3. Run
 
 ```
-python3 scripts/cogs.py --bom <file> --batch-name <name> --units-produced N [--expected-units N] \
+python3 <skill-dir>/scripts/cogs.py --bom <file> --batch-name <name> --units-produced N [--expected-units N] \
   --labor-hours H --labor-rate R --overhead-per-labor-hour X | --overhead-per-batch X | --overhead-pct-materials P \
   --testing-cost T [--assume key=value ...] --out-dir <dir>
 ```
@@ -55,7 +57,9 @@ python3 scripts/cogs.py --bom <file> --batch-name <name> --units-produced N [--e
 Exit code 2 with `"status": "BLOCKED"` lists exactly what's missing or malformed. Take that list back to the operator. Don't fill it in yourself. Report the script's numbers as-is.
 
 - `cost_uom:<component>` in `missing_inputs` means a weight or volume line has a price but no price unit. Ask "price per what unit?" (per g, per lb, per kg). Never guess it from the quantity unit.
-- `input_problems` also appears on OK runs. It lists things that did not block the run but the operator should see: fully blank rows that were skipped, count lines with a blank price unit that were read as price per each, and negative quantities or costs. Put each one under Data gaps in the report.
+- Unreadable numbers block the run: NaN, inf, a decimal comma such as `4,25` or `1.234,56`, and negative quantities or costs. Each is listed in `input_problems` with its row, column and raw value. Ask the operator for the right figure; never reinterpret it yourself (`4,25` could be 4.25 or 425). A return or correction belongs netted into the quantity consumed. US thousands separators such as `1,200` are read normally.
+- `input_problems` also appears on OK runs. It lists things that did not block the run but the operator should see: fully blank rows that were skipped, count lines with a blank price unit that were read as price per each, and an `--overhead-pct-materials` value between 0 and 1 (read as that many percent, so 0.12 means 0.12%, not 12%). Put each one under Data gaps in the report, and confirm the overhead percentage with the operator before reporting.
+- Numeric flags and `--assume` values must be numbers; flags can't be negative and `--assume` values must be greater than 0. A bad value stops the script with a message. Pass a confirmed zero as the flag itself.
 - `--expected-units` must be greater than 0. Leave it out if there is no expected count.
 
 ### 4. Interpret

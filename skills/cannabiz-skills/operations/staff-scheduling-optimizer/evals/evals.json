@@ -4,11 +4,11 @@
     {
       "id": 1,
       "name": "weekly-schedule-with-gap",
-      "prompt": "Build next week's schedule for Example Valley Dispensary. Roster, availability and caps are in the sheet. Projected sales: Mon 1900, Tue 2000, Wed 2200, Thu 2400, Fri 3400, Sat 3800, Sun 2500. Target labor 24%. Two shifts a day, 10-4 and 4-10. Always 2 people on, at least one vault-certified on every shift, and a front-desk ID checker Friday and Saturday close. Average ticket is $45, busiest hour is about 30% of a shift, and a budtender handles about 12 customers an hour. Tom K.'s card expires Sunday.",
+      "prompt": "Build the schedule for Example Valley Dispensary for the week of Monday 2026-11-16 to Sunday 2026-11-22. Roster, availability and caps are in the sheet. Projected sales: Mon 1900, Tue 2000, Wed 2200, Thu 2400, Fri 3400, Sat 3800, Sun 2500. Target labor 24%. Two shifts a day, 10-4 and 4-10. Always 2 people on, at least one vault-certified on every shift, and a front-desk ID checker Friday and Saturday close. Average ticket is $45, busiest hour is about 30% of a shift, and a budtender handles about 12 customers an hour. Worker credential expiry dates are in the sheet.",
       "files": [
-        "examples/sample-output.md"
+        "evals/files/example-valley-roster.csv"
       ],
-      "expected_output": "Shows the labor budget ($4,368, about 245 hours), a shift-by-shift headcount table (2 everywhere except 3 on Friday and Saturday close), a draft schedule with nobody outside availability or over cap, an OPEN GAP for Sunday close (no vault-certified staff available) with options for the manager, Tom not scheduled after his credential expires, no overtime, a labor summary around 180 hours, and compliance items phrased as things to confirm.",
+      "expected_output": "Shows the labor budget ($4,368, about 245 hours), a shift-by-shift headcount table (2 everywhere except 3 on Friday and Saturday close), a draft schedule with nobody outside availability or over cap, an OPEN GAP for Sunday close (no vault-certified staff available) with options for the manager, Tom not scheduled on or after his credential expiry date (2026-11-22, the Sunday), no overtime, a labor summary around 180 hours, and compliance items phrased as things to confirm.",
       "assertions": [
         "Shows the demand-to-headcount calculation per shift using the operator's 12 customers/hour",
         "No one is scheduled outside stated availability or above their weekly hour cap",
@@ -35,7 +35,7 @@
       "name": "time-off-breaks-constraint",
       "prompt": "Lisa P. needs Saturday off. Who can cover her Saturday close shift?",
       "files": [
-        "examples/sample-output.md"
+        "evals/files/example-valley-current-schedule.md"
       ],
       "expected_output": "Explains that Lisa is the only vault-certified person on Saturday close. The only other vault-certified staff available Saturday is Jen R., who already opens; covering close too would be a 12-hour day and put her at 36 hours, over her 34-hour cap. Tom K. and Mike T. can't cover the vault requirement. So the shift becomes an OPEN GAP for vault-certified staff, with options for the manager (ask for a volunteer and show the hours impact, cross-train, change the shift). Makes no change without manager approval.",
       "assertions": [

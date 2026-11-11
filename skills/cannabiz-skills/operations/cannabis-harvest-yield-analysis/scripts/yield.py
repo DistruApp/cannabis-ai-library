@@ -17,6 +17,9 @@ Data rules (nothing is dropped, merged or invented silently):
     per plant / sq ft / light needs dry plus that count. It is left out of the matching aggregate
     numerator AND denominator, and the aggregate says how many batches it covers ("coverage").
   - Zero or negative weights and counts are reported, never divided by.
+  - Numbers are parsed strictly (see to_number). NaN, inf and decimal commas ("4,25", "1.234,56")
+    are reported with row, column and raw value, flagged BAD_<FIELD> (BAD_WET / BAD_DRY for the
+    weights) and treated as blank. A negative breakdown weight or cycle cost is handled the same way.
   - Duplicate harvest IDs are kept (not merged), flagged DUPLICATE_ID and reported.
   - A blank breakdown part shows blank, not 0%.
   - Fully blank rows are skipped and counted in input_problems.
@@ -32,6 +35,7 @@ Outputs (in --out-dir, default ./yield_out):
 import argparse
 import csv
 import json
+import math
 import os
 import re
 import statistics
@@ -78,14 +82,35 @@ def detect(headers, overrides):
     return found
 
 
-def num(s):
-    s = (s or "").strip().replace(",", "").replace("$", "")
+_THOUSANDS_RE = re.compile(r"^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$")
+
+
+def to_number(s):
+    """Strict numeric parse. Returns (value, problem).
+
+    value is a finite float or None; problem is None or a short reason.
+    Blank -> (None, None). Accepts plain numbers and US thousands
+    separators ("1,234.5"). Rejects NaN/inf and decimal commas
+    ("1,5", "1.234,56"): a wrong guess there changes the number by 10x
+    or more, so the row is reported instead of guessed.
+    Callers decide whether a negative value is allowed.
+    """
+    s = (s or "").strip().replace("$", "").strip()
     if s == "":
-        return None
+        return None, None
+    if any(c.isspace() or c == "_" for c in s):
+        return None, f"not a number: '{s}'"
+    if "," in s:
+        if not _THOUSANDS_RE.match(s):
+            return None, f"ambiguous comma in '{s}' (decimal comma or bad thousands separator)"
+        s = s.replace(",", "")
     try:
-        return float(s)
+        v = float(s)
     except ValueError:
-        return "BAD"
+        return None, f"not a number: '{s}'"
+    if not math.isfinite(v):
+        return None, f"not a finite number: '{s}'"
+    return v, None
 
 
 def iqr_flags(values):
@@ -131,7 +156,7 @@ def main():
     headers = list(rows[0].keys()) if rows else []
     m = detect(headers, overrides)
     if a.detect_only:
-        print(json.dumps({"mapping": m, "rows": len(rows), "headers": headers}, indent=2))
+        print(json.dumps({"mapping": m, "rows": len(rows), "headers": headers}, indent=2, allow_nan=False))
         return
 
     for req in ("wet_weight", "dry_weight"):
@@ -177,12 +202,17 @@ def main():
             problems.append(f"row {i} ({hid}): unknown unit '{unit}'; row skipped")
             continue
         g = GRAMS_PER[unit]
-        vals = {}
+        vals, unreadable = {}, {}
         for f in WEIGHT_FIELDS + ["plant_count", "canopy_sqft", "lights", "cycle_cost"]:
-            v = num(get(f)) if f in m else None
-            if v == "BAD":
-                problems.append(f"row {i} ({hid}): non-numeric {f} '{get(f)}'; treated as blank")
-                v = None
+            raw = get(f).strip()
+            v, prob = to_number(raw) if f in m else (None, None)
+            if v is not None and v < 0 and f in ("flower_a", "flower_b", "trim", "waste", "cycle_cost"):
+                v, prob = None, "negative value"
+            if prob:
+                unreadable[f] = raw
+                flags.append({"wet_weight": "BAD_WET", "dry_weight": "BAD_DRY"}.get(f, "BAD_" + f.upper()))
+                problems.append(f"row {i} ({hid}): column '{m[f]}' value '{raw}': {prob}; treated as blank and "
+                                f"left out of every figure that uses it. Ask for the right figure.")
             if v is not None and f in WEIGHT_FIELDS:
                 v *= g
             vals[f] = v
@@ -196,20 +226,26 @@ def main():
         dry_ok = dry is not None and dry > 0
         wet_why = "no wet weight" if wet is None else f"wet weight {wet:g} g"
         dry_why = "no dry weight" if dry is None else f"dry weight {dry:g} g"
-        if wet is None:
+        if "wet_weight" in unreadable:  # already reported above
+            wet_why = f"unreadable wet weight '{unreadable['wet_weight']}'"
+        elif wet is None:
             flags.append("MISSING_WET")
             problems.append(f"row {i} ({hid}): wet weight is blank; left out of dry-down")
         elif wet <= 0:
             flags.append("BAD_WET")
-            problems.append(f"row {i} ({hid}): wet weight is {wet:g}; left out of dry-down. Check the entry.")
-        if dry is None:
+            problems.append(f"row {i} ({hid}): column '{m['wet_weight']}' value '{get('wet_weight').strip()}': wet "
+                            f"weight is {wet:g}; left out of dry-down. Check the entry.")
+        if "dry_weight" in unreadable:  # already reported above
+            dry_why = f"unreadable dry weight '{unreadable['dry_weight']}'"
+        elif dry is None:
             flags.append("MISSING_DRY")
             problems.append(f"row {i} ({hid}): dry weight is blank (still curing?); left out of dry-down, "
                             f"dry totals and every per-plant / sq ft / light figure")
         elif dry <= 0:
             flags.append("ZERO_DRY" if dry == 0 else "BAD_DRY")
-            problems.append(f"row {i} ({hid}): dry weight is {dry:g}; treated as a data problem and left out of "
-                            f"dry-down, dry totals and every per-plant / sq ft / light figure")
+            problems.append(f"row {i} ({hid}): column '{m['dry_weight']}' value '{get('dry_weight').strip()}': dry "
+                            f"weight is {dry:g}; treated as a data problem and left out of dry-down, dry totals "
+                            f"and every per-plant / sq ft / light figure")
         use["wet_g"] = wet_ok
         if not wet_ok:
             why["wet_g"] = wet_why
@@ -235,11 +271,14 @@ def main():
                 why[metric] = f"no {label} column"
             elif not dry_ok:
                 why[metric] = dry_why
+            elif field in unreadable:
+                why[metric] = f"unreadable {label} '{unreadable[field]}'"
             elif d is None:
                 why[metric] = f"no {label}"
             elif d <= 0:
                 why[metric] = f"{label} is {d:g}"
-                problems.append(f"row {i} ({hid}): {label} is {d:g}; {metric} left blank")
+                problems.append(f"row {i} ({hid}): column '{m[field]}' value '{get(field).strip()}': {label} is "
+                                f"{d:g}; {metric} left blank")
             else:
                 use[metric] = True
             rec[metric] = r(dry / d if use[metric] else None, 2)
@@ -256,7 +295,8 @@ def main():
             blank_parts = [k for k, _ in PARTS if k in m and parts[k] is None]
             if blank_parts:
                 rec["sum_check"] = "INCOMPLETE_BREAKDOWN"
-                problems.append(f"row {i} ({hid}): breakdown cell(s) blank: {', '.join(blank_parts)}. Shown blank, "
+                problems.append(f"row {i} ({hid}): breakdown cell(s) blank or unreadable: {', '.join(blank_parts)}. "
+                                f"Shown blank, "
                                 f"not 0%; unaccounted_g ({gap:g} g) includes whatever they weigh.")
             else:
                 rec["sum_check"] = "OK" if abs(gap) < 0.005 else ("UNACCOUNTED" if gap > 0 else "PARTS_EXCEED_DRY")
@@ -373,8 +413,8 @@ def main():
         "input_problems": problems,
     }
     with open(os.path.join(a.out_dir, "summary.json"), "w") as f:
-        json.dump(summary, f, indent=2)
-    print(json.dumps(summary, indent=2))
+        json.dump(summary, f, indent=2, allow_nan=False)
+    print(json.dumps(summary, indent=2, allow_nan=False))
 
 
 if __name__ == "__main__":

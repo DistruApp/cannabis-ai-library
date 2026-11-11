@@ -134,7 +134,7 @@ Don't treat the gap to budget as savings to bank. If the manager sees long waits
 ## 7. Compliance items to confirm (not legal conclusions: confirm with HR/counsel for this jurisdiction)
 
 - Do any local predictive scheduling or fair workweek rules require advance notice or premium pay if the Sunday gap is filled late?
-- Close-then-open turnarounds: Jen (Fri close → Sat open), Dave (Thu close → Fri open) and Lisa (Sat close → Sun open) each get 12 hours between shifts. Confirm that meets any local rest-between-shifts rule.
+- Close-then-open turnarounds: Dave (Tue close → Wed open, and Thu close → Fri open), Jen (Fri close → Sat open) and Lisa (Sat close → Sun open) each get 12 hours between shifts. Confirm that meets any local rest-between-shifts rule.
 - Confirm the meal and rest break rules for a 6-hour shift.
 - Confirm whether your state requires a worker credential, and what it's called. This example assumed it does.
 

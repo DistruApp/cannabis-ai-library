@@ -1,0 +1,8 @@
+Component,Qty,UoM,Unit Cost,Cost UoM
+Example distillate (lot EX-D-0202),505,g,"4,25",g
+Example terpene blend,NaN,g,1.20,g
+Example 510 cartridge hardware,510,each,inf,each
+Example retail box,-500,each,0.42,each
+Example bulk biomass (lot EX-B-0202),2,kg,"1.234,56",kg
+Example jars,"1,200",each,0.55,each
+Example labels,500,each,0.07,each

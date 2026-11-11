@@ -11,6 +11,8 @@ Each flag puts its line on HOLD. Fixes are operational. Whether a fix also needs
 | `ORDER_UNIT_MISSING` | The order line has no unit (blank cell or no unit column), so the order quantity wasn't compared | Unit left off the order export | Add the unit to the order and rerun | Sales |
 | `ORDER_QTY_NOT_CHECKED` | Another manifest line for the same order line has no usable quantity or unit, so the order total wasn't compared | Blank unit or quantity on a sibling line | Fix that line and rerun | Shipping |
 | `ORDER_VS_MANIFEST_UOM_MISMATCH` | One side by weight, the other by count | Order written in units, package tracked by weight | Confirm the net weight per unit and restate one side | Sales |
+| `ITEM_MISMATCH` | The manifest's item name or SKU doesn't match the package's in inventory (case, spaces and punctuation ignored). The note shows both values | Wrong package pulled; tag mistyped; manifest names the wrong item | Read the physical tag and label. Swap in the right package or correct the manifest line | Shipping |
+| `ITEM_MISSING` | The item or SKU cell is blank for this line in the manifest or inventory, so the package couldn't be matched | Cell left blank in the export | Fill in the item and rerun | Whoever owns the file |
 | `NOT_IN_ACTIVE_INVENTORY` | Tag not found in the active package export | Typo; package finished, on hold, or at another location; export is stale | Read the physical tag; re-export inventory; check inactive/on-hold packages | Shipping / Compliance |
 | `EXCEEDS_ON_HAND` | Manifest quantity > package quantity | Wrong package; the package was already partially shipped or sampled | Fix the quantity or split across packages. Never ship more than the package holds in the system | Shipping |
 | `UNIT_CONVERSION_ROUNDING` | Manifest exceeds the package by < 0.5 g, only because of conversion. Used only when the manifest and package units really differ (lb vs. g, not "g" vs. "Grams") | 5 lb written as 2268 g (true: 2267.96 g) | Restate the quantity in the package's own unit | Shipping |
@@ -22,11 +24,12 @@ Each flag puts its line on HOLD. Fixes are operational. Whether a fix also needs
 | `LAB_STATUS_UNCONFIRMED` | Operator didn't confirm which values mean passed | Missing confirmation | Confirm the passing values and rerun | Compliance |
 | `NO_LAB_STATUS_COLUMN` | Inventory export has no testing status | Wrong export or columns hidden | Re-export with testing status included | Compliance |
 | `DUPLICATE_TAG_ON_MANIFEST` | Same tag appears on more than one line | Copy-paste | Merge into one line | Shipping |
-| `BAD_QUANTITY` / `BLANK_TAG` / `INVENTORY_QTY_UNREADABLE` / `ORDER_QTY_UNREADABLE` | Input data problem | Blank or text cell | Fix the file and rerun | Whoever owns the file |
+| `INVALID_NUMBER` | A manifest, on-hand or order quantity is text, NaN or inf, negative, or uses a decimal comma ("1,5", "1.234,5"). It wasn't read or compared. The note gives the file, row, column and raw value | Hand-typed value; spreadsheet set to a European number format | Correct the cell and rerun. Never guess the value | Whoever owns the file |
+| `BAD_QUANTITY` / `BLANK_TAG` / `INVENTORY_QTY_UNREADABLE` / `ORDER_QTY_UNREADABLE` | Input data problem | Blank cell (`ORDER_QTY_UNREADABLE` also covers mixed units on one order line) | Fix the file and rerun | Whoever owns the file |
 
 ## Input problems
 
-`input_problems` in `precheck_summary.json` lists file issues the line flags can't show on their own: blank inventory tags (with row numbers), duplicate inventory tags, blank units, missing unit columns, and non-numeric quantities. Report every entry. The overall result is HOLD whenever the list isn't empty, even if every line is GO.
+`input_problems` in `precheck_summary.json` lists file issues the line flags can't show on their own: blank inventory tags (with row numbers), duplicate inventory tags, blank units, missing unit columns, blank or invalid quantities (with file, row, column and raw value), and blank item cells. Report every entry. The overall result is HOLD whenever the list isn't empty, even if every line is GO.
 
 ## Grouping tips
 

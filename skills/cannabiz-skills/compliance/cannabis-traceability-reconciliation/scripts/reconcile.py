@@ -27,6 +27,7 @@ can't resolve gets an explicit status and an entry in input_problems.
 import argparse
 import csv
 import json
+import math
 import os
 import re
 import sys
@@ -106,14 +107,43 @@ def load(path, overrides, label):
     return rows, m
 
 
+_THOUSANDS_RE = re.compile(r"^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$")
+
+
 def to_number(s):
-    s = (s or "").strip().replace(",", "")
+    """Strict numeric parse. Returns (value, problem).
+
+    value is a finite float or None; problem is None or a short reason.
+    Blank -> (None, None). Accepts plain numbers and US thousands
+    separators ("1,234.5"). Rejects NaN/inf and decimal commas
+    ("1,5", "1.234,56"): a wrong guess there changes the number by 10x
+    or more, so the row is reported instead of guessed.
+    Callers decide whether a negative value is allowed.
+    """
+    s = (s or "").strip().replace("$", "").strip()
     if s == "":
-        return None
+        return None, None
+    if any(c.isspace() or c == "_" for c in s):
+        return None, f"not a number: '{s}'"
+    if "," in s:
+        if not _THOUSANDS_RE.match(s):
+            return None, f"ambiguous comma in '{s}' (decimal comma or bad thousands separator)"
+        s = s.replace(",", "")
     try:
-        return float(s)
+        v = float(s)
     except ValueError:
-        return None
+        return None, f"not a number: '{s}'"
+    if not math.isfinite(v):
+        return None, f"not a finite number: '{s}'"
+    return v, None
+
+
+def parse_qty(raw):
+    """to_number plus the rule that a quantity or weight can't be negative."""
+    v, problem = to_number(raw)
+    if v is not None and v < 0:
+        return None, f"negative quantity '{(raw or '').strip()}'"
+    return v, problem
 
 
 def unit_kind(u):
@@ -147,7 +177,7 @@ def describe_rows(recs):
         if r["qty"] is not None:
             q = fmt_num(r["qty"])
         else:
-            q = f"'{r['raw_qty'].strip()}' (not a number)" if r["raw_qty"].strip() else "(blank quantity)"
+            q = f"'{r['raw_qty'].strip()}' (not a valid quantity)" if r["raw_qty"].strip() else "(blank quantity)"
         parts.append(f"row {r['row']}: {q} {r['uom'] or '(blank unit)'}")
     return "; ".join(parts)
 
@@ -155,12 +185,13 @@ def describe_rows(recs):
 def merge_duplicates(tag, recs, label, problems):
     """Combine rows that share a tag, or mark the tag DUPLICATE_CONFLICT. Never drops a row silently."""
     first = recs[0]
-    merged = {"tag": tag, "item": first["item"], "location": first["location"], "conflict": False}
+    merged = {"tag": tag, "item": first["item"], "location": first["location"], "conflict": False,
+              "qty_problem": None}
     n, desc = len(recs), describe_rows(recs)
     identical = len({(r["qty"], r["uom"].lower()) for r in recs}) < n
     copy_paste = " Some rows are identical, so this may be a copy-paste duplicate: check the file." if identical else ""
     if any(r["qty"] is None for r in recs):
-        reason = "a quantity is blank or not a number"
+        reason = "a quantity is blank or not a valid number"
     else:
         units = {r["uom"].lower() for r in recs}
         if len(units) == 1:
@@ -195,11 +226,15 @@ def index(rows, m, label, problems):
             problems.append(f"{label} row {i}: blank package tag")
             continue
         raw_qty = r.get(m["quantity"]) or ""
-        qty = to_number(raw_qty)
+        qty, qty_problem = parse_qty(raw_qty)
         uom = r.get(m["uom"], "") if ok(m, "uom") else ""
-        if qty is None:
-            problems.append(f"{label} row {i} ({tag}): non-numeric quantity '{raw_qty}'")
+        if qty_problem:
+            qty_problem = f"row {i}, column '{m['quantity']}', value '{raw_qty.strip()}': {qty_problem}"
+            problems.append(f"{label} {qty_problem} ({tag}); quantity not compared or totalled")
+        elif qty is None:
+            problems.append(f"{label} row {i} ({tag}), column '{m['quantity']}': blank quantity")
         groups[tag].append({"row": i, "qty": qty, "raw_qty": raw_qty, "uom": (uom or "").strip(),
+                            "qty_problem": qty_problem,
                             "item": r.get(m["item"], "") if ok(m, "item") else "",
                             "location": r.get(m["location"], "") if ok(m, "location") else ""})
     idx = {}
@@ -207,7 +242,8 @@ def index(rows, m, label, problems):
         if len(recs) == 1:
             r = recs[0]
             idx[tag] = {"tag": tag, "qty": r["qty"], "uom": r["uom"], "item": r["item"],
-                        "location": r["location"], "conflict": False, "note": ""}
+                        "location": r["location"], "conflict": False, "qty_problem": r["qty_problem"],
+                        "note": f"invalid quantity ({r['qty_problem']})" if r["qty_problem"] else ""}
         else:
             idx[tag] = merge_duplicates(tag, recs, label, problems)
     return idx
@@ -230,6 +266,9 @@ def main():
     ap.add_argument("--detect-only", action="store_true")
     a = ap.parse_args()
 
+    for flag, val in (("--tolerance-g", a.tolerance_g), ("--tolerance-each", a.tolerance_each)):
+        if not math.isfinite(val) or val < 0:
+            sys.exit(f"{flag} must be a finite number of 0 or more (got {val}).")
     for flag, val in (("--default-count-unit", a.default_count_unit),
                       ("--default-system-unit", a.default_system_unit)):
         if val and unit_kind(val)[0] == "unknown":
@@ -296,6 +335,8 @@ def main():
                 notes.append(typo_hint.format(other="system", tags=" / ".join(near_c[tag])))
         elif s["conflict"] or c["conflict"]:
             row["status"] = "DUPLICATE_CONFLICT"
+        elif s["qty_problem"] or c["qty_problem"]:
+            row["status"] = "INVALID_NUMBER"  # NaN, inf, negative, decimal comma or text: never compared
         elif s["qty"] is None or c["qty"] is None:
             row["status"] = "BAD_QUANTITY"
         else:
@@ -395,7 +436,7 @@ def main():
         "note_pct": ("net_difference and net_difference_pct_of_compared_total cover quantity-compared packages "
                      "only (on both lists, numeric quantities, convertible units); system_total_compared is "
                      "their system quantity. Packages in only one file and DUPLICATE_CONFLICT, MISSING_UNIT, "
-                     "UNKNOWN_UOM, UOM_MISMATCH and BAD_QUANTITY rows are not in the net, so a "
+                     "UNKNOWN_UOM, UOM_MISMATCH, BAD_QUANTITY and INVALID_NUMBER rows are not in the net, so a "
                      "total-inventory reading must list them separately. system_total_all_packages is every "
                      "system package with a recognized unit, for context. Do not interpret against any state "
                      "threshold without the jurisdiction gate."),
@@ -408,7 +449,7 @@ def main():
         "input_problems": problems,
     }
     with open(os.path.join(a.out_dir, "summary.json"), "w") as f:
-        json.dump(summary, f, indent=2)
+        json.dump(summary, f, indent=2, allow_nan=False)
     print(json.dumps(summary, indent=2))
 
 

@@ -15,10 +15,18 @@ BOM CSV (one row per component consumed in this batch):
   If the cost unit is blank (or there is no cost unit column), weight and volume lines are BLOCKED
   ("price per what unit?"). Count lines (each, ct, pcs...) are read as price per each and noted.
   Fully blank rows (e.g. trailing ",,,," from Excel) are skipped and counted in input_problems.
+  Numbers are parsed strictly (see to_number): NaN, inf, decimal commas ("4,25", "1.234,56") and
+  negative quantities or costs BLOCK the batch and are listed with row, column and raw value.
+
+--overhead-pct-materials is a whole-number percentage: 12 means 12%. A value between 0 and 1
+  (e.g. 0.12) is used as given (0.12%) and a warning is added to input_problems.
+Numeric flags must be finite and not negative (units must be greater than 0); a bad value exits
+  with a message.
 
 --assume key=value  supply a value the operator did NOT provide; it is used but tagged ASSUMPTION
   keys: units_produced, labor_hours, labor_rate, overhead_per_batch, overhead_per_labor_hour,
         overhead_pct_materials, testing_cost, expected_units, cost:<component>, cost_uom:<component>
+  Assumed numbers must be greater than 0.
   Pass 0 explicitly (not via --assume) when the operator confirms a cost is truly zero.
 
 Outputs (in --out-dir, default ./cogs_out): cogs_lines.csv, summary.json
@@ -26,6 +34,7 @@ Outputs (in --out-dir, default ./cogs_out): cogs_lines.csv, summary.json
 import argparse
 import csv
 import json
+import math
 import os
 import re
 import sys
@@ -66,14 +75,56 @@ def detect(headers, overrides):
     return found
 
 
-def num(s):
-    s = str(s if s is not None else "").strip().replace(",", "").replace("$", "")
+_THOUSANDS_RE = re.compile(r"^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$")
+
+
+def to_number(s):
+    """Strict numeric parse. Returns (value, problem).
+
+    value is a finite float or None; problem is None or a short reason.
+    Blank -> (None, None). Accepts plain numbers and US thousands
+    separators ("1,234.5"). Rejects NaN/inf and decimal commas
+    ("1,5", "1.234,56"): a wrong guess there changes the number by 10x
+    or more, so the row is reported instead of guessed.
+    Callers decide whether a negative value is allowed.
+    """
+    s = (s or "").strip().replace("$", "").strip()
     if s == "":
-        return None
+        return None, None
+    if any(c.isspace() or c == "_" for c in s):
+        return None, f"not a number: '{s}'"
+    if "," in s:
+        if not _THOUSANDS_RE.match(s):
+            return None, f"ambiguous comma in '{s}' (decimal comma or bad thousands separator)"
+        s = s.replace(",", "")
     try:
-        return float(s)
+        v = float(s)
     except ValueError:
-        return "BAD"
+        return None, f"not a number: '{s}'"
+    if not math.isfinite(v):
+        return None, f"not a finite number: '{s}'"
+    return v, None
+
+
+def cli_number(s):
+    """argparse type for numeric flags: finite and not negative (0 is allowed: an operator-confirmed zero)."""
+    v, prob = to_number(s)
+    if prob or v is None:
+        raise argparse.ArgumentTypeError(prob or "blank value")
+    if v < 0:
+        raise argparse.ArgumentTypeError(f"must not be negative (got '{s}')")
+    return v
+
+
+def assumed_number(key, raw):
+    """--assume values are numbers the operator did not give; they must be finite and greater than 0."""
+    v, prob = to_number(raw)
+    if prob or v is None:
+        sys.exit(f"Bad --assume {key}={raw}: {prob or 'blank value'}.")
+    if v <= 0:
+        sys.exit(f"Bad --assume {key}={raw}: an assumed value must be greater than 0. "
+                 f"Pass a confirmed 0 as the flag itself, not via --assume.")
+    return v
 
 
 def is_blank(row):
@@ -99,7 +150,7 @@ def main():
     ap.add_argument("--bom", required=True)
     ap.add_argument("--batch-name", default="")
     for p in PARAMS + OH + ["expected_units"]:
-        ap.add_argument("--" + p.replace("_", "-"), type=float)
+        ap.add_argument("--" + p.replace("_", "-"), type=cli_number)
     ap.add_argument("--map", nargs="*")
     ap.add_argument("--assume", nargs="*")
     ap.add_argument("--out-dir", default="cogs_out")
@@ -111,7 +162,7 @@ def main():
     headers = list(rows[0].keys()) if rows else []
     m = detect(headers, kv(a.map, "mapping"))
     if a.detect_only:
-        print(json.dumps({"mapping": m, "rows": len(rows), "headers": headers}, indent=2))
+        print(json.dumps({"mapping": m, "rows": len(rows), "headers": headers}, indent=2, allow_nan=False))
         return
     for req in ("component", "qty", "uom", "unit_cost"):
         if req not in m or m[req].startswith("AMBIGUOUS:"):
@@ -124,7 +175,7 @@ def main():
     for p in PARAMS + OH + ["expected_units"]:
         v = getattr(a, p)
         if v is None and p in assume:
-            v = float(assume[p])
+            v = assumed_number(p, assume[p])
             assumptions.append(f"{p} = {v} [ASSUMPTION]")
         vals[p] = v
     for p in PARAMS:
@@ -137,6 +188,11 @@ def main():
         sys.exit(f"Give exactly one overhead method; got {oh_given}")
 
     lines, problems, notes = [], [], []  # problems block the run; notes are reported but do not block
+    pct = vals["overhead_pct_materials"]
+    if pct is not None and 0 < pct < 1:
+        notes.append(f"overhead_pct_materials is {pct:g}, so overhead was read as {pct:g}% of materials, not "
+                     f"{pct * 100:g}%. The flag takes a whole-number percentage (12 means 12%). If {pct * 100:g}% "
+                     f"was meant, rerun with --overhead-pct-materials {pct * 100:g}.")
     for p in ("units_produced", "expected_units"):
         if vals[p] is not None and vals[p] <= 0:
             problems.append(f"{p} must be greater than 0 (got {vals[p]:g}). "
@@ -156,9 +212,15 @@ def main():
             blank_rows += 1
             continue
         comp = (r.get(m["component"]) or "").strip() or f"row{i}"
-        qty = num(r.get(m["qty"]))
+        raw_qty, raw_cost = (r.get(m["qty"]) or "").strip(), (r.get(m["unit_cost"]) or "").strip()
+        qty, qty_prob = to_number(raw_qty)
+        cost, cost_prob = to_number(raw_cost)
+        if qty is not None and qty < 0:
+            qty, qty_prob = None, ("negative quantity. A BOM line is the quantity consumed; net a return or "
+                                   "correction into the line it corrects, or confirm the right figure")
+        if cost is not None and cost < 0:
+            cost, cost_prob = None, "negative unit cost; confirm the right figure"
         uom = (r.get(m["uom"]) or "").strip().lower()
-        cost = num(r.get(m["unit_cost"]))
         cuom = (r.get(cu_col) or "").strip().lower() if cu_col else ""
         cuom = re.sub(r"^(\$\s*/\s*|/\s*|per\s+)", "", cuom)  # "$/kg", "/kg", "per kg" all mean kg
         tag, note = "DATA", ""
@@ -175,18 +237,21 @@ def main():
                 missing.append(f"cost_uom:{comp} (row {i}): price per what unit? Quantity is in '{uom}' but the "
                                f"cost unit is blank. Add it to the BOM (e.g. g, lb, kg, ml).")
                 cuom = None
-        if cost is None and f"cost:{comp}" in assume:
-            cost = float(assume[f"cost:{comp}"])
+        if cost is None and not cost_prob and f"cost:{comp}" in assume:
+            cost = assumed_number(f"cost:{comp}", assume[f"cost:{comp}"])
             tag = "ASSUMPTION"
             assumptions.append(f"unit cost of {comp} = {cost} per {cuom or uom or '?'} [ASSUMPTION]")
-        if qty in (None, "BAD"):
-            problems.append(f"row {i} ({comp}): quantity missing or non-numeric")
+        bad_cells = [f"row {i} ({comp}): column '{col}' value '{raw}': {why}"
+                     for col, raw, why in ((m["qty"], raw_qty, qty_prob), (m["unit_cost"], raw_cost, cost_prob))
+                     if why]
+        if bad_cells:  # an unreadable or negative number blocks the batch; never guessed
+            problems.extend(bad_cells)
+            continue
+        if qty is None:
+            problems.append(f"row {i} ({comp}): quantity missing")
             continue
         if cost is None:
             missing.append(f"cost:{comp}")
-            continue
-        if cost == "BAD":
-            problems.append(f"row {i} ({comp}): non-numeric unit cost")
             continue
         if cuom is None:
             continue
@@ -198,11 +263,6 @@ def main():
             problems.append(f"row {i} ({comp}): qty unit '{uom}' and cost unit '{cuom}' are different kinds "
                             f"(weight/volume/each); give the conversion")
             continue
-        if qty < 0:
-            notes.append(f"row {i} ({comp}): negative quantity {qty:g} {uom}; it lowers the batch cost. "
-                         f"Confirm it is a return or correction, not a typo.")
-        if cost < 0:
-            notes.append(f"row {i} ({comp}): negative unit cost {cost:g}; confirm it is intended.")
         qty_in_cost_uom = qty * f1 / f2
         lines.append({"line": comp, "type": "material", "qty": qty, "uom": uom,
                       "unit_cost": cost, "cost_uom": cuom, "qty_in_cost_uom": round(qty_in_cost_uom, 6),
@@ -215,9 +275,10 @@ def main():
 
     if missing or problems:
         out = {"status": "BLOCKED", "missing_inputs": missing, "input_problems": problems + notes,
-               "how_to_fix": "Ask the operator for each missing value. If they want to proceed anyway, pass "
+               "how_to_fix": "Ask the operator for each missing value, and for the right figure behind each "
+                             "unreadable or negative number (never reinterpret it). If they want to proceed anyway, pass "
                              "--assume key=value so it is tagged ASSUMPTION. Pass 0 only if they confirm zero."}
-        print(json.dumps(out, indent=2))
+        print(json.dumps(out, indent=2, allow_nan=False))
         sys.exit(2)
 
     materials = sum(x["line_cost"] for x in lines)
@@ -301,8 +362,8 @@ def main():
         "lines_tagged_assumption": [x["line"] for x in lines if x["source"] == "ASSUMPTION"],
     }
     with open(os.path.join(a.out_dir, "summary.json"), "w") as f:
-        json.dump(summary, f, indent=2)
-    print(json.dumps(summary, indent=2))
+        json.dump(summary, f, indent=2, allow_nan=False)
+    print(json.dumps(summary, indent=2, allow_nan=False))
 
 
 if __name__ == "__main__":

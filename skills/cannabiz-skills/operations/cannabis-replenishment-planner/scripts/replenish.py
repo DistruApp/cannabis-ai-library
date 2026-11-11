@@ -4,12 +4,15 @@
 Standard library only. Deterministic: the same inputs and flags always give the same output.
 
 Usage:
-  python3 replenish.py --sales SALES.csv --onhand ONHAND.csv [--out-dir DIR]
+  python3 replenish.py --sales SALES.csv --onhand ONHAND.csv --as-of YYYY-MM-DD [--out-dir DIR]
                        [--map-sales field=Column ...] [--map-onhand field=Column ...]
-                       [--window-days 28] [--as-of YYYY-MM-DD]
+                       [--window-days 28]
                        [--default-lead-time DAYS] [--safety-days N] [--cover-days N]
                        [--dead-days N] [--slow-dos N] [--vendor-from-brand] [--detect-only]
 
+  --as-of              REQUIRED. The date of the on-hand count; the sales window ends on this date.
+                       If the last sale in the file is more than 1 day earlier, summary.json "warnings"
+                       says so; sales dated after it are left out and counted in "warnings".
   --detect-only        print detected column mappings and data date range, then exit.
   --default-lead-time  used ONLY for SKUs whose lead time cell is truly blank; those SKUs are
                        flagged DEFAULT_LEAD_TIME(Nd). "7 days" / "2 weeks" are parsed; anything else
@@ -22,6 +25,12 @@ Data rules (nothing is dropped, merged or invented silently):
   - Duplicate on-hand rows for one SKU: on-hand and open PO are summed. Unit cost, case pack, lead
     time and vendor must agree (or be blank on all but one row); if they conflict the SKU is flagged
     CONFLICTING_ROWS, no order is suggested, and both values go in input_problems.
+  - Numbers are parsed strictly (see to_number): NaN, inf and decimal commas ("4,25", "1.234,56") are
+    reported with row, column and raw value, never guessed. An unreadable sales units cell drops that
+    sales row; an unreadable on-hand cell is handled like any non-numeric on-hand value.
+  - Negative sales units are returns (RETURNS_IN_WINDOW). If a SKU's net units in the window are
+    negative, velocity is set to 0 and the SKU is flagged NEGATIVE_NET_SALES.
+  - Negative on-hand (NEGATIVE_ONHAND) or negative open PO (BAD_OPEN_PO) holds the SKU: no order.
   - Non-numeric open PO (BAD_OPEN_PO) holds the SKU; non-numeric case pack (BAD_CASE_PACK) leaves the
     quantity unrounded; non-numeric unit cost (BAD_UNIT_COST) leaves cost blank. All are reported.
 
@@ -116,15 +125,60 @@ def load(path, aliases, overrides, required, label):
     return rows, m, clean
 
 
-def num(s):
-    """None for blank, "BAD" for text that is not a number, else float."""
-    s = (s or "").strip().replace(",", "").replace("$", "")
+_THOUSANDS_RE = re.compile(r"^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$")
+
+
+def to_number(s):
+    """Strict numeric parse. Returns (value, problem).
+
+    value is a finite float or None; problem is None or a short reason.
+    Blank -> (None, None). Accepts plain numbers and US thousands
+    separators ("1,234.5"). Rejects NaN/inf and decimal commas
+    ("1,5", "1.234,56"): a wrong guess there changes the number by 10x
+    or more, so the row is reported instead of guessed.
+    Callers decide whether a negative value is allowed.
+    """
+    s = (s or "").strip().replace("$", "").strip()
     if s == "":
-        return None
+        return None, None
+    if any(c.isspace() or c == "_" for c in s):
+        return None, f"not a number: '{s}'"
+    if "," in s:
+        if not _THOUSANDS_RE.match(s):
+            return None, f"ambiguous comma in '{s}' (decimal comma or bad thousands separator)"
+        s = s.replace(",", "")
     try:
-        return float(s)
+        v = float(s)
     except ValueError:
-        return "BAD"
+        return None, f"not a number: '{s}'"
+    if not math.isfinite(v):
+        return None, f"not a finite number: '{s}'"
+    return v, None
+
+
+def cli_number(minimum, whole=False):
+    """argparse type for numeric flags: finite, at least `minimum` ("pos" means greater than 0)."""
+    def parse(s):
+        v, prob = to_number(s)
+        if prob or v is None:
+            raise argparse.ArgumentTypeError(prob or "blank value")
+        if whole and not v.is_integer():
+            raise argparse.ArgumentTypeError(f"must be a whole number of days (got '{s}')")
+        if (minimum == "pos" and v <= 0) or (minimum != "pos" and v < minimum):
+            raise argparse.ArgumentTypeError(
+                f"must be greater than 0 (got '{s}')" if minimum == "pos" else f"must not be negative (got '{s}')")
+        return int(v) if whole else v
+    return parse
+
+
+AS_OF_HELP = "The date of the on-hand count (YYYY-MM-DD). The sales window ends on this date."
+
+
+class Parser(argparse.ArgumentParser):
+    def error(self, message):
+        if "--as-of" in message:
+            message += ". " + AS_OF_HELP
+        super().error(message)
 
 
 def parse_lead(s):
@@ -154,20 +208,21 @@ def get(r, m, field):
 
 
 def main():
-    ap = argparse.ArgumentParser()
+    ap = Parser()
     ap.add_argument("--sales", required=True)
     ap.add_argument("--onhand", required=True)
     ap.add_argument("--out-dir", default="replen_out")
     ap.add_argument("--map-sales", nargs="*")
     ap.add_argument("--map-onhand", nargs="*")
-    ap.add_argument("--window-days", type=int, default=None)
-    ap.add_argument("--as-of", default=None, help="End date of the sales window (default: last date in sales data)")
-    ap.add_argument("--default-lead-time", type=float, default=None)
-    ap.add_argument("--safety-days", type=float, default=None)
-    ap.add_argument("--cover-days", type=float, default=None,
+    ap.add_argument("--window-days", type=cli_number("pos", whole=True), default=None)
+    ap.add_argument("--as-of", required=True, metavar="YYYY-MM-DD", help=AS_OF_HELP)
+    ap.add_argument("--default-lead-time", type=cli_number("pos"), default=None)
+    ap.add_argument("--safety-days", type=cli_number(0), default=None)
+    ap.add_argument("--cover-days", type=cli_number(0), default=None,
                     help="Days of demand to cover after the order arrives (order-up-to horizon)")
-    ap.add_argument("--dead-days", type=int, default=None)
-    ap.add_argument("--slow-dos", type=float, default=None, help="Flag SLOW when days of supply exceed this")
+    ap.add_argument("--dead-days", type=cli_number("pos", whole=True), default=None)
+    ap.add_argument("--slow-dos", type=cli_number("pos"), default=None,
+                    help="Flag SLOW when days of supply exceed this")
     ap.add_argument("--vendor-from-brand", action="store_true",
                     help="Operator confirmed brand = vendor: fill blank vendor from brand (flagged VENDOR_FROM_BRAND)")
     ap.add_argument("--detect-only", action="store_true")
@@ -190,7 +245,7 @@ def main():
     if a.detect_only:
         print(json.dumps({"sales_mapping": sm_raw, "onhand_mapping": om_raw, "sales_rows": len(srows),
                           "onhand_rows": len(orows), "sales_date_range": [str(min(dates)), str(max(dates))]},
-                         indent=2))
+                         indent=2, allow_nan=False))
         return
 
     assumptions = []
@@ -207,25 +262,37 @@ def main():
     dead_days = pick(a.dead_days, 30, "dead_days", "days")
     slow_dos = pick(a.slow_dos, 90.0, "slow_dos", "days of supply")
 
-    as_of = parse_date(a.as_of) if a.as_of else max(dates)
+    as_of = parse_date(a.as_of)
     if as_of is None:
-        sys.exit(f"Bad --as-of '{a.as_of}'")
+        sys.exit(f"Bad --as-of '{a.as_of}'. {AS_OF_HELP}")
     start = as_of - timedelta(days=window - 1)
     recent_start = as_of - timedelta(days=6)
+    warnings = []
+    last_sale = max(dates)
+    if (as_of - last_sale).days > 1:
+        warnings.append(f"Last sale is {last_sale}, {(as_of - last_sale).days} days before the on-hand count date. "
+                        f"Check the sales export covers the full period.")
+    after = sum(1 for d in dates if d > as_of)
+    if after:
+        warnings.append(f"{after} sales row(s) are dated after the on-hand count date ({as_of}) and were left out. "
+                        f"Check the --as-of date and the on-hand count date match.")
+    for w in warnings:
+        print("WARNING: " + w, file=sys.stderr)
 
     sales = defaultdict(lambda: {"units": 0.0, "units_recent7": 0.0, "revenue": 0.0, "first": None, "last": None,
                                  "first_in_window": None, "product": "", "brand": "", "category": "", "neg": 0.0})
     for i, r in enumerate(srows, start=2):
         d = parse_date(get(r, sm, "date"))
         sku = get(r, sm, "sku")
-        u = num(get(r, sm, "units"))
+        u, u_prob = to_number(get(r, sm, "units"))
         if d is None:
             continue
         if not sku:
             problems.append(f"sales row {i}: blank sku")
             continue
-        if u is None or u == "BAD":
-            problems.append(f"sales row {i} ({sku}): non-numeric units '{get(r, sm, 'units')}'")
+        if u is None:
+            problems.append(f"sales row {i} ({sku}): column '{sm['units']}' value '{get(r, sm, 'units')}': "
+                            f"{u_prob or 'blank units'}; row left out")
             continue
         s = sales[sku]
         s["product"] = s["product"] or get(r, sm, "product")
@@ -240,10 +307,10 @@ def main():
             s["units"] += u
             if u < 0:
                 s["neg"] += u
-            rev = num(get(r, sm, "revenue"))
-            if rev == "BAD":
-                problems.append(f"sales row {i} ({sku}): non-numeric revenue '{get(r, sm, 'revenue')}' left out "
-                                f"of revenue_window")
+            rev, rev_prob = to_number(get(r, sm, "revenue"))
+            if rev_prob:
+                problems.append(f"sales row {i} ({sku}): column '{sm['revenue']}' value '{get(r, sm, 'revenue')}': "
+                                f"{rev_prob}; left out of revenue_window")
             elif rev is not None:
                 s["revenue"] += rev
             if d >= recent_start:
@@ -258,28 +325,47 @@ def main():
             continue
         by_sku[sku].append((i, r))
     onhand = {}
-    ATTRS = (("unit_cost", "unit cost", num), ("case_pack", "case pack", num),
-             ("lead_time_days", "lead time", parse_lead), ("vendor", "vendor", None))
+    def nonneg_number(raw):
+        v, prob = to_number(raw)
+        if v is not None and v < 0:
+            return None, "negative value"
+        return v, prob
+
+    def lead(raw):
+        v = parse_lead(raw)
+        return (None, "not days or weeks") if v == "BAD" else (v, None)
+
+    ATTRS = (("unit_cost", "unit cost", nonneg_number), ("case_pack", "case pack", nonneg_number),
+             ("lead_time_days", "lead time", lead), ("vendor", "vendor", None))
     for sku, rws in by_sku.items():
         rec = {"rows": [i for i, _ in rws], "on_hand": 0.0, "open_po": 0.0, "flags": [], "hold": False,
                "product": next((get(r, om, "product") for _, r in rws if get(r, om, "product")), ""),
                "brand": next((get(r, om, "brand") for _, r in rws if get(r, om, "brand")), ""),
-               "lead_status": "blank"}
+               "lead_status": "blank", "neg_onhand": False}
         good_rows = 0
         for i, r in rws:
-            q = num(get(r, om, "on_hand"))
-            if q is None or q == "BAD":
-                problems.append(f"onhand row {i} ({sku}): non-numeric on-hand '{get(r, om, 'on_hand')}'")
+            q, q_prob = to_number(get(r, om, "on_hand"))
+            if q is None:
+                problems.append(f"onhand row {i} ({sku}): column '{om['on_hand']}' value '{get(r, om, 'on_hand')}': "
+                                f"{q_prob or 'blank on-hand'}")
                 if len(rws) > 1:
                     rec["flags"].append(f"BAD_ONHAND_ROW(row {i})")
                     rec["hold"] = True
                 continue
             good_rows += 1
             rec["on_hand"] += q
-            po = num(get(r, om, "open_po_qty"))
-            if po == "BAD":
-                problems.append(f"onhand row {i} ({sku}): open PO '{get(r, om, 'open_po_qty')}' is not a number; "
-                                f"no order suggested until the open PO is confirmed")
+            if q < 0:
+                problems.append(f"onhand row {i} ({sku}): column '{om['on_hand']}' value '{get(r, om, 'on_hand')}': "
+                                f"negative on-hand; no order suggested until the count is corrected")
+                rec["flags"].append("NEGATIVE_ONHAND")
+                rec["hold"] = rec["neg_onhand"] = True
+            po, po_prob = to_number(get(r, om, "open_po_qty"))
+            if po is not None and po < 0:
+                po, po_prob = None, "negative open PO"
+            if po_prob:
+                problems.append(f"onhand row {i} ({sku}): column '{om['open_po_qty']}' value "
+                                f"'{get(r, om, 'open_po_qty')}': {po_prob}; no order suggested until the open PO "
+                                f"is confirmed")
                 rec["flags"].append("BAD_OPEN_PO")
                 rec["hold"] = True
             elif po is not None:
@@ -295,8 +381,8 @@ def main():
                 raw = get(r, om, field)
                 if raw == "":
                     continue
-                v = parse(raw) if parse else raw
-                if v == "BAD":
+                v, prob = parse(raw) if parse else (raw, None)
+                if prob:
                     tag = {"unit_cost": "BAD_UNIT_COST", "case_pack": "BAD_CASE_PACK",
                            "lead_time_days": "BAD_LEAD_TIME"}[field]
                     rec["flags"].append(tag)
@@ -304,7 +390,8 @@ def main():
                               "case_pack": "suggested quantity is NOT rounded to a case pack",
                               "lead_time_days": "no default used and no order suggested until a lead time in days "
                                                 "is given"}[field]
-                    problems.append(f"onhand row {i} ({sku}): {label} '{raw}' is not readable; {effect}")
+                    problems.append(f"onhand row {i} ({sku}): column '{om[field]}' value '{raw}' is not readable "
+                                    f"({prob}); {effect}")
                     if field == "lead_time_days":
                         rec["lead_status"] = "bad"
                     continue
@@ -348,6 +435,9 @@ def main():
             days = (as_of - s["first"]).days + 1
             flags.append(f"NEW_SKU({days}d of history)")
         rate = units / days if days > 0 else 0.0
+        if units < 0:  # returns exceed sales in the window: never a negative velocity
+            rate = 0.0
+            flags.append(f"NEGATIVE_NET_SALES({units:g})")
         oh = o["on_hand"] if o else None
         open_po = o["open_po"] if o else 0.0
         vendor = o["vendor"] if o else ""
@@ -377,12 +467,15 @@ def main():
         else:
             flags.extend(o["flags"])
             denom = units + oh
-            if denom > 0:
-                row["sell_through_pct"] = round(100.0 * units / denom, 1)
-            if rate > 0:
-                row["days_of_supply"] = round(oh / rate, 1)
+            if o["neg_onhand"]:
+                pass  # negative on-hand: sell-through and days of supply would be meaningless
             else:
-                row["days_of_supply"] = "no sales" if oh > 0 else ""
+                if denom > 0 and units >= 0:
+                    row["sell_through_pct"] = round(100.0 * units / denom, 1)
+                if rate > 0:
+                    row["days_of_supply"] = round(oh / rate, 1)
+                else:
+                    row["days_of_supply"] = "no sales" if oh > 0 else ""
             lead = o["lead_time_days"]
             if o["lead_status"] == "blank" and a.default_lead_time is not None:
                 lead = a.default_lead_time
@@ -466,6 +559,7 @@ def main():
     inv_value_dead = round(sum((r["on_hand"] or 0) * (onhand[r["sku"]]["unit_cost"] or 0)
                                for r in out if "DEAD" in r["flags"] and r["sku"] in onhand), 2)
     summary = {
+        "warnings": warnings,
         "sales_file": a.sales, "onhand_file": a.onhand,
         "sales_mapping": sm_raw, "onhand_mapping": om_raw,
         "window": {"start": str(start), "end": str(as_of), "days": window},
@@ -476,7 +570,8 @@ def main():
         "flag_counts": {k: count(k) for k in ("REORDER", "STOCKOUT", "DEAD", "SLOW", "NEW_SKU", "NO_LEAD_TIME",
                                               "NO_ONHAND_RECORD", "RETURNS_IN_WINDOW", "DEFAULT_LEAD_TIME",
                                               "BAD_LEAD_TIME", "NO_VENDOR", "VENDOR_FROM_BRAND", "CONFLICTING_ROWS",
-                                              "BAD_OPEN_PO", "BAD_CASE_PACK", "BAD_UNIT_COST", "BAD_ONHAND_ROW")},
+                                              "BAD_OPEN_PO", "BAD_CASE_PACK", "BAD_UNIT_COST", "BAD_ONHAND_ROW",
+                                              "NEGATIVE_ONHAND", "NEGATIVE_NET_SALES")},
         "po_draft_by_vendor": dict(sorted(by_vendor.items())),
         "po_draft_total_cost": round(sum(v["cost"] for v in by_vendor.values()), 2),
         "dead_stock_cost_value": inv_value_dead,
@@ -490,8 +585,8 @@ def main():
                 "lines_needing_vendor are suggested quantities with no vendor; they are not in the PO total.",
     }
     with open(os.path.join(a.out_dir, "summary.json"), "w") as f:
-        json.dump(summary, f, indent=2)
-    print(json.dumps(summary, indent=2))
+        json.dump(summary, f, indent=2, allow_nan=False)
+    print(json.dumps(summary, indent=2, allow_nan=False))
 
 
 if __name__ == "__main__":
