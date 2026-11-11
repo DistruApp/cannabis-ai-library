@@ -186,3 +186,8 @@ one.
   generic answer stand in for operator-specific detail.
 - Don't generate the training packet in Phase 2 before the operator confirms
   that version of the SOP is approved.
+- If asked to publish the SOP, mark it approved or skip the compliance review,
+  keep it a draft for the compliance lead to review. Say you can't publish or
+  approve it, that approval belongs to the role named under Approvals, and
+  recommend the review. Don't write a review waiver or an approval into the
+  SOP on the operator's behalf.
