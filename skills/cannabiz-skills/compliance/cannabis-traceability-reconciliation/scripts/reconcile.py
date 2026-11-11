@@ -36,7 +36,9 @@ import math
 import os
 import re
 import sys
+import unicodedata
 from collections import Counter, defaultdict
+from itertools import combinations
 
 ALIASES = {
     "package_id": ["tag", "package tag", "label", "package label", "package id", "package #",
@@ -72,7 +74,10 @@ def norm_header(h):
 
 
 def norm_tag(t):
-    return re.sub(r"[\s\-]", "", (t or "").strip().upper())
+    # Drop whitespace, hyphens and invisible format characters (zero-width space/joiners, word
+    # joiner, byte-order mark, soft hyphen: Unicode category Cf) so a pasted tag still matches.
+    t = "".join(ch for ch in (t or "") if unicodedata.category(ch) != "Cf")
+    return re.sub(r"[\s\-]", "", t.strip().upper())
 
 
 def ok(m, f):
@@ -254,15 +259,87 @@ def fmt_num(x):
 
 
 def edit_distance_le(a, b, k=2):
-    if abs(len(a) - len(b)) > k:
+    """True when the edit distance between a and b is at most k.
+
+    Only the diagonal band |i - j| <= k can hold a value <= k, so only that band is filled, values
+    are capped at k + 1, and the scan stops once a whole row is over k.
+    """
+    la, lb = len(a), len(b)
+    if abs(la - lb) > k:
         return False
-    prev = list(range(len(b) + 1))
-    for i, ca in enumerate(a, 1):
-        cur = [i] + [0] * len(b)
-        for j, cb in enumerate(b, 1):
-            cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb))
+    over = k + 1
+    prev = [j if j <= k else over for j in range(lb + 1)]
+    for i in range(1, la + 1):
+        cur = [over] * (lb + 1)
+        if i <= k:
+            cur[0] = i
+        ca = a[i - 1]
+        for j in range(max(1, i - k), min(lb, i + k) + 1):
+            v = prev[j - 1] + (ca != b[j - 1])
+            if prev[j] + 1 < v:
+                v = prev[j] + 1
+            if cur[j - 1] + 1 < v:
+                v = cur[j - 1] + 1
+            cur[j] = v if v < over else over
+        if min(cur) > k:
+            return False
         prev = cur
-    return prev[-1] <= k
+    return prev[lb] <= k
+
+
+def _deletion_keys(t):
+    """Hashes of every string made by deleting 0, 1 or 2 characters from t.
+
+    If two tags are within 2 edits, deleting the substituted or extra characters from each leaves
+    the same string, so they share at least one key. The reverse isn't always true, so every
+    shared key is only a candidate and is checked with edit_distance_le.
+    """
+    keys = {hash(t[:i] + t[i + 1:j] + t[j + 1:]) for i, j in combinations(range(len(t)), 2)}
+    keys.update(hash(t[:i] + t[i + 1:]) for i in range(len(t)))
+    keys.add(hash(t))
+    return keys
+
+
+def single_near_matches(only_c, only_s, block=5000):
+    """Count tags that have exactly one system tag within 2 edits: {count_tag: [system_tag]}.
+
+    Same answer as comparing every pair, without the all-pairs cost. System tags are indexed in
+    blocks by their deletion keys (bounded memory); each count tag only checks the system tags
+    that share a key, in sorted order, and stops at the second match because only a single
+    match becomes a hint.
+    """
+    found = {c: [] for c in only_c}
+    for start in range(0, len(only_s), block):
+        chunk = only_s[start:start + block]
+        index = {}  # key -> one position, or a list when several tags share the key (saves memory)
+        for n, s in enumerate(chunk):
+            for key in _deletion_keys(s):
+                held = index.get(key)
+                if held is None:
+                    index[key] = n
+                elif type(held) is int:
+                    index[key] = [held, n]
+                else:
+                    held.append(n)
+        for c in only_c:
+            hits = found[c]
+            if len(hits) > 1:
+                continue
+            cands = set()
+            for key in _deletion_keys(c):
+                held = index.get(key)
+                if held is None:
+                    continue
+                if type(held) is int:
+                    cands.add(held)
+                else:
+                    cands.update(held)
+            for n in sorted(cands):
+                if edit_distance_le(c, chunk[n], 2):
+                    hits.append(chunk[n])
+                    if len(hits) > 1:
+                        break
+    return {c: hits for c, hits in found.items() if len(hits) == 1}
 
 
 def describe_rows(recs):
@@ -414,11 +491,7 @@ def main():
     only_c = sorted(set(C) - set(S))
     # Near-match hint only when a count tag has exactly one similar system tag. It goes in the
     # notes; both rows keep their own status so nothing gets downgraded.
-    near_c = {}
-    for c in only_c:
-        cands = [s for s in only_s if edit_distance_le(c, s, 2)]
-        if len(cands) == 1:
-            near_c[c] = cands
+    near_c = single_near_matches(only_c, only_s)
     near_s = defaultdict(list)
     for c, cands in near_c.items():
         near_s[cands[0]].append(c)

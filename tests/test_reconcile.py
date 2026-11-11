@@ -5,7 +5,10 @@ Every run writes only to a temporary directory.
 """
 import csv
 import filecmp
+import importlib.util
+import random
 import re
+import time
 import unittest
 from pathlib import Path
 
@@ -736,6 +739,121 @@ class Gate5(ReconcileCase):
             _, s = self.reconcile(tmp, SYSTEM, COUNT, "--tolerance-g", "20")
         self.assertNumbersEqual(s["gross_variance_outside_tolerance"], {"each": 14.0})
         self.assertNumbersEqual(s["gross_variance_all_compared"], {"g": 23.792, "each": 14.0})
+
+
+
+def _load_reconcile_module():
+    spec = importlib.util.spec_from_file_location("reconcile_under_test", h.script_path(NAME))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _levenshtein(a, b):
+    """Plain full-table edit distance: the oracle for the near-match index."""
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def _random_tags(rng, n):
+    return ["1A40603000" + "".join(rng.choice("0123456789ABCDEF") for _ in range(4))
+            + "%010d" % rng.randrange(10 ** 10) for _ in range(n)]
+
+
+class Round2(ReconcileCase):
+    """Gate 5 round 2 (second reviewer): T1 near-match speed, T6 invisible characters in tags."""
+
+    def pair(self, tmp, system_rows, count_rows, *extra):
+        h.write_csv(tmp / "s.csv", SYS_HDR, system_rows)
+        h.write_csv(tmp / "c.csv", CNT_HDR, count_rows)
+        return self.reconcile(tmp, tmp / "s.csv", tmp / "c.csv", *extra)
+
+    def test_t1_near_match_index_finds_exactly_what_a_full_scan_finds(self):
+        # The index must be exact: same hints as comparing every pair, never fewer.
+        mod = _load_reconcile_module()
+        rng = random.Random(20261111)
+        for trial in range(25):
+            system = _random_tags(rng, 60) + [TAG + "%03d" % i for i in range(40)] + ["AB", "A", "ABC"]
+            count = []
+            for t in rng.sample(system, 50):
+                t = list(t)
+                for _ in range(rng.randint(1, 3)):
+                    op, p = rng.choice("sid"), rng.randrange(len(t))
+                    if op == "s":
+                        t[p] = rng.choice("0123456789AB")
+                    elif op == "i":
+                        t.insert(p, rng.choice("0123456789"))
+                    elif len(t) > 1:
+                        del t[p]
+                count.append("".join(t))
+            count += _random_tags(rng, 20) + ["", "B", "AC"]
+            only_s = sorted(set(system) - set(count))
+            only_c = sorted(set(count) - set(system))
+            want = {}
+            for c in only_c:
+                cands = [s for s in only_s if _levenshtein(c, s) <= 2]
+                if len(cands) == 1:
+                    want[c] = cands
+            with self.subTest(trial=trial):
+                self.assertEqual(mod.single_near_matches(only_c, only_s), want)
+                # A small block size must give the same answer as one block.
+                self.assertEqual(mod.single_near_matches(only_c, only_s, block=7), want)
+
+    def test_t1_edit_distance_check_matches_full_table(self):
+        mod = _load_reconcile_module()
+        rng = random.Random(7)
+        for _ in range(3000):
+            a = "".join(rng.choice("AB12") for _ in range(rng.randint(0, 9)))
+            b = "".join(rng.choice("AB12") for _ in range(rng.randint(0, 9)))
+            self.assertEqual(mod.edit_distance_le(a, b, 2), _levenshtein(a, b) <= 2, (a, b))
+
+    def test_t1_5000_by_5000_with_no_tags_in_common_runs_fast(self):
+        # Reviewer's case: a full export against the wrong file, so every tag is unmatched.
+        # The old all-pairs scan took 82 s at 1,500 x 1,500 (about 15 min here).
+        rng = random.Random(1)
+        system = _random_tags(rng, 5000)
+        count = _random_tags(rng, 5000)
+        typo = system[0][:-1] + ("0" if system[0][-1] != "0" else "1")  # one planted typo
+        count[0] = typo
+        with h.TempDir() as tmp:
+            start = time.monotonic()
+            rows, s = self.pair(tmp, [[t, "x", "100", "g"] for t in system],
+                                [[t, "x", "100", "g"] for t in count])
+            elapsed = time.monotonic() - start
+        self.assertLess(elapsed, 10.0, f"5,000 x 5,000 took {elapsed:.1f} s")
+        self.assertEqual(s["by_status"].get("COUNTED_NOT_IN_SYSTEM"), 5000)
+        self.assertIn("possible tag typo", rows[typo]["notes"])
+        self.assertIn(system[0], rows[typo]["notes"])
+        self.assertIn(typo, rows[system[0]]["notes"])
+
+    def test_t1_sequential_tag_runs_stay_fast(self):
+        # Sequential tags are the worst case for any index: many tags sit within 2 edits.
+        system = [["1A4060300003D2F000%06d" % i, "x", "1", "each"] for i in range(0, 8000, 2)]
+        count = [["1A4060300003D2F000%06d" % i, "x", "1", "each"] for i in range(1, 8000, 2)]
+        with h.TempDir() as tmp:
+            start = time.monotonic()
+            rows, s = self.pair(tmp, system, count)
+            elapsed = time.monotonic() - start
+        self.assertLess(elapsed, 10.0, f"4,000 x 4,000 sequential took {elapsed:.1f} s")
+        self.assertEqual(s["by_status"].get("COUNTED_NOT_IN_SYSTEM"), 4000)
+        # Every count tag has several system tags within 2 edits, so no single-typo hint.
+        self.assertNotIn("possible tag typo", rows["1A4060300003D2F000000001"]["notes"])
+
+    def test_t6_invisible_characters_in_a_tag_do_not_split_the_package(self):
+        # A zero-width space, zero-width joiner, word joiner or byte-order mark pasted into a tag
+        # is invisible on screen; the same package must match, not show as two variances.
+        for ch in ("​", "‌", "‍", "⁠", "﻿", "­"):
+            with self.subTest(char=hex(ord(ch))), h.TempDir() as tmp:
+                rows, s = self.pair(tmp, [[tag("101"), "x", "100", "g"]],
+                                    [[tag("1") + ch + "01", "x", "100", "g"]])
+                self.assertEqual(list(rows), [tag("101")])
+                self.assertEqual(rows[tag("101")]["status"], "MATCH")
+                self.assertEqual(s["by_status"], {"MATCH": 1})
 
 
 if __name__ == "__main__":
