@@ -1,6 +1,6 @@
 {
   "name": "cannabis-ai-library",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Distru's agent skills for licensed cannabis operators: state rules lookup, inspection readiness, traceability reconciliation, manifest prechecks, SOPs, batch COGS, harvest yield, replenishment and staff scheduling, plus Distru-connected skills such as the expiring inventory dashboard.",
   "author": {
     "name": "Distru",
